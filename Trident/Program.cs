@@ -7,6 +7,7 @@ namespace Trident
     {
         static void Main(string[] args)
         {
+            ARM7TDMI arm = new();
         }
     }
 }

@@ -4,7 +4,8 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-using Trident.Core.CPU.Decoding;
+using Trident.Core.CPU.Decoding.ARM;
+using Trident.Core.CPU.Decoding.Thumb;
 using Trident.Core.Enums;
 
 using static Trident.Core.CPU.Conditions;
@@ -17,9 +18,13 @@ namespace Trident.Core.CPU
 
         private uint[] prefetchBuffer = new uint[2];
 
+        private ThumbArguments _thumbParams;
+
         public ARM7TDMI()
         {
             _regs = new();
+            ARMDecoder.InitDecoder();
+            ThumbDispatcher.InitDecoder();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -36,17 +41,19 @@ namespace Trident.Core.CPU
         {
             uint opcode = prefetchBuffer[0];
             prefetchBuffer[0] = prefetchBuffer[1];
-            prefetchBuffer[1] = 0;
+            prefetchBuffer[1] = 0; // Dummy load
             _regs.PC += 2;
 
-            // ExecuteThumb(opcode); // if needed
+            ThumbMetadata instr = ThumbDispatcher.GetInstruction(opcode);
+            instr.ArgDecoder(ref _thumbParams, opcode);
+            instr.Handler(this, ref _thumbParams);
         }
 
         private void StepARM()
         {
             uint opcode = prefetchBuffer[0];
             prefetchBuffer[0] = prefetchBuffer[1];
-            prefetchBuffer[1] = 0;
+            prefetchBuffer[1] = 0; // Dummy load
             _regs.PC += 4;
 
             uint cond = opcode >> 28;
