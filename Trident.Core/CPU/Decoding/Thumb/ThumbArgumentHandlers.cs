@@ -2,6 +2,6 @@
 {
     internal unsafe static class ThumbArgumentHandlers
     {
-        internal static void NotImplementedArgHandler(ref ThumbArguments args, uint opcode) { }
+        internal static void NonImplementedArgHandler(ref ThumbArguments args, uint opcode) { }
     }
 }
