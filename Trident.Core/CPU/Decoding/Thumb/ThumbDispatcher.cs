@@ -1,4 +1,4 @@
-﻿using static Trident.Core.CPU.Decoding.Thumb.ThumbArgumentHandler;
+﻿using static Trident.Core.CPU.Decoding.Thumb.ThumbArgumentHandlers;
 
 namespace Trident.Core.CPU.Decoding.Thumb
 {
@@ -12,31 +12,31 @@ namespace Trident.Core.CPU.Decoding.Thumb
 
         private static readonly ThumbDecodePattern[] _instructionPatterns =
         [
-            new(mask: 0b1111100000000000, expected: 0b0001100000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // ADD, SUB
-            new(mask: 0b1110000000000000, expected: 0b0000000000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // LSL, LSR, ASR, ROR
-            new(mask: 0b1110000000000000, expected: 0b0010000000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // MOV, CMP, ADD, SUB
-            new(mask: 0b1111110000000000, expected: 0b0100000000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // Data Processing
-            new(mask: 0b1111111100000000, expected: 0b0100011100000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // BX
-            new(mask: 0b1111110000000000, expected: 0b0100010000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // ADD, CMP, MOV (high registers)
-            new(mask: 0b1111100000000000, expected: 0b0100100000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // LDR (PC-relative)
-            new(mask: 0b1111011000000000, expected: 0b0101001000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // LDRH, STRH (register offset)
-            new(mask: 0b1111011000000000, expected: 0b0101011000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // LDRSH, LDRSB (register offset)
-            new(mask: 0b1111011000000000, expected: 0b0101000000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // LDR, STR (register offset)
-            new(mask: 0b1111011000000000, expected: 0b0101010000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // LDRB, STRB (register offset)
-            new(mask: 0b1111000000000000, expected: 0b0110000000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // LDR, STR (immediate offset)
-            new(mask: 0b1111000000000000, expected: 0b0111000000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // LDRB, STRB (immediate offset)
-            new(mask: 0b1111000000000000, expected: 0b1000000000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // LDRH, STRH (immediate offset)
-            new(mask: 0b1111000000000000, expected: 0b1001000000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // LDR, STR (SP-relative)
-            new(mask: 0b1111000000000000, expected: 0b1010000000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // ADD (SP or PC) aka Load Address
-            new(mask: 0b1111110000000000, expected: 0b1011000000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // ADD, SUB (SP)
-            new(mask: 0b1111011000000000, expected: 0b1011010000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // PUSH, POP
-            new(mask: 0b1111000000000000, expected: 0b1100000000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // LDM, STM
-            new(mask: 0b1111111100000000, expected: 0b1101111100000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // SWI
-            new(mask: 0b1111111100000000, expected: 0b1101111000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // Undefined instructions in Bcc range
-            new(mask: 0b1111000000000000, expected: 0b1101000000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // Bcc (conditional branching)
-            new(mask: 0b1111100000000000, expected: 0b1110000000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // B (unconditional branching)
-            new(mask: 0b1111100000000000, expected: 0b1111000000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // BL, BLX prefix
-            new(mask: 0b1111100000000000, expected: 0b1111100000000000, handler: &NotImplementedInstruction, &NotImplementedParamDecoder), // BL suffix
+            new(mask: 0b1111100000000000, expected: 0b0001100000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // ADD, SUB
+            new(mask: 0b1110000000000000, expected: 0b0000000000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // LSL, LSR, ASR, ROR
+            new(mask: 0b1110000000000000, expected: 0b0010000000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // MOV, CMP, ADD, SUB
+            new(mask: 0b1111110000000000, expected: 0b0100000000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // Data Processing
+            new(mask: 0b1111111100000000, expected: 0b0100011100000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // BX
+            new(mask: 0b1111110000000000, expected: 0b0100010000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // ADD, CMP, MOV (high registers)
+            new(mask: 0b1111100000000000, expected: 0b0100100000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // LDR (PC-relative)
+            new(mask: 0b1111011000000000, expected: 0b0101001000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // LDRH, STRH (register offset)
+            new(mask: 0b1111011000000000, expected: 0b0101011000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // LDRSH, LDRSB (register offset)
+            new(mask: 0b1111011000000000, expected: 0b0101000000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // LDR, STR (register offset)
+            new(mask: 0b1111011000000000, expected: 0b0101010000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // LDRB, STRB (register offset)
+            new(mask: 0b1111000000000000, expected: 0b0110000000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // LDR, STR (immediate offset)
+            new(mask: 0b1111000000000000, expected: 0b0111000000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // LDRB, STRB (immediate offset)
+            new(mask: 0b1111000000000000, expected: 0b1000000000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // LDRH, STRH (immediate offset)
+            new(mask: 0b1111000000000000, expected: 0b1001000000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // LDR, STR (SP-relative)
+            new(mask: 0b1111000000000000, expected: 0b1010000000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // ADD (SP or PC) aka Load Address
+            new(mask: 0b1111110000000000, expected: 0b1011000000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // ADD, SUB (SP)
+            new(mask: 0b1111011000000000, expected: 0b1011010000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // PUSH, POP
+            new(mask: 0b1111000000000000, expected: 0b1100000000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // LDM, STM
+            new(mask: 0b1111111100000000, expected: 0b1101111100000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // SWI
+            new(mask: 0b1111111100000000, expected: 0b1101111000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // Undefined instructions in Bcc range
+            new(mask: 0b1111000000000000, expected: 0b1101000000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // Bcc (conditional branching)
+            new(mask: 0b1111100000000000, expected: 0b1110000000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // B (unconditional branching)
+            new(mask: 0b1111100000000000, expected: 0b1111000000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // BL, BLX prefix
+            new(mask: 0b1111100000000000, expected: 0b1111100000000000, handler: &NotImplementedInstruction, &NotImplementedArgHandler), // BL suffix
         ];
 
 
