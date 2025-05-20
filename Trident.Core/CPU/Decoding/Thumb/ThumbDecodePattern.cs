@@ -7,12 +7,12 @@
         internal readonly ThumbInstruction Handler;
         internal readonly ThumbArgumentDecoder ParamDecoder;
 
-        internal ThumbDecodePattern(uint mask, uint expected, ThumbInstruction handler, ThumbArgumentDecoder paramDecoder)
+        internal ThumbDecodePattern(uint mask, uint expected, ThumbInstruction handler, ThumbArgumentDecoder argDecoder)
         {
             Mask = mask;
             Expected = expected;
             Handler = handler;
-            ParamDecoder = paramDecoder;
+            ParamDecoder = argDecoder;
         }
     }
 }

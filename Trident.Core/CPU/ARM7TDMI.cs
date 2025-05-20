@@ -23,7 +23,7 @@ namespace Trident.Core.CPU
         public ARM7TDMI()
         {
             _regs = new();
-            ARMDecoder.InitDecoder();
+            ARMDispatcher.InitDecoder();
             ThumbDispatcher.InitDecoder();
         }
 
@@ -60,7 +60,7 @@ namespace Trident.Core.CPU
             if (cond != CondAL && !ConditionMet(cond, (int)_regs.CPSR >> 28))
                 return;
 
-            ARMInstruction instr = ARMDecoder.GetInstruction(opcode);
+            ARMInstruction instr = ARMDispatcher.GetInstruction(opcode);
             instr(this, opcode);
         }
 
