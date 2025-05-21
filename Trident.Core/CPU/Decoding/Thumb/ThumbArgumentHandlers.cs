@@ -79,7 +79,7 @@ namespace Trident.Core.CPU.Decoding.Thumb
             args.Imm <<= 2;
         }
 
-        internal static void HandleGenericLdrStrReg(ref ThumbArguments args, uint opcode)
+        internal static void HandleLdrhStrhReg(ref ThumbArguments args, uint opcode) 
         {
             args.Opcode = opcode;
 
@@ -94,6 +94,26 @@ namespace Trident.Core.CPU.Decoding.Thumb
             args.Opcode = opcode;
 
             args.B = ~opcode.GetBit(11);
+            args.Ro = opcode.Extract(8, 6);
+            args.Rb = opcode.Extract(5, 3);
+            args.Rd = opcode.Extract(2, 0);
+        }
+
+        internal static void HandleLdrStrReg(ref ThumbArguments args, uint opcode) 
+        {
+            args.Opcode = opcode;
+
+            args.L = opcode.GetBit(11);
+            args.Ro = opcode.Extract(8, 6);
+            args.Rb = opcode.Extract(5, 3);
+            args.Rd = opcode.Extract(2, 0);
+        }
+
+        internal static void HandleLdrbStrbReg(ref ThumbArguments args, uint opcode) 
+        {
+            args.Opcode = opcode;
+
+            args.L = opcode.GetBit(11);
             args.Ro = opcode.Extract(8, 6);
             args.Rb = opcode.Extract(5, 3);
             args.Rd = opcode.Extract(2, 0);
