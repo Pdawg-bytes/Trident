@@ -2,16 +2,16 @@
 {
     internal struct ThumbArguments
     {
-        internal ushort SubOpcode;
-        internal ushort Opcode;
-        internal ushort Rd, Rs;
-        internal ushort Ro, Rm;
-        internal ushort Rn, Rb;
+        internal uint SubOpcode;
+        internal uint Opcode;
+        internal uint Rd, Rs;
+        internal uint Ro, Rm;
+        internal uint Rn, Rb;
 
-        internal ushort L, I, B, SP, S, PC_LR;
+        internal uint L, I, B, SP, S, PC_LR;
         internal uint Imm;
-        internal ushort Rlist;
-        internal ushort Comment;
+        internal uint Rlist;
+        internal uint Comment;
 
         internal void Reset()
         {
