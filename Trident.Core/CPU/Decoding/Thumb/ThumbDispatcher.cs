@@ -1,4 +1,5 @@
-﻿using static Trident.Core.CPU.Decoding.Thumb.ThumbArgumentDecoders;
+﻿using static Trident.Core.CPU.Decoding.Thumb.ThumbDecodeMasks;
+using static Trident.Core.CPU.Decoding.Thumb.ThumbArgumentDecoders;
 
 namespace Trident.Core.CPU.Decoding.Thumb
 {
@@ -12,31 +13,31 @@ namespace Trident.Core.CPU.Decoding.Thumb
 
         private static readonly ThumbDecodePattern[] _instructionPatterns =
         [
-            new(mask: ThumbMask.ADD_SUB,         expected: ThumbExpected.ADD_SUB,         handler: &NonImplementedInstr, argDecoder: &HandleAddSub),
-            new(mask: ThumbMask.SHIFT_IMM,       expected: ThumbExpected.SHIFT_IMM,       handler: &NonImplementedInstr, argDecoder: &HandleShiftImm),
-            new(mask: ThumbMask.MOV_CMP_ADD_SUB, expected: ThumbExpected.MOV_CMP_ADD_SUB, handler: &NonImplementedInstr, argDecoder: &HandleMovCmpAddSub),
-            new(mask: ThumbMask.DP_REG,          expected: ThumbExpected.DP_REG,          handler: &NonImplementedInstr, argDecoder: &HandleDataProcReg),
-            new(mask: ThumbMask.BX,              expected: ThumbExpected.BX,              handler: &NonImplementedInstr, argDecoder: &HandleBX),
-            new(mask: ThumbMask.HIGH_REG_OPS,    expected: ThumbExpected.HIGH_REG_OPS,    handler: &NonImplementedInstr, argDecoder: &HandleHighRegOps),
-            new(mask: ThumbMask.LDR_PC_REL,      expected: ThumbExpected.LDR_PC_REL,      handler: &NonImplementedInstr, argDecoder: &HandleLdrPCRel),
-            new(mask: ThumbMask.LDRH_STRH_REG,   expected: ThumbExpected.LDRH_STRH_REG,   handler: &NonImplementedInstr, argDecoder: &HandleLdrhStrhReg),
-            new(mask: ThumbMask.LDRSH_LDRSB_REG, expected: ThumbExpected.LDRSB_LDRSH_REG, handler: &NonImplementedInstr, argDecoder: &HandleLdrsbLdrshReg),
-            new(mask: ThumbMask.LDR_STR_REG,     expected: ThumbExpected.LDR_STR_REG,     handler: &NonImplementedInstr, argDecoder: &HandleLdrStrReg),
-            new(mask: ThumbMask.LDRB_STRB_REG,   expected: ThumbExpected.LDRB_STRB_REG,   handler: &NonImplementedInstr, argDecoder: &HandleLdrbStrbReg),
-            new(mask: ThumbMask.LDR_STR_IMM,     expected: ThumbExpected.LDR_STR_IMM,     handler: &NonImplementedInstr, argDecoder: &HandleLdrStrImm),
-            new(mask: ThumbMask.LDRB_STRB_IMM,   expected: ThumbExpected.LDRB_STRB_IMM,   handler: &NonImplementedInstr, argDecoder: &HandleLdrbStrbImm),
-            new(mask: ThumbMask.LDRH_STRH_IMM,   expected: ThumbExpected.LDRH_STRH_IMM,   handler: &NonImplementedInstr, argDecoder: &HandleLdrhStrhImm),
-            new(mask: ThumbMask.LDR_STR_SP_REL,  expected: ThumbExpected.LDR_STR_SP_REL,  handler: &NonImplementedInstr, argDecoder: &HandleLdrStrSPRel),
-            new(mask: ThumbMask.ADD_SP_PC,       expected: ThumbExpected.ADD_SP_PC,       handler: &NonImplementedInstr, argDecoder: &HandleAddSPPC),
-            new(mask: ThumbMask.ADD_SUB_SP,      expected: ThumbExpected.ADD_SUB_SP,      handler: &NonImplementedInstr, argDecoder: &HandleAddSubSP),
-            new(mask: ThumbMask.PUSH_POP,        expected: ThumbExpected.PUSH_POP,        handler: &NonImplementedInstr, argDecoder: &HandlePushPop),
-            new(mask: ThumbMask.LDM_STM,         expected: ThumbExpected.LDM_STM,         handler: &NonImplementedInstr, argDecoder: &HandleLdmStm),
-            new(mask: ThumbMask.SWI,             expected: ThumbExpected.SWI,             handler: &NonImplementedInstr, argDecoder: &HandleSWI),
-            new(mask: ThumbMask.UNDEFINED_BCC,   expected: ThumbExpected.UNDEFINED_BCC,   handler: &NonImplementedInstr, argDecoder: &HandleBCC),
-            new(mask: ThumbMask.BCC,             expected: ThumbExpected.BCC,             handler: &NonImplementedInstr, argDecoder: &HandleBCC),
-            new(mask: ThumbMask.B_UNCOND,        expected: ThumbExpected.B_UNCOND,        handler: &NonImplementedInstr, argDecoder: &HandleBUncond),
-            new(mask: ThumbMask.BL_BLX_PREFIX,   expected: ThumbExpected.BL_BLX_PREFIX,   handler: &NonImplementedInstr, argDecoder: &HandleBlBlxPrefix),
-            new(mask: ThumbMask.BL_SUFFIX,       expected: ThumbExpected.BL_SUFFIX,       handler: &NonImplementedInstr, argDecoder: &HandleBlSuffix),
+            new(mask: ADD_SUB_MASK,         expected: ADD_SUB_EXPECTED,         handler: &NonImplementedInstr, argDecoder: &HandleAddSub),
+            new(mask: SHIFT_IMM_MASK,       expected: SHIFT_IMM_EXPECTED,       handler: &NonImplementedInstr, argDecoder: &HandleShiftImm),
+            new(mask: MOV_CMP_ADD_SUB_MASK, expected: MOV_CMP_ADD_SUB_EXPECTED, handler: &NonImplementedInstr, argDecoder: &HandleMovCmpAddSub),
+            new(mask: DP_REG_MASK,          expected: DP_REG_EXPECTED,          handler: &NonImplementedInstr, argDecoder: &HandleDataProcReg),
+            new(mask: BX_MASK,              expected: BX_EXPECTED,              handler: &NonImplementedInstr, argDecoder: &HandleBX),
+            new(mask: HIGH_REG_OPS_MASK,    expected: HIGH_REG_OPS_EXPECTED,    handler: &NonImplementedInstr, argDecoder: &HandleHighRegOps),
+            new(mask: LDR_PC_REL_MASK,      expected: LDR_PC_REL_EXPECTED,      handler: &NonImplementedInstr, argDecoder: &HandleLdrPCRel),
+            new(mask: LDRH_STRH_REG_MASK,   expected: LDRH_STRH_REG_EXPECTED,   handler: &NonImplementedInstr, argDecoder: &HandleLdrhStrhReg),
+            new(mask: LDRSH_LDRSB_REG_MASK, expected: LDRSB_LDRSH_REG_EXPECTED, handler: &NonImplementedInstr, argDecoder: &HandleLdrsbLdrshReg),
+            new(mask: LDR_STR_REG_MASK,     expected: LDR_STR_REG_EXPECTED,     handler: &NonImplementedInstr, argDecoder: &HandleLdrStrReg),
+            new(mask: LDRB_STRB_REG_MASK,   expected: LDRB_STRB_REG_EXPECTED,   handler: &NonImplementedInstr, argDecoder: &HandleLdrbStrbReg),
+            new(mask: LDR_STR_IMM_MASK,     expected: LDR_STR_IMM_EXPECTED,     handler: &NonImplementedInstr, argDecoder: &HandleLdrStrImm),
+            new(mask: LDRB_STRB_IMM_MASK,   expected: LDRB_STRB_IMM_EXPECTED,   handler: &NonImplementedInstr, argDecoder: &HandleLdrbStrbImm),
+            new(mask: LDRH_STRH_IMM_MASK,   expected: LDRH_STRH_IMM_EXPECTED,   handler: &NonImplementedInstr, argDecoder: &HandleLdrhStrhImm),
+            new(mask: LDR_STR_SP_REL_MASK,  expected: LDR_STR_SP_REL_EXPECTED,  handler: &NonImplementedInstr, argDecoder: &HandleLdrStrSPRel),
+            new(mask: ADD_SP_PC_MASK,       expected: ADD_SP_PC_EXPECTED,       handler: &NonImplementedInstr, argDecoder: &HandleAddSPPC),
+            new(mask: ADD_SUB_SP_MASK,      expected: ADD_SUB_SP_EXPECTED,      handler: &NonImplementedInstr, argDecoder: &HandleAddSubSP),
+            new(mask: PUSH_POP_MASK,        expected: PUSH_POP_EXPECTED,        handler: &NonImplementedInstr, argDecoder: &HandlePushPop),
+            new(mask: LDM_STM_MASK,         expected: LDM_STM_EXPECTED,         handler: &NonImplementedInstr, argDecoder: &HandleLdmStm),
+            new(mask: SWI_MASK,             expected: SWI_EXPECTED,             handler: &NonImplementedInstr, argDecoder: &HandleSWI),
+            new(mask: UNDEFINED_BCC_MASK,   expected: UNDEFINED_BCC_EXPECTED,   handler: &NonImplementedInstr, argDecoder: &HandleBCC),
+            new(mask: BCC_MASK,             expected: BCC_EXPECTED,             handler: &NonImplementedInstr, argDecoder: &HandleBCC),
+            new(mask: B_UNCOND_MASK,        expected: B_UNCOND_EXPECTED,        handler: &NonImplementedInstr, argDecoder: &HandleBUncond),
+            new(mask: BL_BLX_PREFIX_MASK,   expected: BL_BLX_PREFIX_EXPECTED,   handler: &NonImplementedInstr, argDecoder: &HandleBlBlxPrefix),
+            new(mask: BL_SUFFIX_MASK,       expected: BL_SUFFIX_EXPECTED,       handler: &NonImplementedInstr, argDecoder: &HandleBlSuffix),
         ];
 
 
@@ -53,7 +54,7 @@ namespace Trident.Core.CPU.Decoding.Thumb
 
                 foreach (var pattern in _instructionPatterns)
                 {
-                    if ((instr & (uint)pattern.Mask) == (uint)pattern.Expected)
+                    if ((instr << 8 & pattern.Mask) == pattern.Expected)
                     {
                         _thumbInstructionTable[instr] = pattern.Handler;
                         _thumbArgDecoders[instr] = pattern.ParamDecoder;

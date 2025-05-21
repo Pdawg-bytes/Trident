@@ -2,11 +2,11 @@
 {
     readonly unsafe struct ARMDecodePattern
     {
-        internal readonly ARMMask Mask;
-        internal readonly ARMExpected Expected;
+        internal readonly uint Mask;
+        internal readonly uint Expected;
         internal readonly ARMInstruction Handler;
 
-        internal ARMDecodePattern(ARMMask mask, ARMExpected expected, ARMInstruction handler)
+        internal ARMDecodePattern(uint mask, uint expected, ARMInstruction handler)
         {
             Mask = mask;
             Expected = expected;
@@ -14,53 +14,50 @@
         }
     }
 
-    internal enum ARMMask : uint
+    internal static class ARMDecodeMasks
     {
-        MUL = 0b111111001111,
-        MULL = 0b111110001111,
-        SWP = 0b111110111111,
-        LDRH_STRH = 0b111000001111,
-        LDRSB_LDRSH = 0b111000011101,
-        MRS = 0b111110111111,
-        MSR_REG = 0b111110111111,
-        MSR_IMM = 0b111110110000,
-        BX = 0b111111111111,
-        DP_IMM_SHIFT = 0b111000000001,
-        DP_REG_SHIFT = 0b111000001001,
-        UNDEFINED = 0b111110110000,
-        DP_IMM = 0b111000000000,
-        LDR_STR_IMM = 0b111000000000,
-        LDR_STR_REG = 0b111000000001,
-        LDM_STM = 0b111000000000,
-        B_BL = 0b111000000000,
-        STC_LDC = 0b111000000000,
-        CDP = 0b111100000001,
-        MCR_MRC = 0b111100000001,
-        SWI = 0b111100000000,
-    }
+        internal const uint MUL_MASK = 0b111111001111;
+        internal const uint MULL_MASK = 0b111110001111;
+        internal const uint SWP_MASK = 0b111110111111;
+        internal const uint LDRH_STRH_MASK = 0b111000001111;
+        internal const uint LDRSB_LDRSH_MASK = 0b111000011101;
+        internal const uint MRS_MASK = 0b111110111111;
+        internal const uint MSR_REG_MASK = 0b111110111111;
+        internal const uint MSR_IMM_MASK = 0b111110110000;
+        internal const uint BX_MASK = 0b111111111111;
+        internal const uint DP_IMM_SHIFT_MASK = 0b111000000001;
+        internal const uint DP_REG_SHIFT_MASK = 0b111000001001;
+        internal const uint UNDEFINED_MASK = 0b111110110000;
+        internal const uint DP_IMM_MASK = 0b111000000000;
+        internal const uint LDR_STR_IMM_MASK = 0b111000000000;
+        internal const uint LDR_STR_REG_MASK = 0b111000000001;
+        internal const uint LDM_STM_MASK = 0b111000000000;
+        internal const uint B_BL_MASK = 0b111000000000;
+        internal const uint STC_LDC_MASK = 0b111000000000;
+        internal const uint CDP_MASK = 0b111100000001;
+        internal const uint MCR_MRC_MASK = 0b111100000001;
+        internal const uint SWI_MASK = 0b111100000000;
 
-    internal enum ARMExpected : uint
-    {
-        MUL = 0b000000001001,
-        MULL = 0b000010001001,
-        SWP = 0b000100001001,
-        LDRH_STRH = 0b000000001011,
-        LDRSB_LDRSH = 0b000000011101,
-        MRS = 0b000100000000,
-        MSR_REG = 0b000100100000,
-        MSR_IMM = 0b001100100000,
-        BX = 0b000100100001,
-        DP_IMM_SHIFT = 0b000000000000,
-        DP_REG_SHIFT = 0b000000000001,
-        UNDEFINED = 0b001100000000,
-        DP_IMM = 0b001000000000,
-        LDR_STR_IMM = 0b010000000000,
-        LDR_STR_REG = 0b011000000000,
-        LDM_STM = 0b100000000000,
-        B_BL = 0b101000000000,
-        STC_LDC = 0b110000000000,
-        CDP = 0b111000000000,
-        MCR_MRC = 0b111000000001,
-        SWI = 0b111100000000,
+        internal const uint MUL_EXPECTED = 0b000000001001;
+        internal const uint MULL_EXPECTED = 0b000010001001;
+        internal const uint SWP_EXPECTED = 0b000100001001;
+        internal const uint LDRH_STRH_EXPECTED = 0b000000001011;
+        internal const uint LDRSB_LDRSH_EXPECTED = 0b000000011101;
+        internal const uint MRS_EXPECTED = 0b000100000000;
+        internal const uint MSR_REG_EXPECTED = 0b000100100000;
+        internal const uint MSR_IMM_EXPECTED = 0b001100100000;
+        internal const uint BX_EXPECTED = 0b000100100001;
+        internal const uint DP_IMM_SHIFT_EXPECTED = 0b000000000000;
+        internal const uint DP_REG_SHIFT_EXPECTED = 0b000000000001;
+        internal const uint UNDEFINED_EXPECTED = 0b001100000000;
+        internal const uint DP_IMM_EXPECTED = 0b001000000000;
+        internal const uint LDR_STR_IMM_EXPECTED = 0b010000000000;
+        internal const uint LDR_STR_REG_EXPECTED = 0b011000000000;
+        internal const uint LDM_STM_EXPECTED = 0b100000000000;
+        internal const uint B_BL_EXPECTED = 0b101000000000;
+        internal const uint STC_LDC_EXPECTED = 0b110000000000;
+        internal const uint CDP_EXPECTED = 0b111000000000;
+        internal const uint MCR_MRC_EXPECTED = 0b111000000001;
+        internal const uint SWI_EXPECTED = 0b111100000000;
     }
 }

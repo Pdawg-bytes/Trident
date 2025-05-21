@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Trident.Core.Enums;
 using Trident.Core.CPU.Decoding.ARM;
 using Trident.Core.CPU.Decoding.Thumb;
-using Trident.Core.Enums;
+using System.Runtime.CompilerServices;
 
 using static Trident.Core.CPU.Conditions;
 
@@ -15,16 +10,32 @@ namespace Trident.Core.CPU
     public unsafe class ARM7TDMI
     {
         private RegisterSet _regs;
-
-        private uint[] prefetchBuffer = new uint[2];
+        private Pipeline _pipeline;
 
         private ThumbArguments _thumbParams;
+
+        private ulong _cycles = 0;
 
         public ARM7TDMI()
         {
             _regs = new();
+            _pipeline = new();
             ARMDispatcher.InitDecoder();
             ThumbDispatcher.InitDecoder();
+        }
+
+        public void Reset()
+        {
+            _regs.ResetRegisters();
+            _regs.SetFlag(Flags.F);
+            _regs.SwitchMode(PrivilegeMode.Supervisor);
+            _regs.SPSR = _regs.CPSR;
+            FlushPipeline();
+        }
+
+        public void Run()
+        {
+
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -36,12 +47,11 @@ namespace Trident.Core.CPU
                 StepARM();
         }
 
-
         private void StepThumb()
         {
-            uint opcode = prefetchBuffer[0];
-            prefetchBuffer[0] = prefetchBuffer[1];
-            prefetchBuffer[1] = 0; // Dummy load
+            uint opcode = _pipeline.Prefetch[0];
+            _pipeline.Prefetch[0] = _pipeline.Prefetch[1];
+            _pipeline.Prefetch[1] = 0; // Dummy load
             _regs.PC += 2;
 
             ThumbMetadata instr = ThumbDispatcher.GetInstruction(opcode);
@@ -51,9 +61,9 @@ namespace Trident.Core.CPU
 
         private void StepARM()
         {
-            uint opcode = prefetchBuffer[0];
-            prefetchBuffer[0] = prefetchBuffer[1];
-            prefetchBuffer[1] = 0; // Dummy load
+            uint opcode = _pipeline.Prefetch[0];
+            _pipeline.Prefetch[0] = _pipeline.Prefetch[1];
+            _pipeline.Prefetch[1] = 0; // Dummy load
             _regs.PC += 4;
 
             uint cond = opcode >> 28;
@@ -64,15 +74,34 @@ namespace Trident.Core.CPU
             instr(this, opcode);
         }
 
-        public void Run()
+        private ulong FlushPipeline()
         {
+            if (_regs.IsFlagSet(Flags.T))
+            {
+                _pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
+                _pipeline.Prefetch[0] = 0; // Dummy load
+                _pipeline.Address[0] = _regs.PC;
+                _regs.PC += 2;
 
-        }
+                _pipeline.Access |= PipelineAccess.Sequential;
+                _pipeline.Prefetch[1] = 0; // Dummy load
+                _pipeline.Address[1] = _regs.PC;
+                _regs.PC += 2;
+            }
+            else
+            {
+                _pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
+                _pipeline.Prefetch[0] = 0; // Dummy load
+                _pipeline.Address[0] = _regs.PC;
+                _regs.PC += 4;
 
-        public void Reset()
-        {
-            _regs.ResetRegisters();
-            _regs.SwitchMode(Mode.System);
+                _pipeline.Access |= PipelineAccess.Sequential;
+                _pipeline.Prefetch[1] = 0; // Dummy load
+                _pipeline.Address[1] = _regs.PC;
+                _regs.PC += 4;
+            }
+
+            return 0;
         }
     }
 }

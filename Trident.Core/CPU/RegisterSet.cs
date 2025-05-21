@@ -25,20 +25,20 @@ namespace Trident.Core.CPU
         private Flags[] _bankedSpsr = new Flags[6]; // 6 distinct modes, usr/sys don't use SPSR, but our bank switch relies on it anyways.
         private RegisterArray _registers = new RegisterArray();
 
-        public Mode CurrentMode { get; private set; }
+        public PrivilegeMode CurrentMode { get; private set; }
 
         public RegisterSet()
         {
-            bankParams[(uint)Mode.User] = new BankParameters(8, 0, 7, 0);
-            bankParams[(uint)Mode.System] = new BankParameters(8, 0, 7, 0);
-            bankParams[(uint)Mode.FIQ] = new BankParameters(8, 7, 7, 1);
-            bankParams[(uint)Mode.IRQ] = new BankParameters(13, 14, 2, 2);
-            bankParams[(uint)Mode.Supervisor] = new BankParameters(13, 16, 2, 3);
-            bankParams[(uint)Mode.Abort] = new BankParameters(13, 18, 2, 4);
-            bankParams[(uint)Mode.Undefined] = new BankParameters(13, 20, 2, 5);
+            bankParams[(uint)PrivilegeMode.User] = new BankParameters(8, 0, 7, 0);
+            bankParams[(uint)PrivilegeMode.System] = new BankParameters(8, 0, 7, 0);
+            bankParams[(uint)PrivilegeMode.FIQ] = new BankParameters(8, 7, 7, 1);
+            bankParams[(uint)PrivilegeMode.IRQ] = new BankParameters(13, 14, 2, 2);
+            bankParams[(uint)PrivilegeMode.Supervisor] = new BankParameters(13, 16, 2, 3);
+            bankParams[(uint)PrivilegeMode.Abort] = new BankParameters(13, 18, 2, 4);
+            bankParams[(uint)PrivilegeMode.Undefined] = new BankParameters(13, 20, 2, 5);
 
-            CurrentMode = Mode.System;
-            SwitchMode(Mode.System);
+            CurrentMode = PrivilegeMode.System;
+            SwitchMode(PrivilegeMode.System);
         }
 
         internal unsafe ref uint GetRegisterRef(int index)
@@ -80,10 +80,10 @@ namespace Trident.Core.CPU
 
 
         /// <summary>
-        /// Switches the register bank that the processor is using based on the requested <see cref="Mode"/>.
+        /// Switches the register bank that the processor is using based on the requested <see cref="PrivilegeMode"/>.
         /// </summary>
         /// <param name="newMode">The mode to set the processor to.</param>
-        public void SwitchMode(Mode newMode)
+        public void SwitchMode(PrivilegeMode newMode)
         {
             // Don't copy anything unless we have to
             if (CurrentMode == newMode) return;
@@ -97,7 +97,7 @@ namespace Trident.Core.CPU
 
             // Copy in r8-r12 from the user bank if we're leaving FIQ and entering anything except for USR/SYS.
             // We do not need to copy r13 or r14 because every other mode overwrites them anyways.
-            if (CurrentMode is Mode.FIQ && (newMode is not Mode.User && newMode is not Mode.System))
+            if (CurrentMode is PrivilegeMode.FIQ && (newMode is not PrivilegeMode.User && newMode is not PrivilegeMode.System))
                 for (int i = 0; i < 5; i++) _registers[8 + i] = _bankStore[i];
 
             // Copy new bank into working set
@@ -126,7 +126,7 @@ namespace Trident.Core.CPU
                 Console.WriteLine($"R{i}: 0x{_registers[i]:X8}");
             }
             Console.WriteLine($"CPSR: 0x{CPSR:X8}");
-            if (CurrentMode is not Mode.User && CurrentMode is not Mode.System) Console.WriteLine($"SPSR: 0x{SPSR:X8}");
+            if (CurrentMode is not PrivilegeMode.User && CurrentMode is not PrivilegeMode.System) Console.WriteLine($"SPSR: 0x{SPSR:X8}");
             Console.WriteLine(new string('-', 30));
         }
 

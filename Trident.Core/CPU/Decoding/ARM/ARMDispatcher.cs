@@ -1,4 +1,6 @@
-﻿namespace Trident.Core.CPU.Decoding.ARM
+﻿using static Trident.Core.CPU.Decoding.ARM.ARMDecodeMasks;
+
+namespace Trident.Core.CPU.Decoding.ARM
 {
     internal unsafe static class ARMDispatcher
     {
@@ -7,27 +9,27 @@
 
         private static readonly ARMDecodePattern[] _instructionPatterns =
         [
-            new(mask: ARMMask.MUL,          expected: ARMExpected.MUL,          handler: &NonImplementedInstr),
-            new(mask: ARMMask.MULL,         expected: ARMExpected.MULL,         handler: &NonImplementedInstr),
-            new(mask: ARMMask.SWP,          expected: ARMExpected.SWP,          handler: &NonImplementedInstr),
-            new(mask: ARMMask.LDRH_STRH,    expected: ARMExpected.LDRH_STRH,    handler: &NonImplementedInstr),
-            new(mask: ARMMask.LDRSB_LDRSH,  expected: ARMExpected.LDRSB_LDRSH,  handler: &NonImplementedInstr),
-            new(mask: ARMMask.MRS,          expected: ARMExpected.MRS,          handler: &NonImplementedInstr),
-            new(mask: ARMMask.MSR_REG,      expected: ARMExpected.MSR_REG,      handler: &NonImplementedInstr),
-            new(mask: ARMMask.MSR_IMM,      expected: ARMExpected.MSR_IMM,      handler: &NonImplementedInstr),
-            new(mask: ARMMask.BX,           expected: ARMExpected.BX,           handler: &NonImplementedInstr),
-            new(mask: ARMMask.DP_IMM_SHIFT, expected: ARMExpected.DP_IMM_SHIFT, handler: &NonImplementedInstr),
-            new(mask: ARMMask.DP_REG_SHIFT, expected: ARMExpected.DP_REG_SHIFT, handler: &NonImplementedInstr),
-            new(mask: ARMMask.UNDEFINED,    expected: ARMExpected.UNDEFINED,    handler: &NonImplementedInstr),
-            new(mask: ARMMask.DP_IMM,       expected: ARMExpected.DP_IMM,       handler: &NonImplementedInstr),
-            new(mask: ARMMask.LDR_STR_IMM,  expected: ARMExpected.LDR_STR_IMM,  handler: &NonImplementedInstr),
-            new(mask: ARMMask.LDR_STR_REG,  expected: ARMExpected.LDR_STR_REG,  handler: &NonImplementedInstr),
-            new(mask: ARMMask.LDM_STM,      expected: ARMExpected.LDM_STM,      handler: &NonImplementedInstr),
-            new(mask: ARMMask.B_BL,         expected: ARMExpected.B_BL,         handler: &NonImplementedInstr),
-            new(mask: ARMMask.STC_LDC,      expected: ARMExpected.STC_LDC,      handler: &NonImplementedInstr),
-            new(mask: ARMMask.CDP,          expected: ARMExpected.CDP,          handler: &NonImplementedInstr),
-            new(mask: ARMMask.MCR_MRC,      expected: ARMExpected.MCR_MRC,      handler: &NonImplementedInstr),
-            new(mask: ARMMask.SWI,          expected: ARMExpected.SWI,          handler: &NonImplementedInstr),
+            new(mask: MUL_MASK,          expected: MUL_EXPECTED,          handler: &NonImplementedInstr),
+            new(mask: MULL_MASK,         expected: MULL_EXPECTED,         handler: &NonImplementedInstr),
+            new(mask: SWP_MASK,          expected: SWP_EXPECTED,          handler: &NonImplementedInstr),
+            new(mask: LDRH_STRH_MASK,    expected: LDRH_STRH_EXPECTED,    handler: &NonImplementedInstr),
+            new(mask: LDRSB_LDRSH_MASK,  expected: LDRSB_LDRSH_EXPECTED,  handler: &NonImplementedInstr),
+            new(mask: MRS_MASK,          expected: MRS_EXPECTED,          handler: &NonImplementedInstr),
+            new(mask: MSR_REG_MASK,      expected: MSR_REG_EXPECTED,      handler: &NonImplementedInstr),
+            new(mask: MSR_IMM_MASK,      expected: MSR_IMM_EXPECTED,      handler: &NonImplementedInstr),
+            new(mask: BX_MASK,           expected: BX_EXPECTED,           handler: &NonImplementedInstr),
+            new(mask: DP_IMM_SHIFT_MASK, expected: DP_IMM_SHIFT_EXPECTED, handler: &NonImplementedInstr),
+            new(mask: DP_REG_SHIFT_MASK, expected: DP_REG_SHIFT_EXPECTED, handler: &NonImplementedInstr),
+            new(mask: UNDEFINED_MASK,    expected: UNDEFINED_EXPECTED,    handler: &NonImplementedInstr),
+            new(mask: DP_IMM_MASK,       expected: DP_IMM_EXPECTED,       handler: &NonImplementedInstr),
+            new(mask: LDR_STR_IMM_MASK,  expected: LDR_STR_IMM_EXPECTED,  handler: &NonImplementedInstr),
+            new(mask: LDR_STR_REG_MASK,  expected: LDR_STR_REG_EXPECTED,  handler: &NonImplementedInstr),
+            new(mask: LDM_STM_MASK,      expected: LDM_STM_EXPECTED,      handler: &NonImplementedInstr),
+            new(mask: B_BL_MASK,         expected: B_BL_EXPECTED,         handler: &NonImplementedInstr),
+            new(mask: STC_LDC_MASK,      expected: STC_LDC_EXPECTED,      handler: &NonImplementedInstr),
+            new(mask: CDP_MASK,          expected: CDP_EXPECTED,          handler: &NonImplementedInstr),
+            new(mask: MCR_MRC_MASK,      expected: MCR_MRC_EXPECTED,      handler: &NonImplementedInstr),
+            new(mask: SWI_MASK,          expected: SWI_EXPECTED,          handler: &NonImplementedInstr),
         ];
 
 
@@ -42,7 +44,7 @@
 
                 foreach (var pattern in _instructionPatterns)
                 {
-                    if ((instr & (uint)pattern.Mask) == (uint)pattern.Expected)
+                    if ((instr & pattern.Mask) == pattern.Expected)
                     {
                         _armInstructionTable[instr] = pattern.Handler;
                         break;
