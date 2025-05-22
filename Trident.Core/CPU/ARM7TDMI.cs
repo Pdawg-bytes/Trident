@@ -30,7 +30,7 @@ namespace Trident.Core.CPU
             _regs.SetFlag(Flags.F);
             _regs.SwitchMode(PrivilegeMode.Supervisor);
             _regs.SPSR = _regs.CPSR;
-            FlushPipeline();
+            ReloadPipeline();
         }
 
         public void Run()
@@ -78,7 +78,7 @@ namespace Trident.Core.CPU
             instr(this, opcode);
         }
 
-        private ulong FlushPipeline()
+        private ulong ReloadPipeline()
         {
             if (_regs.IsFlagSet(Flags.T))
             {
