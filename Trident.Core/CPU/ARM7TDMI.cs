@@ -41,16 +41,18 @@ namespace Trident.Core.CPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Step()
         {
-            if (_regs.IsFlagSet(Flags.T))
-                StepThumb();
-            else
-                StepARM();
-        }
-
-        private void StepThumb()
-        {
             uint opcode = _pipeline.Prefetch[0];
             _pipeline.Prefetch[0] = _pipeline.Prefetch[1];
+
+            if (_regs.IsFlagSet(Flags.T))
+                StepThumb(opcode);
+            else
+                StepARM(opcode);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void StepThumb(uint opcode)
+        {
             _pipeline.Prefetch[1] = 0; // Dummy load
             _regs.PC += 2;
 
@@ -59,16 +61,18 @@ namespace Trident.Core.CPU
             instr.Handler(this, ref _thumbParams);
         }
 
-        private void StepARM()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void StepARM(uint opcode)
         {
-            uint opcode = _pipeline.Prefetch[0];
-            _pipeline.Prefetch[0] = _pipeline.Prefetch[1];
             _pipeline.Prefetch[1] = 0; // Dummy load
             _regs.PC += 4;
 
             uint cond = opcode >> 28;
             if (cond != CondAL && !ConditionMet(cond, (int)_regs.CPSR >> 28))
+            {
+                _pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
                 return;
+            }
 
             ARMInstruction instr = ARMDispatcher.GetInstruction(opcode);
             instr(this, opcode);
