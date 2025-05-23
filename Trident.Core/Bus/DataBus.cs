@@ -1,19 +1,49 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Trident.Core.CPU;
+using Trident.Core.Enums;
 using Trident.Core.Memory;
 
 namespace Trident.Core.Bus
 {
-    internal class DataBus
+    public class DataBus
     {
+        private ARM7TDMI _cpu;
+
+        private readonly BIOS _bios = new();
+        private readonly UnusedSection _unused = new();
+        private readonly EWRAM _eWRAM = new();
+        private readonly IWRAM _iWRAM = new();
+
         private readonly MemoryAccessHandler[] _accessHandlers;
 
-        internal DataBus()
+        public DataBus()
         {
-            _accessHandlers = new MemoryAccessHandler[16];
+            MemoryAccessHandler unusedHandler = _unused.GetAccessHandler();
+            _accessHandlers = new MemoryAccessHandler[]
+            {
+                _bios.GetAccessHandler(),
+                unusedHandler,
+                _eWRAM.GetAccessHandler(),
+                _iWRAM.GetAccessHandler(),
+                unusedHandler, // MMIO
+                unusedHandler, // PRAM
+                unusedHandler, // VRAM
+                unusedHandler, // OAM
+
+                unusedHandler, // GamePak
+                unusedHandler, // GamePak
+                unusedHandler, // GamePak
+                unusedHandler, // GamePak
+                unusedHandler, // GamePak
+                unusedHandler, // GamePak
+                unusedHandler, // Backup
+                unusedHandler, // Backup
+            };
+        }
+
+        public void AttachComponents(ARM7TDMI cpu)
+        {
+            _cpu = cpu;
+            _bios.AttachComponents(cpu);
         }
 
         #region Read
@@ -85,5 +115,19 @@ namespace Trident.Core.Bus
             // TODO: Open bus behavior
             return 0;
         }
+
+        internal static void InvalidAccess(MemorySection section, uint address, bool write, uint value = 0)
+        {
+            Console.WriteLine($"Invalid {(write ? "write" : "read")} in {section} at 0x{address:X2} {(write ? $"with value 0x{value:X2}" : "")}");
+        }
+
+
+        internal void DisposeMemory()
+        {
+            foreach (var handler in _accessHandlers)
+                handler.Dispose();
+        }
+
+        ~DataBus() => DisposeMemory();
     }
 }

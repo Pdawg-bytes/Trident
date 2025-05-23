@@ -1,4 +1,5 @@
 ﻿using Trident.Core.CPU;
+using Trident.Core.Bus;
 using Trident.Core.Enums;
 
 namespace Trident
@@ -7,7 +8,7 @@ namespace Trident
     {
         static void Main(string[] args)
         {
-            ARM7TDMI arm = new();
+            ARM7TDMI arm = new(new DataBus());
         }
     }
 }

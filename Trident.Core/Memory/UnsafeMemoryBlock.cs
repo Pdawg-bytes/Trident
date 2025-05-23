@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System;
 
 namespace Trident.Core.Memory
 {
@@ -29,6 +30,14 @@ namespace Trident.Core.Memory
 
         internal void Write<T>(nuint offset, T value) where T : unmanaged
             => Unsafe.WriteUnaligned<T>(_ptr + offset, value);
+
+        internal void WriteBytes(int address, byte[] data)
+        {
+            fixed (byte* src = data)
+            {
+                Buffer.MemoryCopy(src, _ptr + address, (long)(Size - (nuint)address), data.Length);
+            }
+        }
 
         internal void Clear(byte value = 0)
             => NativeMemory.Fill(_ptr, Size, value);

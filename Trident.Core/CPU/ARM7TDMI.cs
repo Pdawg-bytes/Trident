@@ -1,4 +1,5 @@
-﻿using Trident.Core.Enums;
+﻿using Trident.Core.Bus;
+using Trident.Core.Enums;
 using Trident.Core.CPU.Decoding.ARM;
 using Trident.Core.CPU.Decoding.Thumb;
 using System.Runtime.CompilerServices;
@@ -9,27 +10,32 @@ namespace Trident.Core.CPU
 {
     public unsafe class ARM7TDMI
     {
-        private RegisterSet _regs;
+        public RegisterSet Registers;
         private Pipeline _pipeline;
+        private readonly DataBus _bus;
 
         private ThumbArguments _thumbParams;
 
         private ulong _cycles = 0;
 
-        public ARM7TDMI()
+        public ARM7TDMI(DataBus bus)
         {
-            _regs = new();
+            Registers = new();
             _pipeline = new();
+
+            _bus = bus;
+            _bus.AttachComponents(this);
+
             ARMDispatcher.InitDecoder();
             ThumbDispatcher.InitDecoder();
         }
 
         public void Reset()
         {
-            _regs.ResetRegisters();
-            _regs.SetFlag(Flags.F);
-            _regs.SwitchMode(PrivilegeMode.Supervisor);
-            _regs.SPSR = _regs.CPSR;
+            Registers.ResetRegisters();
+            Registers.SetFlag(Flags.F);
+            Registers.SwitchMode(PrivilegeMode.Supervisor);
+            Registers.SPSR = Registers.CPSR;
             ReloadPipeline();
         }
 
@@ -44,7 +50,7 @@ namespace Trident.Core.CPU
             uint opcode = _pipeline.Prefetch[0];
             _pipeline.Prefetch[0] = _pipeline.Prefetch[1];
 
-            if (_regs.IsFlagSet(Flags.T))
+            if (Registers.IsFlagSet(Flags.T))
                 StepThumb(opcode);
             else
                 StepARM(opcode);
@@ -54,7 +60,7 @@ namespace Trident.Core.CPU
         private void StepThumb(uint opcode)
         {
             _pipeline.Prefetch[1] = 0; // Dummy load
-            _regs.PC += 2;
+            Registers.PC += 2;
 
             ThumbMetadata instr = ThumbDispatcher.GetInstruction(opcode);
             instr.ArgDecoder(ref _thumbParams, opcode);
@@ -65,10 +71,10 @@ namespace Trident.Core.CPU
         private void StepARM(uint opcode)
         {
             _pipeline.Prefetch[1] = 0; // Dummy load
-            _regs.PC += 4;
+            Registers.PC += 4;
 
             uint cond = opcode >> 28;
-            if (cond != CondAL && !ConditionMet(cond, (int)_regs.CPSR >> 28))
+            if (cond != CondAL && !ConditionMet(cond, (int)Registers.CPSR >> 28))
             {
                 _pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
                 return;
@@ -80,29 +86,29 @@ namespace Trident.Core.CPU
 
         private ulong ReloadPipeline()
         {
-            if (_regs.IsFlagSet(Flags.T))
+            if (Registers.IsFlagSet(Flags.T))
             {
                 _pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
                 _pipeline.Prefetch[0] = 0; // Dummy load
-                _pipeline.Address[0] = _regs.PC;
-                _regs.PC += 2;
+                _pipeline.Address[0] = Registers.PC;
+                Registers.PC += 2;
 
                 _pipeline.Access |= PipelineAccess.Sequential;
                 _pipeline.Prefetch[1] = 0; // Dummy load
-                _pipeline.Address[1] = _regs.PC;
-                _regs.PC += 2;
+                _pipeline.Address[1] = Registers.PC;
+                Registers.PC += 2;
             }
             else
             {
                 _pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
                 _pipeline.Prefetch[0] = 0; // Dummy load
-                _pipeline.Address[0] = _regs.PC;
-                _regs.PC += 4;
+                _pipeline.Address[0] = Registers.PC;
+                Registers.PC += 4;
 
                 _pipeline.Access |= PipelineAccess.Sequential;
                 _pipeline.Prefetch[1] = 0; // Dummy load
-                _pipeline.Address[1] = _regs.PC;
-                _regs.PC += 4;
+                _pipeline.Address[1] = Registers.PC;
+                Registers.PC += 4;
             }
 
             return 0;
