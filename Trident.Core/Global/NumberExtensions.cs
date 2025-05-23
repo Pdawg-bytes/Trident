@@ -11,10 +11,15 @@ namespace Trident.Core.Global
         internal static uint Extract(this uint value, int hi, int lo) =>
             (value >> lo) & ((1u << (hi - lo + 1)) - 1);
 
-        public static uint Extend(this uint value, int bits)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static uint Extend(this uint value, int bits)
         {
             int shift = 32 - bits;
             return (value << shift) >> shift;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static uint Align<T>(this uint value) where T : unmanaged =>
+            value & ~(uint)(Unsafe.SizeOf<T>() - 1);
     }
 }
