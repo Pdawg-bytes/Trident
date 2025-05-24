@@ -2,9 +2,9 @@
 
 namespace Trident.Core.CPU.Decoding.Thumb
 {
-    internal unsafe static partial class ThumbArgumentDecoders
+    internal unsafe partial class ThumbArgumentDecoders
     {
-        internal static void HandlePushPop(ref ThumbArguments args, uint opcode)
+        internal void HandlePushPop(ref ThumbArguments args, uint opcode)
         {
             args.Opcode = opcode;
             args.SubOp = opcode.GetBit(11);
@@ -12,7 +12,7 @@ namespace Trident.Core.CPU.Decoding.Thumb
             args.Rlist = opcode.Extract(7, 0);
         }
 
-        internal static void HandleLdmStm(ref ThumbArguments args, uint opcode)
+        internal void HandleLdmStm(ref ThumbArguments args, uint opcode)
         {
             args.Opcode = opcode;
             args.SubOp = opcode.GetBit(11);

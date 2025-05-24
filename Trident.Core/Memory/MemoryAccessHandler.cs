@@ -1,6 +1,6 @@
 ﻿namespace Trident.Core.Memory
 {
-    internal unsafe struct MemoryAccessHandler
+    internal struct MemoryAccessHandler
     {
         internal Func<uint, byte> Read8;
         internal Func<uint, ushort> Read16;

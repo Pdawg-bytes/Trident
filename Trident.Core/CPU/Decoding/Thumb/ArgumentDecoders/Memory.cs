@@ -2,9 +2,9 @@
 
 namespace Trident.Core.CPU.Decoding.Thumb
 {
-    internal unsafe static partial class ThumbArgumentDecoders
+    internal unsafe partial class ThumbArgumentDecoders
     {
-        internal static void HandleLdrPCRel(ref ThumbArguments args, uint opcode)
+        internal void HandleLdrPCRel(ref ThumbArguments args, uint opcode)
         {
             args.Opcode = opcode;
 
@@ -13,13 +13,13 @@ namespace Trident.Core.CPU.Decoding.Thumb
             args.Imm <<= 2;
         }
 
-        internal static void HandleLdrStrReg(ref ThumbArguments args, uint opcode) => HandleCommonLdrStrReg(ref args, opcode);
+        internal void HandleLdrStrReg(ref ThumbArguments args, uint opcode) => HandleCommonLdrStrReg(ref args, opcode);
 
-        internal static void HandleLdrbStrbReg(ref ThumbArguments args, uint opcode) => HandleCommonLdrStrReg(ref args, opcode);
+        internal void HandleLdrbStrbReg(ref ThumbArguments args, uint opcode) => HandleCommonLdrStrReg(ref args, opcode);
 
-        internal static void HandleLdrhStrhReg(ref ThumbArguments args, uint opcode) => HandleCommonLdrStrReg(ref args, opcode);
+        internal void HandleLdrhStrhReg(ref ThumbArguments args, uint opcode) => HandleCommonLdrStrReg(ref args, opcode);
 
-        internal static void HandleLdrsbLdrshReg(ref ThumbArguments args, uint opcode)
+        internal void HandleLdrsbLdrshReg(ref ThumbArguments args, uint opcode)
         {
             args.Opcode = opcode;
             args.B = ~opcode.GetBit(11);
@@ -28,13 +28,13 @@ namespace Trident.Core.CPU.Decoding.Thumb
             args.Rd = opcode.Extract(2, 0);
         }
 
-        internal static void HandleLdrStrImm(ref ThumbArguments args, uint opcode) => HandleCommonLdrStrImm(ref args, opcode, shift: 2);
+        internal void HandleLdrStrImm(ref ThumbArguments args, uint opcode) => HandleCommonLdrStrImm(ref args, opcode, shift: 2);
 
-        internal static void HandleLdrbStrbImm(ref ThumbArguments args, uint opcode) => HandleCommonLdrStrImm(ref args, opcode, shift: 0);
+        internal void HandleLdrbStrbImm(ref ThumbArguments args, uint opcode) => HandleCommonLdrStrImm(ref args, opcode, shift: 0);
 
-        internal static void HandleLdrhStrhImm(ref ThumbArguments args, uint opcode) => HandleCommonLdrStrImm(ref args, opcode, shift: 1);
+        internal void HandleLdrhStrhImm(ref ThumbArguments args, uint opcode) => HandleCommonLdrStrImm(ref args, opcode, shift: 1);
 
-        private static void HandleCommonLdrStrReg(ref ThumbArguments args, uint opcode)
+        private void HandleCommonLdrStrReg(ref ThumbArguments args, uint opcode)
         {
             args.Opcode = opcode;
             args.L = opcode.GetBit(11);
@@ -43,7 +43,7 @@ namespace Trident.Core.CPU.Decoding.Thumb
             args.Rd = opcode.Extract(2, 0);
         }
 
-        private static void HandleCommonLdrStrImm(ref ThumbArguments args, uint opcode, int shift)
+        private void HandleCommonLdrStrImm(ref ThumbArguments args, uint opcode, int shift)
         {
             args.Opcode = opcode;
             args.L = opcode.GetBit(11);
@@ -52,11 +52,11 @@ namespace Trident.Core.CPU.Decoding.Thumb
             args.Rd = opcode.Extract(2, 0);
         }
 
-        internal static void HandleLdrStrSPRel(ref ThumbArguments args, uint opcode) => HandleSPPCOp(ref args, opcode, isAddSPPC: false);
+        internal void HandleLdrStrSPRel(ref ThumbArguments args, uint opcode) => HandleSPPCOp(ref args, opcode, isAddSPPC: false);
 
-        internal static void HandleAddSPPC(ref ThumbArguments args, uint opcode) => HandleSPPCOp(ref args, opcode, isAddSPPC: true);
+        internal void HandleAddSPPC(ref ThumbArguments args, uint opcode) => HandleSPPCOp(ref args, opcode, isAddSPPC: true);
 
-        private static void HandleSPPCOp(ref ThumbArguments args, uint opcode, bool isAddSPPC)
+        private void HandleSPPCOp(ref ThumbArguments args, uint opcode, bool isAddSPPC)
         {
             args.Opcode = opcode;
             args.Imm = opcode.Extract(7, 0) << 2;
@@ -68,7 +68,7 @@ namespace Trident.Core.CPU.Decoding.Thumb
                 args.L = opcode.GetBit(11);
         }
 
-        internal static void HandleAddSubSP(ref ThumbArguments args, uint opcode)
+        internal void HandleAddSubSP(ref ThumbArguments args, uint opcode)
         {
             args.Opcode = opcode;
             args.SubOp = opcode.GetBit(11);

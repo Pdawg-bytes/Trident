@@ -14,9 +14,11 @@ namespace Trident.Core.CPU
         private Pipeline _pipeline;
         private readonly DataBus _bus;
 
+        private readonly ARMDispatcher _armDispatcher;
+
+        private readonly ThumbDispatcher _thumbDispatcher;
         private ThumbArguments _thumbParams;
 
-        private ulong _cycles = 0;
 
         public ARM7TDMI(DataBus bus)
         {
@@ -26,8 +28,8 @@ namespace Trident.Core.CPU
             _bus = bus;
             _bus.AttachComponents(this);
 
-            ARMDispatcher.InitDecoder();
-            ThumbDispatcher.InitDecoder();
+            _armDispatcher = new();
+            _thumbDispatcher = new();
         }
 
         public void Reset()
@@ -62,7 +64,7 @@ namespace Trident.Core.CPU
             _pipeline.Prefetch[1] = 0; // Dummy load
             Registers.PC += 2;
 
-            ThumbMetadata instr = ThumbDispatcher.GetInstruction(opcode);
+            ThumbMetadata instr = _thumbDispatcher.GetInstruction(opcode);
             instr.ArgDecoder(ref _thumbParams, opcode);
             instr.Handler(this, ref _thumbParams);
         }
@@ -80,7 +82,7 @@ namespace Trident.Core.CPU
                 return;
             }
 
-            ARMInstruction instr = ARMDispatcher.GetInstruction(opcode);
+            ARMInstruction instr = _armDispatcher.GetInstruction(opcode);
             instr(this, opcode);
         }
 
