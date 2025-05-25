@@ -1,4 +1,6 @@
-﻿namespace Trident.Core.Memory
+﻿using Trident.Core.Enums;
+
+namespace Trident.Core.Memory
 {
     internal class UnusedSection
     {
@@ -20,17 +22,17 @@
             };
         }
 
-        internal byte Read8(uint address) => byte.MaxValue;
+        internal byte Read8(uint address, PipelineAccess access) => byte.MaxValue;
 
-        internal ushort Read16(uint address) => ushort.MaxValue;
+        internal ushort Read16(uint address, PipelineAccess access) => ushort.MaxValue;
 
-        internal uint Read32(uint address) => uint.MaxValue;
+        internal uint Read32(uint address, PipelineAccess access) => uint.MaxValue;
 
-        internal void Write8(uint address, byte value) { }
+        internal void Write8(uint address, PipelineAccess access, byte value) { }
 
-        internal void Write16(uint address, ushort value) { }
+        internal void Write16(uint address, PipelineAccess access, ushort value) { }
 
-        internal void Write32(uint address, uint value) { }
+        internal void Write32(uint address, PipelineAccess access, uint value) { }
 
         private void Dispose() { }
     }

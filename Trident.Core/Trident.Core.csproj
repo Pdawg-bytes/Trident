@@ -8,7 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="CPU\Instructions\" />
     <Folder Include="Devices\" />
     <Folder Include="Scheduler\" />
   </ItemGroup>

@@ -12,7 +12,7 @@ namespace Trident.Core.CPU
     {
         public RegisterSet Registers;
         private Pipeline _pipeline;
-        private readonly DataBus _bus;
+        private DataBus _bus;
 
         private readonly ARMDispatcher _armDispatcher;
 
@@ -20,17 +20,16 @@ namespace Trident.Core.CPU
         private ThumbArguments _thumbParams;
 
 
-        public ARM7TDMI(DataBus bus)
+        public ARM7TDMI()
         {
             Registers = new();
             _pipeline = new();
 
-            _bus = bus;
-            _bus.AttachComponents(this);
-
             _armDispatcher = new();
             _thumbDispatcher = new();
         }
+
+        internal void AttachBus(DataBus bus) => _bus = bus;
 
         public void Reset()
         {
@@ -38,7 +37,7 @@ namespace Trident.Core.CPU
             Registers.SetFlag(Flags.F);
             Registers.SwitchMode(PrivilegeMode.Supervisor);
             Registers.SPSR = Registers.CPSR;
-            ReloadPipeline();
+            ReloadPipeline32();
         }
 
         public void Run()
@@ -51,6 +50,7 @@ namespace Trident.Core.CPU
         {
             uint opcode = _pipeline.Prefetch[0];
             _pipeline.Prefetch[0] = _pipeline.Prefetch[1];
+            _pipeline.Address[0] = _pipeline.Address[1];
 
             if (Registers.IsFlagSet(Flags.T))
                 StepThumb(opcode);
@@ -61,7 +61,9 @@ namespace Trident.Core.CPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void StepThumb(uint opcode)
         {
-            _pipeline.Prefetch[1] = 0; // Dummy load
+            uint pc = Registers.PC;
+            _pipeline.Prefetch[1] = _bus.Read16(pc, _pipeline.Access);
+            _pipeline.Address[1] = pc;
             Registers.PC += 2;
 
             ThumbMetadata instr = _thumbDispatcher.GetInstruction(opcode);
@@ -72,7 +74,9 @@ namespace Trident.Core.CPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void StepARM(uint opcode)
         {
-            _pipeline.Prefetch[1] = 0; // Dummy load
+            uint pc = Registers.PC;
+            _pipeline.Prefetch[1] = _bus.Read32(pc, _pipeline.Access);
+            _pipeline.Address[1] = pc;
             Registers.PC += 4;
 
             uint cond = opcode >> 28;
@@ -86,32 +90,30 @@ namespace Trident.Core.CPU
             instr(this, opcode);
         }
 
-        private ulong ReloadPipeline()
+        private ulong ReloadPipeline16()
         {
-            if (Registers.IsFlagSet(Flags.T))
-            {
-                _pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
-                _pipeline.Prefetch[0] = 0; // Dummy load
-                _pipeline.Address[0] = Registers.PC;
-                Registers.PC += 2;
+            uint pc = Registers.PC;
+            uint pcNext = pc + 2;
+            _pipeline.Prefetch[0] = _bus.Read32(pc, PipelineAccess.Code | PipelineAccess.NonSequential);
+            _pipeline.Prefetch[1] = _bus.Read32(pcNext, PipelineAccess.Code | PipelineAccess.Sequential);
+            _pipeline.Address[0] = pc;
+            _pipeline.Address[1] = pcNext;
+            _pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
+            Registers.PC += 4;
 
-                _pipeline.Access |= PipelineAccess.Sequential;
-                _pipeline.Prefetch[1] = 0; // Dummy load
-                _pipeline.Address[1] = Registers.PC;
-                Registers.PC += 2;
-            }
-            else
-            {
-                _pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
-                _pipeline.Prefetch[0] = 0; // Dummy load
-                _pipeline.Address[0] = Registers.PC;
-                Registers.PC += 4;
+            return 0;
+        }
 
-                _pipeline.Access |= PipelineAccess.Sequential;
-                _pipeline.Prefetch[1] = 0; // Dummy load
-                _pipeline.Address[1] = Registers.PC;
-                Registers.PC += 4;
-            }
+        private ulong ReloadPipeline32()
+        {
+            uint pc = Registers.PC;
+            uint pcNext = pc + 4;
+            _pipeline.Prefetch[0] = _bus.Read32(pc, PipelineAccess.Code | PipelineAccess.NonSequential);
+            _pipeline.Prefetch[1] = _bus.Read32(pcNext, PipelineAccess.Code | PipelineAccess.Sequential);
+            _pipeline.Address[0] = pc;
+            _pipeline.Address[1] = pcNext;
+            _pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
+            Registers.PC += 8;
 
             return 0;
         }
