@@ -47,7 +47,7 @@ namespace Trident.Core.Memory
             if (address >= 0x4000) return 0x0; // Return open bus; not implemented yet.
 
             int shift = ((int)address & 3) << 3; // Shift amount to extract correct byte out of the word
-            if (_cpu.Registers.PC >= 0x4000)
+            if (_cpu.Registers.PC < 0x4000)
                 _busValue = _memory.Read32(address & 3);
 
             return _busValue >> shift;

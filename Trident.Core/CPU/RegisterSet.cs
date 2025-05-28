@@ -96,7 +96,7 @@ namespace Trident.Core.CPU
             _bankedSpsr[currentCopy.SPSRIndex] = SPSR;
 
             // Copy in r8-r12 from the user bank if we're leaving FIQ and entering anything except for USR/SYS.
-            // We do not need to copy r13 or r14 because every other mode overwrites them anyways.
+            // We don't need to copy r13 or r14 because every other mode overwrites them anyways.
             if (CurrentMode is PrivilegeMode.FIQ && (newMode is not PrivilegeMode.User && newMode is not PrivilegeMode.System))
                 for (int i = 0; i < 5; i++) _registers[8 + i] = _bankStore[i];
 
