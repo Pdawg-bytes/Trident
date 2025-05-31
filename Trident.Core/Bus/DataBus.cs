@@ -6,45 +6,11 @@ namespace Trident.Core.Bus
 {
     public class DataBus
     {
-        private ARM7TDMI _cpu;
+        private MemoryAccessHandler[] _accessHandlers = new MemoryAccessHandler[16];
 
-        private readonly BIOS _bios;
-        private readonly UnusedSection _unused = new();
-        private readonly EWRAM _eWRAM = new();
-        private readonly IWRAM _iWRAM = new();
-
-        private readonly MemoryAccessHandler[] _accessHandlers;
-
-        public DataBus(ARM7TDMI cpu)
-        {
-            _cpu = cpu;
-            _bios = new(_cpu);
-
-            MemoryAccessHandler unusedHandler = _unused.GetAccessHandler();
-            _accessHandlers = new MemoryAccessHandler[]
-            {
-                _bios.GetAccessHandler(),
-                unusedHandler,
-                _eWRAM.GetAccessHandler(),
-                _iWRAM.GetAccessHandler(),
-                unusedHandler, // MMIO
-                unusedHandler, // PRAM
-                unusedHandler, // VRAM
-                unusedHandler, // OAM
-
-                unusedHandler, // GamePak
-                unusedHandler, // GamePak
-                unusedHandler, // GamePak
-                unusedHandler, // GamePak
-                unusedHandler, // GamePak
-                unusedHandler, // GamePak
-                unusedHandler, // Backup
-                unusedHandler, // Backup
-            };
-        }
 
         #region Read
-        internal unsafe byte Read8(uint address, PipelineAccess access)
+        internal byte Read8(uint address, PipelineAccess access)
         {
             uint section = address >> 24;
             if (section > 15) return (byte)ReadOpenBus(address);
@@ -52,7 +18,7 @@ namespace Trident.Core.Bus
             return _accessHandlers[section].Read8(address, access);
         }
 
-        internal unsafe ushort Read16(uint address, PipelineAccess access)
+        internal ushort Read16(uint address, PipelineAccess access)
         {
             uint section = address >> 24;
             if (section > 15) return (ushort)ReadOpenBus(address);
@@ -60,7 +26,7 @@ namespace Trident.Core.Bus
             return _accessHandlers[section].Read16(address, access);
         }
 
-        internal unsafe uint Read32(uint address, PipelineAccess access)
+        internal uint Read32(uint address, PipelineAccess access)
         {
             uint section = address >> 24;
             if (section > 15) return ReadOpenBus(address);
@@ -70,7 +36,7 @@ namespace Trident.Core.Bus
         #endregion
 
         #region Write
-        internal unsafe void Write8(uint address, PipelineAccess access, byte value)
+        internal void Write8(uint address, PipelineAccess access, byte value)
         {
             uint section = address >> 24;
             if (section < 2 || section > 15)
@@ -82,7 +48,7 @@ namespace Trident.Core.Bus
             _accessHandlers[section].Write8(address, access, value);
         }
 
-        internal unsafe void Write16(uint address, PipelineAccess access, ushort value)
+        internal void Write16(uint address, PipelineAccess access, ushort value)
         {
             uint section = address >> 24;
             if (section < 2 || section > 15)
@@ -94,7 +60,7 @@ namespace Trident.Core.Bus
             _accessHandlers[section].Write16(address, access, value);
         }
 
-        internal unsafe void Write32(uint address, PipelineAccess access, uint value)
+        internal void Write32(uint address, PipelineAccess access, uint value)
         {
             uint section = address >> 24;
             if (section < 2 || section > 15)

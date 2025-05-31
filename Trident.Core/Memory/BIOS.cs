@@ -5,18 +5,18 @@ using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Memory
 {
-    internal class BIOS
+    internal unsafe class BIOS
     {
         internal const uint MEMORY_SIZE = 16 * 1024;
         private UnsafeMemoryBlock _memory;
         private uint _busValue;
 
-        private readonly ARM7TDMI _cpu;
+        private readonly Func<uint> _getPC;
 
-        internal BIOS(ARM7TDMI cpu)
+        internal BIOS(Func<uint> getPC)
         {
             _memory = new(MEMORY_SIZE);
-            _cpu = cpu;
+            _getPC = getPC;
         }
 
 
@@ -42,17 +42,18 @@ namespace Trident.Core.Memory
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ushort Read16(uint address, PipelineAccess access) => (ushort)Read32(address, access);
 
-        internal uint Read32(uint address, PipelineAccess access)
+        internal unsafe uint Read32(uint address, PipelineAccess access)
         {
             if (address >= 0x4000) return 0x0; // Return open bus; not implemented yet.
 
             int shift = ((int)address & 3) << 3; // Shift amount to extract correct byte out of the word
-            if (_cpu.Registers.PC < 0x4000)
+            if (_getPC() < 0x4000)
                 _busValue = _memory.Read32(address & 3);
 
             return _busValue >> shift;
         }
 
+        internal void LoadBIOS(byte[] bios) => _memory.WriteBytes(0, bios);
 
         internal void Write8(uint address, PipelineAccess access, byte value) => DataBus.InvalidAccess(MemorySection.BIOS, address, true, value);
         internal void Write16(uint address, PipelineAccess access, ushort value) => DataBus.InvalidAccess(MemorySection.BIOS, address, true, value);
