@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Trident.Core.Bus;
 using Trident.Core.CPU;
 using Trident.Core.Memory;
+using Trident.Core.Memory.GamePak;
 
 namespace Trident.Core.Machine
 {
@@ -18,6 +19,7 @@ namespace Trident.Core.Machine
         private readonly UnusedSection _unused = new();
         private readonly EWRAM _eWRAM = new();
         private readonly IWRAM _iWRAM = new();
+        private GamePak _gamePak;
 
         public GBA()
         {
@@ -31,9 +33,12 @@ namespace Trident.Core.Machine
 
         public void AttachBIOS(byte[] bios) => _bios.LoadBIOS(bios);
 
-        public void AttachGamePak(byte[] rom)
+        public void AttachGamePak(GamePak gamePak)
         {
+            if (_gamePak != null)
+                _gamePak.Dispose();
 
+            _gamePak = gamePak;
         }
     }
 }

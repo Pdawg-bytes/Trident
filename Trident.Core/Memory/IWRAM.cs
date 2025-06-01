@@ -30,20 +30,20 @@ namespace Trident.Core.Memory
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal byte Read8(uint address, PipelineAccess access)
+        private byte Read8(uint address, PipelineAccess access)
         {
             return _memory.Read8(address & ADDR_MASK);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ushort Read16(uint address, PipelineAccess access)
+        private ushort Read16(uint address, PipelineAccess access)
         {
             address = address.Align<ushort>();
             return _memory.Read16(address & ADDR_MASK);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal uint Read32(uint address, PipelineAccess access)
+        private uint Read32(uint address, PipelineAccess access)
         {
             address = address.Align<uint>();
             return _memory.Read32(address & ADDR_MASK);
@@ -51,20 +51,20 @@ namespace Trident.Core.Memory
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Write8(uint address, PipelineAccess access, byte value)
+        private void Write8(uint address, PipelineAccess access, byte value)
         {
             _memory.Write8(address & ADDR_MASK, value);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Write16(uint address, PipelineAccess access, ushort value)
+        private void Write16(uint address, PipelineAccess access, ushort value)
         {
             address = address.Align<ushort>();
             _memory.Write16(address & ADDR_MASK, value);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Write32(uint address, PipelineAccess access, uint value)
+        private void Write32(uint address, PipelineAccess access, uint value)
         {
             address = address.Align<uint>();
             _memory.Write32(address & ADDR_MASK, value);

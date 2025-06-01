@@ -4,9 +4,74 @@ using Trident.Core.Memory;
 
 namespace Trident.Core.Bus
 {
-    public class DataBus
+    internal class DataBus
     {
-        private MemoryAccessHandler[] _accessHandlers = new MemoryAccessHandler[16];
+        private MemoryAccessHandler[] _accessHandlers;
+        private readonly MemoryAccessHandler _unusedSection;
+
+        internal DataBus()
+        {
+            UnusedSection unused = new();
+            _unusedSection = unused.GetAccessHandler();
+
+            _accessHandlers = 
+            [
+                _unusedSection,
+                _unusedSection,
+                _unusedSection,
+                _unusedSection,
+                _unusedSection,
+                _unusedSection,
+                _unusedSection,
+                _unusedSection,
+                _unusedSection,
+                _unusedSection,
+                _unusedSection,
+                _unusedSection,
+                _unusedSection,
+                _unusedSection,
+                _unusedSection,
+                _unusedSection,
+            ];
+        }
+
+        /// <summary>
+        /// Registers the <paramref name="handler"/> for the given <paramref name="page"/>.
+        /// </summary>
+        /// <param name="page">The page that the handler should be registered to.</param>
+        internal void RegisterHandler(int page, MemoryAccessHandler handler)
+        {
+            if (page < 0 || page >= 16)
+                throw new ArgumentOutOfRangeException(nameof(page), $"Invalid page index {page}. Must be in 0..15.");
+
+            _accessHandlers[page] = handler;
+        }
+
+        /// <summary>
+        /// Registers multiple <see cref="MemoryAccessHandler"/>s at the respective pages.
+        /// </summary>
+        /// <param name="handlers">The list of handlers to register.</param>
+        internal void RegisterHandlers((int page, MemoryAccessHandler handler)[] handlers)
+        {
+            if (handlers.Any(handler => handler.page < 0 || handler.page >= 16))
+                throw new ArgumentOutOfRangeException(nameof(handlers), $"Invalid page index for one or more handlers.");
+
+            foreach (var handler in handlers)
+                _accessHandlers[handler.page] = handler.handler;
+        }
+
+        /// <summary>
+        /// Deregisters the <see cref="MemoryAccessHandler"/> for the given <paramref name="page"/>, and disposes of the backing memory for the registered handler.
+        /// </summary>
+        /// <param name="page">The page at which the handler to deregister is located in.</param>
+        internal void DeregisterHandler(int page)
+        {
+            if (page < 0 || page >= 16)
+                throw new ArgumentOutOfRangeException(nameof(page), $"Invalid page index {page}. Must be in 0..15.");
+
+            _accessHandlers[page].Dispose();
+            _accessHandlers[page] = _unusedSection;
+        }
 
 
         #region Read

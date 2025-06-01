@@ -1,11 +1,10 @@
 ﻿using Trident.Core.Bus;
-using Trident.Core.CPU;
 using Trident.Core.Enums;
 using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Memory
 {
-    internal unsafe class BIOS
+    internal class BIOS
     {
         internal const uint MEMORY_SIZE = 16 * 1024;
         private UnsafeMemoryBlock _memory;
@@ -37,12 +36,12 @@ namespace Trident.Core.Memory
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal byte Read8(uint address, PipelineAccess access) => (byte)Read32(address, access);
+        private byte Read8(uint address, PipelineAccess access) => (byte)Read32(address, access);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal ushort Read16(uint address, PipelineAccess access) => (ushort)Read32(address, access);
+        private ushort Read16(uint address, PipelineAccess access) => (ushort)Read32(address, access);
 
-        internal unsafe uint Read32(uint address, PipelineAccess access)
+        private unsafe uint Read32(uint address, PipelineAccess access)
         {
             if (address >= 0x4000) return 0x0; // Return open bus; not implemented yet.
 
@@ -55,8 +54,8 @@ namespace Trident.Core.Memory
 
         internal void LoadBIOS(byte[] bios) => _memory.WriteBytes(0, bios);
 
-        internal void Write8(uint address, PipelineAccess access, byte value) => DataBus.InvalidAccess(MemorySection.BIOS, address, true, value);
-        internal void Write16(uint address, PipelineAccess access, ushort value) => DataBus.InvalidAccess(MemorySection.BIOS, address, true, value);
-        internal void Write32(uint address, PipelineAccess access, uint value) => DataBus.InvalidAccess(MemorySection.BIOS, address, true, value);
+        private void Write8(uint address, PipelineAccess access, byte value) => DataBus.InvalidAccess(MemorySection.BIOS, address, true, value);
+        private void Write16(uint address, PipelineAccess access, ushort value) => DataBus.InvalidAccess(MemorySection.BIOS, address, true, value);
+        private void Write32(uint address, PipelineAccess access, uint value) => DataBus.InvalidAccess(MemorySection.BIOS, address, true, value);
     }
 }
