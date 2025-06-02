@@ -7,6 +7,7 @@
         SRAM,
         Flash64,
         Flash128,
+        EEPROMDetect,
         EEPROM4,
         EEPROM64
     }
