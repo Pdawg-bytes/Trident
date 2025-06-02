@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Global
 {
@@ -19,6 +20,17 @@ namespace Trident.Core.Global
         {
             int shift = 32 - bits;
             return (value << shift) >> shift;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static uint NearestPow2(this uint value)
+        {
+            if (value == 0) return 1;
+
+            uint upper = 1u << (32 - BitOperations.LeadingZeroCount(value - 1));
+            uint lower = upper >> 1;
+
+            return (value - lower < upper - value) ? lower : upper;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

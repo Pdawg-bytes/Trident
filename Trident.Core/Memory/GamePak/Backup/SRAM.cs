@@ -21,9 +21,12 @@ namespace Trident.Core.Memory.GamePak.Backup
 
         private readonly MemoryAccessHandler _accessHandler;
 
-        internal SRAM()
+        internal SRAM(byte[]? saveData)
         {
             _memory = new(MEMORY_SIZE);
+            if (saveData != null)
+                _memory.WriteBytes(0, saveData);
+
             _accessHandler = new MemoryAccessHandler
             {
                 Read8 = this.Read8,

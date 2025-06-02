@@ -3,7 +3,6 @@
     public enum BackupType
     {
         None,
-        Detect,
         SRAM,
         Flash64,
         Flash128,

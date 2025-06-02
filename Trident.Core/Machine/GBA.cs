@@ -19,7 +19,7 @@ namespace Trident.Core.Machine
         private readonly UnusedSection _unused = new();
         private readonly EWRAM _eWRAM = new();
         private readonly IWRAM _iWRAM = new();
-        private GamePak _gamePak;
+        private GamePak _gamePak = null;
 
         public GBA()
         {
@@ -33,12 +33,10 @@ namespace Trident.Core.Machine
 
         public void AttachBIOS(byte[] bios) => _bios.LoadBIOS(bios);
 
-        public void AttachGamePak(GamePak gamePak)
+        public void AttachGamePak(string filePath)
         {
-            if (_gamePak != null)
-                _gamePak.Dispose();
-
-            _gamePak = gamePak;
+            _gamePak?.Dispose();
+            _gamePak = GamePakLoader.Load(File.ReadAllBytes(filePath));
         }
     }
 }
