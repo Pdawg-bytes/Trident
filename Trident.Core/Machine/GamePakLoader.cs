@@ -15,8 +15,8 @@ namespace Trident.Core.Machine
     {
         internal unsafe static GamePak Load(byte[] romData, byte[]? saveData = null)
         {
-            if (romData.Length < sizeof(ROMHeader) || romData.Length > GamePak.MaxSize)
-                throw new ArgumentException("Image file is the wrong length.");
+            if (romData.Length < ROMHeader.Size || romData.Length > GamePak.MaxSize)
+                throw new ArgumentException("ROM file is either too small or too large.");
 
             ROMHeader header = GetHeader(romData);
             var gameIDs = GetGameInfoStrings(ref header);
@@ -25,6 +25,10 @@ namespace Trident.Core.Machine
             IBackupDevice backupDevice = null;
             if (backupType != BackupType.None && saveData != null)
                 backupDevice = CreateBackupDevice(saveData, backupType);
+            else if (backupType == BackupType.None)
+                Console.WriteLine("Backup type was not able to be determined."); // TODO: replace with log
+
+            // TODO: GPIO
 
             uint addressMask = GamePak.MaxSize - 1;
             // when ROM is mirrored: ((uint)romData.Length).NearestPow2() - 1

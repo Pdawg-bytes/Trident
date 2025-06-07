@@ -31,12 +31,35 @@ namespace Trident.Core.Machine
             CPU.AttachBus(Bus);
         }
 
-        public void AttachBIOS(byte[] bios) => _bios.LoadBIOS(bios);
+        public void AttachBIOS(byte[] bios)
+        {
+            if (bios.Length != BIOS.MEMORY_SIZE)
+                throw new Exception("BIOS image is not the correct size.");
+
+            _bios.LoadBIOS(bios);
+        }
 
         public void AttachGamePak(string filePath)
         {
             _gamePak?.Dispose();
             _gamePak = GamePakLoader.Load(File.ReadAllBytes(filePath));
+
+            MemoryAccessHandler gamePakUpper = _gamePak.GetUpperHandler();
+            MemoryAccessHandler gamePakLower = _gamePak.GetLowerHandler();
+            MemoryAccessHandler backupHandler = _gamePak.GetBackupHandler();
+
+            Bus.RegisterHandlers
+            ([
+                (0x08, gamePakLower),
+                (0x09, gamePakUpper),
+                (0x0A, gamePakLower),
+                (0x0B, gamePakUpper),
+                (0x0C, gamePakLower),
+                (0x0D, gamePakUpper),
+
+                (0x0E, backupHandler),
+                (0x0F, backupHandler)
+            ]);
         }
     }
 }

@@ -38,5 +38,7 @@ namespace Trident.Core.Memory.GamePak
             [FieldOffset(6)] internal fixed byte Unused[26];
             [FieldOffset(32)] internal uint JoyEntryPoint;
         }
+
+        internal const int Size = 228;
     }
 }
