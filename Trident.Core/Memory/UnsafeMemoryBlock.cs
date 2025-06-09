@@ -1,6 +1,5 @@
 ﻿using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
-using System;
 
 namespace Trident.Core.Memory
 {
@@ -33,6 +32,9 @@ namespace Trident.Core.Memory
 
         internal void WriteBytes(int address, byte[] data)
         {
+            if (data.Length > (int)Size)
+                throw new ArgumentException("Data too large for copy.");
+
             fixed (byte* src = data)
             {
                 Buffer.MemoryCopy(src, _ptr + address, (long)(Size - (nuint)address), data.Length);

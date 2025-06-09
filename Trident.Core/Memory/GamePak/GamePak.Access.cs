@@ -23,16 +23,15 @@ namespace Trident.Core.Memory.GamePak
 
         private byte Read8<TAccess>(uint address, PipelineAccess access) where TAccess : struct, IAccess
         {
-            ushort shift = (ushort)((address & 1) << 3);
-            return (byte)(ReadData16<TAccess>(address, access) >> shift);
+            return ReadData8<TAccess>(address, (access & PipelineAccess.Sequential) == PipelineAccess.Sequential);
         }
         private ushort Read16<TAccess>(uint address, PipelineAccess access) where TAccess : struct, IAccess
         {
-            return ReadData16<TAccess>(address, access);
+            return ReadData16<TAccess>(address, (access & PipelineAccess.Sequential) == PipelineAccess.Sequential);
         }
         private uint Read32<TAccess>(uint address, PipelineAccess access) where TAccess : struct, IAccess
         {
-            return ReadData32<TAccess>(address, access);
+            return ReadData32<TAccess>(address, (access & PipelineAccess.Sequential) == PipelineAccess.Sequential);
         }
     }
 }
