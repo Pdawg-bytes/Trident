@@ -4,10 +4,10 @@
     {
         None,
         SRAM,
-        Flash64,
-        Flash128,
+        Flash64K,
+        Flash128K,
         EEPROMDetect,
-        EEPROM4,
-        EEPROM64
+        EEPROM512B,
+        EEPROM8K
     }
 }

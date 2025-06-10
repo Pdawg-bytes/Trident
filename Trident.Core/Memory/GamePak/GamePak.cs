@@ -54,39 +54,18 @@ namespace Trident.Core.Memory.GamePak
         internal MemoryAccessHandler GetBackupHandler() => _backupAccessHandler;
 
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte? AttemptSpecialRead<TAccess>(uint address) where TAccess : struct, IAccess
-        {
-            if (TAccess.IsLower)
-            {
-                // TODO: GPIO read
-                return 0xFF;
-            }
-            else
-            {
-                // TODO: attempt EEPROM read
-                return 0x00;
-            }
-        }
-
-        private byte ReadData8<TAccess>(uint address, bool seqAccess) where TAccess : struct, IAccess
-        {
-            byte? specialRead = AttemptSpecialRead<TAccess>(address);
-            if (specialRead != null)
-                return (byte)specialRead;
-
-            return _romMemory.Read8(address & _addressMask);
-        }
-
         private ushort ReadData16<TAccess>(uint address, bool seqAccess) where TAccess : struct, IAccess
         {
+            address &= 0x01FF_FFFE; // Force align to 16-bit
             if (TAccess.IsLower)
             {
-                // TODO: attempt GPIO read
+                // TODO: actually add reads
+                if (IsGPIOAddress(address) /* && gpio is readable */) return 0x00;
             }
             else
             {
-                // TOOD: attempt EEPROM read
+                // TOOD: actually add reads
+                if (IsEEPROMAddress(address)) return 0xFF;
             }
 
             return _romMemory.Read16(address & _addressMask);
@@ -94,13 +73,26 @@ namespace Trident.Core.Memory.GamePak
 
         private uint ReadData32<TAccess>(uint address, bool seqAccess) where TAccess : struct, IAccess
         {
+            address &= 0x01FF_FFFC; // Force align to 32-bit
             if (TAccess.IsLower)
             {
+                // Reading 4 bytes from a GPIO address will only incorporate two GPIO registers, due to them technically being 16 bits wide;
+                // however, the top 8 bits are always 0. This means that we can treat each of the two regs as ushorts and combine them.
                 // TODO: attempt GPIO read
+                if (IsGPIOAddress(address) /* && gpio is readable */)
+                {
+                    ushort low = 0xFF /*_gpio.Read(address)*/;
+                    ushort top = 0x00 /*_gpio.Read(address | 2) */; // Address is aligned, therefore we can read the next register by adding 2.
+                    return (uint)((top << 16) | low);
+                }
             }
             else
-            {
+            { 
                 // TOOD: attempt EEPROM read
+                if (IsEEPROMAddress(address))
+                {
+
+                }
             }
 
             return _romMemory.Read32(address & _addressMask);

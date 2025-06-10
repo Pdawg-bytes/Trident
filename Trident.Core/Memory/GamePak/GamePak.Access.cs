@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Trident.Core.Enums;
+﻿using Trident.Core.Enums;
 
 namespace Trident.Core.Memory.GamePak
 {
@@ -23,7 +18,8 @@ namespace Trident.Core.Memory.GamePak
 
         private byte Read8<TAccess>(uint address, PipelineAccess access) where TAccess : struct, IAccess
         {
-            return ReadData8<TAccess>(address, (access & PipelineAccess.Sequential) == PipelineAccess.Sequential);
+            int alignShift = (int)(address & 1) << 3;
+            return (byte)(ReadData16<TAccess>(address, (access & PipelineAccess.Sequential) == PipelineAccess.Sequential) >> alignShift);
         }
         private ushort Read16<TAccess>(uint address, PipelineAccess access) where TAccess : struct, IAccess
         {
