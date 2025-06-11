@@ -31,7 +31,7 @@ namespace Trident.Core.Machine
             // TODO: GPIO
 
             uint addressMask = GamePak.MaxSize - 1;
-            // when ROM is mirrored: ((uint)romData.Length).NearestPow2() - 1
+            // TODO: when ROM is mirrored: ((uint)romData.Length).NearestPow2() - 1
 
             return new GamePak(romData, addressMask, backupDevice);
         }
@@ -40,8 +40,8 @@ namespace Trident.Core.Machine
         {
             if (romData.ContainsAscii("EEPROM_V")) return BackupType.EEPROMDetect;
             if (romData.ContainsAscii("SRAM_V") || romData.ContainsAscii("SRAM_F")) return BackupType.SRAM;
-            if (romData.ContainsAscii("FLASH_V") || romData.ContainsAscii("FLASH512_V")) return BackupType.Flash64;
-            if (romData.ContainsAscii("FLASH1M_V")) return BackupType.Flash128;
+            if (romData.ContainsAscii("FLASH_V") || romData.ContainsAscii("FLASH512_V")) return BackupType.Flash64K;
+            if (romData.ContainsAscii("FLASH1M_V")) return BackupType.Flash128K;
             return BackupType.None;
         }
 

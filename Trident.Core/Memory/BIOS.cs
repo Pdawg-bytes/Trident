@@ -43,9 +43,9 @@ namespace Trident.Core.Memory
 
         private unsafe uint Read32(uint address, PipelineAccess access)
         {
-            if (address >= 0x4000) return 0x0; // Return open bus; not implemented yet.
+            if (address >= 0x4000) return 0x0; // TODO: Return open bus; not implemented yet.
 
-            int shift = ((int)address & 3) << 3; // Shift amount to extract correct byte out of the word
+            int shift = ((int)address & 3) << 3;
             if (_getPC() < 0x4000)
                 _busValue = _memory.Read32(address & 3);
 

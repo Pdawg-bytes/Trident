@@ -36,7 +36,7 @@ namespace Trident.Core.Memory.GamePak
             {
                 _backupDevice = backupDevice;
                 _isEEPROM = backupDevice.Type == BackupType.EEPROMDetect;
-                _backupAccessHandler = _backupDevice.GetAccessHandler();
+                _backupAccessHandler = InitBackupHandler();
             }
 
             _isGPIO = false;
@@ -58,15 +58,9 @@ namespace Trident.Core.Memory.GamePak
         {
             address &= 0x01FF_FFFE; // Force align to 16-bit
             if (TAccess.IsLower)
-            {
-                // TODO: actually add reads
-                if (IsGPIOAddress(address) /* && gpio is readable */) return 0x00;
-            }
+                if (IsGPIOAddress(address) /* && gpio is readable */) return 0x0101;
             else
-            {
-                // TOOD: actually add reads
-                if (IsEEPROMAddress(address)) return 0xFF;
-            }
+                if (IsEEPROMAddress(address)) return _backupDevice.Read(0);
 
             return _romMemory.Read16(address & _addressMask);
         }
@@ -80,18 +74,17 @@ namespace Trident.Core.Memory.GamePak
                 // however, the top 8 bits are always 0. This means that we can treat each of the two regs as ushorts and combine them.
                 // TODO: attempt GPIO read
                 if (IsGPIOAddress(address) /* && gpio is readable */)
-                {
-                    ushort low = 0xFF /*_gpio.Read(address)*/;
-                    ushort top = 0x00 /*_gpio.Read(address | 2) */; // Address is aligned, therefore we can read the next register by adding 2.
-                    return (uint)((top << 16) | low);
-                }
+                    // Address is aligned, therefore we can read the next register by adding 2.
+                    return ((/*_gpio.Read(address | 2)*/0x00) << 16) | /*_gpio.Read(address)*/ 0xFF;
             }
             else
-            { 
-                // TOOD: attempt EEPROM read
+            {
+                // The bus is 16-bits wide, so similarly to GPIO, we only get two values out of a 32-bit read.
                 if (IsEEPROMAddress(address))
                 {
-
+                    ushort low = _backupDevice.Read(0);
+                    ushort top = _backupDevice.Read(0);
+                    return (uint)((top << 16) | low);
                 }
             }
 
@@ -103,11 +96,12 @@ namespace Trident.Core.Memory.GamePak
         private bool IsEEPROMAddress(uint address) => _isEEPROM && (address & _eepromMask) == _eepromMask;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool IsGPIOAddress(uint address) => _isGPIO && address <= 0xC8 && address >= 0xC4;
+        private bool IsGPIOAddress(uint address) => _isGPIO && address >= 0xC4 && address <= 0xC8;
 
         public void Dispose()
         {
             _romMemory.Dispose();
+            _backupDevice.Dispose();
         }
     }
 }

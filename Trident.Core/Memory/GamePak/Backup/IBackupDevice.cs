@@ -8,6 +8,9 @@ namespace Trident.Core.Memory.GamePak.Backup
         BackupType Type { get; }
 
         void Reset();
-        MemoryAccessHandler GetAccessHandler();
+        byte Read(uint address);
+        void Write(uint address, byte value);
+
+        void Dispose();
     }
 }
