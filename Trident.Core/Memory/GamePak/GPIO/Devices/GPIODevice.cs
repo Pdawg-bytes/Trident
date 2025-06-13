@@ -2,11 +2,11 @@
 
 namespace Trident.Core.Memory.GamePak.GPIO
 {
-    internal abstract class GPIODevice
+    public abstract class GPIODevice
     {
         private int _portDirections = 0;
 
-        internal void SetDirections(int portDirections) => this._portDirections = portDirections;
+        internal void SetDirections(int portDirections) => _portDirections = portDirections;
         internal GPIODirection GetDirection(int pin) => (GPIODirection)((_portDirections >> pin) & 1);
 
         public abstract void Reset();

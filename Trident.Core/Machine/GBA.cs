@@ -7,6 +7,7 @@ using Trident.Core.Bus;
 using Trident.Core.CPU;
 using Trident.Core.Memory;
 using Trident.Core.Memory.GamePak;
+using Trident.Core.Memory.GamePak.GPIO;
 
 namespace Trident.Core.Machine
 {
@@ -30,6 +31,10 @@ namespace Trident.Core.Machine
 
             CPU.AttachBus(Bus);
         }
+
+
+        public T? GetGPIODevice<T>() where T : GPIODevice
+            => _gamePak?.GetGPIODevice<T>(); 
 
         public void AttachBIOS(byte[] bios)
         {

@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using Trident.Core.Enums;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using Trident.Core.Enums;
+using Trident.Core.Memory.GamePak.GPIO;
 using Trident.Core.Memory.GamePak.Backup;
 
 namespace Trident.Core.Memory.GamePak
@@ -22,13 +18,14 @@ namespace Trident.Core.Memory.GamePak
         private readonly bool _isEEPROM;
         private readonly uint _eepromMask;
 
-        private readonly bool _isGPIO;
+        private readonly GPIOBus _gpio;
+        private readonly bool _isGPIO = false;
 
         private readonly MemoryAccessHandler _upperAccessHandler;
         private readonly MemoryAccessHandler _lowerAccessHandler;
         private readonly MemoryAccessHandler _backupAccessHandler;
 
-        internal GamePak(byte[] romData, uint addressMask, IBackupDevice? backupDevice)
+        internal GamePak(byte[] romData, uint addressMask, IBackupDevice? backupDevice, GPIOBus? gpio)
         {
             _addressMask = addressMask;
 
@@ -38,8 +35,12 @@ namespace Trident.Core.Memory.GamePak
                 _isEEPROM = backupDevice.Type == BackupType.EEPROMDetect;
                 _backupAccessHandler = InitBackupHandler();
             }
-
-            _isGPIO = false;
+            if (gpio != null)
+            {
+                _gpio = gpio;
+                _isGPIO = true;
+                _gpio.Reset();
+            }
 
             ActualSize = romData.Length;
             _romMemory = new((nuint)romData.Length);
@@ -53,12 +54,15 @@ namespace Trident.Core.Memory.GamePak
         internal MemoryAccessHandler GetLowerHandler() => _lowerAccessHandler;
         internal MemoryAccessHandler GetBackupHandler() => _backupAccessHandler;
 
+        internal T? GetGPIODevice<T>() where T : GPIODevice
+            => _gpio.GetDevice<T>();
+
 
         private ushort ReadData16<TAccess>(uint address, bool seqAccess) where TAccess : struct, IAccess
         {
             address &= 0x01FF_FFFE; // Force align to 16-bit
             if (TAccess.IsLower)
-                if (IsGPIOAddress(address) /* && gpio is readable */) return 0x0101;
+                if (IsGPIOAddress(address) && _gpio.Readable) return _gpio.Read(address);
             else
                 if (IsEEPROMAddress(address)) return _backupDevice.Read(0);
 
@@ -73,9 +77,9 @@ namespace Trident.Core.Memory.GamePak
                 // Reading 4 bytes from a GPIO address will only incorporate two GPIO registers, due to them technically being 16 bits wide;
                 // however, the top 8 bits are always 0. This means that we can treat each of the two regs as ushorts and combine them.
                 // TODO: attempt GPIO read
-                if (IsGPIOAddress(address) /* && gpio is readable */)
+                if (IsGPIOAddress(address) && _gpio.Readable)
                     // Address is aligned, therefore we can read the next register by adding 2.
-                    return ((/*_gpio.Read(address | 2)*/0x00) << 16) | /*_gpio.Read(address)*/ 0xFF;
+                    return (uint)(((_gpio.Read(address | 2)) << 16) | _gpio.Read(address));
             }
             else
             {

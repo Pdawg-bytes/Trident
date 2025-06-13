@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 using Trident.Core.Enums;
 using Trident.Core.Global;
 using Trident.Core.Memory.GamePak;
+using System.Runtime.InteropServices;
 using Trident.Core.Memory.GamePak.Backup;
 
 namespace Trident.Core.Machine
@@ -28,12 +24,12 @@ namespace Trident.Core.Machine
             else if (backupType == BackupType.None)
                 Console.WriteLine("Backup type was not able to be determined."); // TODO: replace with log
 
-            // TODO: GPIO
+            // TODO: Load GPIO data from cartridge
 
             uint addressMask = GamePak.MaxSize - 1;
             // TODO: when ROM is mirrored: ((uint)romData.Length).NearestPow2() - 1
 
-            return new GamePak(romData, addressMask, backupDevice);
+            return new GamePak(romData, addressMask, backupDevice, null);
         }
 
         private static BackupType GetBackupType(byte[] romData)
