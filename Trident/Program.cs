@@ -10,7 +10,8 @@ namespace Trident
         static void Main(string[] args)
         {
             GBA gba = new();
-            gba.AttachGamePak(@"C:\Users\pgago\Downloads\Super Monkey Ball Jr. (USA)\Super Monkey Ball Jr. (USA).gba");
+            gba.AttachGamePak(@"D:\GBA_ROM\Metroid Fusion (USA)\Metroid Fusion (USA).gba");
+            Console.WriteLine(gba.GetGamePakInfo());
         }
     }
 }

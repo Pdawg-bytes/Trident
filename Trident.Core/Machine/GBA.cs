@@ -34,15 +34,7 @@ namespace Trident.Core.Machine
 
 
         public T? GetGPIODevice<T>() where T : GPIODevice
-            => _gamePak?.GetGPIODevice<T>(); 
-
-        public void AttachBIOS(byte[] bios)
-        {
-            if (bios.Length != BIOS.MEMORY_SIZE)
-                throw new Exception("BIOS image is not the correct size.");
-
-            _bios.LoadBIOS(bios);
-        }
+            => _gamePak?.GetGPIODevice<T>();
 
         public void AttachGamePak(string filePath)
         {
@@ -65,6 +57,17 @@ namespace Trident.Core.Machine
                 (0x0E, backupHandler),
                 (0x0F, backupHandler)
             ]);
+        }
+
+        public GamePakInfo GetGamePakInfo() => _gamePak.PakInfo;
+
+
+        public void AttachBIOS(byte[] bios)
+        {
+            if (bios.Length != BIOS.MEMORY_SIZE)
+                throw new Exception("BIOS image is not the correct size.");
+
+            _bios.LoadBIOS(bios);
         }
     }
 }

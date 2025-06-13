@@ -10,6 +10,8 @@ namespace Trident.Core.Memory.GamePak
         internal const int MaxSize = 32 * 1024 * 1024;
         internal readonly int ActualSize;
 
+        internal readonly GamePakInfo PakInfo;
+
         private UnsafeMemoryBlock _romMemory;
         private readonly uint _addressMask;
         private uint _romAddress;
@@ -25,9 +27,10 @@ namespace Trident.Core.Memory.GamePak
         private readonly MemoryAccessHandler _lowerAccessHandler;
         private readonly MemoryAccessHandler _backupAccessHandler;
 
-        internal GamePak(byte[] romData, uint addressMask, IBackupDevice? backupDevice, GPIOBus? gpio)
+        internal GamePak(byte[] romData, uint addressMask, GamePakInfo info, IBackupDevice? backupDevice, GPIOBus? gpio)
         {
             _addressMask = addressMask;
+            PakInfo = info;
 
             if (backupDevice != null)
             {
@@ -60,18 +63,30 @@ namespace Trident.Core.Memory.GamePak
 
         private ushort ReadData16<TAccess>(uint address, bool seqAccess) where TAccess : struct, IAccess
         {
-            address &= 0x01FF_FFFE; // Force align to 16-bit
+            address &= 0x01FF_FFFE; // Force align to 16-bit boundary
             if (TAccess.IsLower)
                 if (IsGPIOAddress(address) && _gpio.Readable) return _gpio.Read(address);
             else
                 if (IsEEPROMAddress(address)) return _backupDevice.Read(0);
 
-            return _romMemory.Read16(address & _addressMask);
+            // Seqential accesses from one address will not overwrite the latch! We should instead use the auto-incremented value.
+            if (!seqAccess)
+                _romAddress = address & _addressMask;
+
+            ushort value;
+            if (_romAddress < ActualSize)
+                value = _romMemory.Read16(_romAddress);
+            else
+                value = (ushort)(_romAddress >> 1);
+
+            // The GBA ROM uses an internal latch which automatically increments.
+            _romAddress = (_romAddress + sizeof(ushort)) & _addressMask;
+            return value;
         }
 
         private uint ReadData32<TAccess>(uint address, bool seqAccess) where TAccess : struct, IAccess
         {
-            address &= 0x01FF_FFFC; // Force align to 32-bit
+            address &= 0x01FF_FFFC; // Force align to 32-bit boundary
             if (TAccess.IsLower)
             {
                 // Reading 4 bytes from a GPIO address will only incorporate two GPIO registers, due to them technically being 16 bits wide;
@@ -92,7 +107,23 @@ namespace Trident.Core.Memory.GamePak
                 }
             }
 
-            return _romMemory.Read32(address & _addressMask);
+            // Seqential accesses from one address will not overwrite the latch! We should instead use the auto-incremented value.
+            if (!seqAccess)
+                _romAddress = address & _addressMask;
+
+            uint value;
+            if (_romAddress < ActualSize)
+                value = _romMemory.Read16(_romAddress);
+            else
+            {
+                ushort low = (ushort)(_romAddress >> 1);
+                ushort top = (ushort)(low + 1);
+                value = (ushort)((top << 16) | low);
+            }
+
+            // The GBA ROM uses an internal latch which automatically increments.
+            _romAddress = (_romAddress + sizeof(uint)) & _addressMask;
+            return value;
         }
 
 

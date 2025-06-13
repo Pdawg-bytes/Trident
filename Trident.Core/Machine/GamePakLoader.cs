@@ -15,21 +15,33 @@ namespace Trident.Core.Machine
                 throw new ArgumentException("ROM file is either too small or too large.");
 
             ROMHeader header = GetHeader(romData);
-            var gameIDs = GetGameInfoStrings(ref header);
+            var stringData = GetGameInfoStrings(ref header);
 
             BackupType backupType = GetBackupType(romData);
             IBackupDevice backupDevice = null;
-            if (backupType != BackupType.None && saveData != null)
+            if (backupType != BackupType.None)
                 backupDevice = CreateBackupDevice(saveData, backupType);
-            else if (backupType == BackupType.None)
+            else
                 Console.WriteLine("Backup type was not able to be determined."); // TODO: replace with log
 
             // TODO: Load GPIO data from cartridge
 
+            GamePakInfo info = new()
+            {
+                Title = stringData.title,
+                Code = stringData.code,
+                Maker = stringData.maker,
+
+                Size = (uint)romData.Length,
+
+                BackupType = backupType,
+                BackupSize = backupDevice == null ? 0 : backupDevice.Size,
+            };
+
             uint addressMask = GamePak.MaxSize - 1;
             // TODO: when ROM is mirrored: ((uint)romData.Length).NearestPow2() - 1
 
-            return new GamePak(romData, addressMask, backupDevice, null);
+            return new GamePak(romData, addressMask, info, backupDevice, null);
         }
 
         private static BackupType GetBackupType(byte[] romData)
@@ -41,10 +53,10 @@ namespace Trident.Core.Machine
             return BackupType.None;
         }
 
-        private static IBackupDevice CreateBackupDevice(byte[] saveData, BackupType backupType) => backupType switch
+        private static IBackupDevice CreateBackupDevice(byte[]? saveData, BackupType backupType) => backupType switch
         {
             BackupType.SRAM => new SRAM(saveData),
-            _ => throw new NotImplementedException($"The backup device {backupType} is not currently implemented.")
+            _ => throw new NotImplementedException($"The backup device \"{backupType}\" is not currently implemented.")
         };
 
         private static unsafe ROMHeader GetHeader(byte[] romData)
