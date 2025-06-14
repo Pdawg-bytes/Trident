@@ -35,7 +35,7 @@ namespace Trident.Core.Memory.GamePak
             if (backupDevice != null)
             {
                 _backupDevice = backupDevice;
-                _isEEPROM = backupDevice.Type == BackupType.EEPROMDetect;
+                _isEEPROM = (backupDevice.Type & (BackupType.EEPROMDetect | BackupType.EEPROM512B | BackupType.EEPROM8K)) != 0;
                 _backupAccessHandler = InitBackupHandler();
             }
             if (gpio != null)
@@ -67,7 +67,8 @@ namespace Trident.Core.Memory.GamePak
             if (TAccess.IsLower)
                 if (IsGPIOAddress(address) && _gpio.Readable) return _gpio.Read(address);
             else
-                if (IsEEPROMAddress(address)) return _backupDevice.Read(0);
+                // EEPROM does not use the address parameter; it is a purely serial device. Pass in uint.MaxValue to signify that it doesn't matter.
+                if (IsEEPROMAddress(address)) return _backupDevice.Read(0xFFFF_FFFF);
 
             // Seqential accesses from one address will not overwrite the latch! We should instead use the auto-incremented value.
             if (!seqAccess)
@@ -91,7 +92,6 @@ namespace Trident.Core.Memory.GamePak
             {
                 // Reading 4 bytes from a GPIO address will only incorporate two GPIO registers, due to them technically being 16 bits wide;
                 // however, the top 8 bits are always 0. This means that we can treat each of the two regs as ushorts and combine them.
-                // TODO: attempt GPIO read
                 if (IsGPIOAddress(address) && _gpio.Readable)
                     // Address is aligned, therefore we can read the next register by adding 2.
                     return (uint)(((_gpio.Read(address | 2)) << 16) | _gpio.Read(address));
@@ -101,8 +101,9 @@ namespace Trident.Core.Memory.GamePak
                 // The bus is 16-bits wide, so similarly to GPIO, we only get two values out of a 32-bit read.
                 if (IsEEPROMAddress(address))
                 {
-                    ushort low = _backupDevice.Read(0);
-                    ushort top = _backupDevice.Read(0);
+                    // EEPROM does not use the address parameter; it is a serial device. Pass in uint.MaxValue to signify that it doesn't matter.
+                    ushort low = _backupDevice.Read(0xFFFF_FFFF);
+                    ushort top = _backupDevice.Read(0xFFFF_FFFF);
                     return (uint)((top << 16) | low);
                 }
             }

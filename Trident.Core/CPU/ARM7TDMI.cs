@@ -8,28 +8,28 @@ using static Trident.Core.CPU.Conditions;
 
 namespace Trident.Core.CPU
 {
-    public unsafe class ARM7TDMI
+    public class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
         public RegisterSet Registers;
         private Pipeline _pipeline;
-        private DataBus _bus;
+        private TBus _bus;
 
-        private readonly ARMDispatcher _armDispatcher;
+        private readonly ARMDispatcher<TBus> _armDispatcher;
 
-        private readonly ThumbDispatcher _thumbDispatcher;
+        private readonly ThumbDispatcher<TBus> _thumbDispatcher;
         private ThumbArguments _thumbParams;
-
 
         public ARM7TDMI()
         {
             Registers = new();
             _pipeline = new();
 
-            _armDispatcher = new();
-            _thumbDispatcher = new();
+            _armDispatcher = new(this);
+            _thumbDispatcher = new(this);
         }
 
-        internal void AttachBus(DataBus bus) => _bus = bus;
+        internal void AttachBus(TBus bus) => _bus = bus;
+
 
         public void Reset()
         {
@@ -37,7 +37,7 @@ namespace Trident.Core.CPU
             Registers.SetFlag(Flags.F);
             Registers.SwitchMode(PrivilegeMode.Supervisor);
             Registers.SPSR = Registers.CPSR;
-            ReloadPipeline32();
+            ReloadPipelineARM();
         }
 
         public void Run()
@@ -68,7 +68,7 @@ namespace Trident.Core.CPU
 
             ThumbMetadata instr = _thumbDispatcher.GetInstruction(opcode);
             instr.ArgDecoder(ref _thumbParams, opcode);
-            instr.Handler(this, ref _thumbParams);
+            instr.Handler(ref _thumbParams);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -87,10 +87,10 @@ namespace Trident.Core.CPU
             }
 
             ARMInstruction instr = _armDispatcher.GetInstruction(opcode);
-            instr(this, opcode);
+            instr(opcode);
         }
 
-        private ulong ReloadPipeline16()
+        private void ReloadPipelineThumb()
         {
             uint pc = Registers.PC;
             uint pcNext = pc + 2;
@@ -100,11 +100,9 @@ namespace Trident.Core.CPU
             _pipeline.Address[1] = pcNext;
             _pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
             Registers.PC += 4;
-
-            return 0;
         }
 
-        private ulong ReloadPipeline32()
+        private void ReloadPipelineARM()
         {
             uint pc = Registers.PC;
             uint pcNext = pc + 4;
@@ -114,8 +112,11 @@ namespace Trident.Core.CPU
             _pipeline.Address[1] = pcNext;
             _pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
             Registers.PC += 8;
-
-            return 0;
         }
+
+
+        internal uint NonImplementedARMInstr(uint opcode) => throw new NotImplementedException("This ARM instruction group is not implemented.");
+
+        internal uint NonImplementedThumbInstr(ref ThumbArguments args) => throw new NotImplementedException("This Thumb instruction group is not implemented.");
     }
 }

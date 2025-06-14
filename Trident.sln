@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.10.35027.167
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trident", "Trident\Trident.csproj", "{7ED8E311-74EB-44E8-96E1-1641258A811C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trident", "Trident\Trident.csproj", "{7ED8E311-74EB-44E8-96E1-1641258A811C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trident.Core", "Trident.Core\Trident.Core.csproj", "{BCB539DC-4CDB-4D3A-90E9-8F26D5CD4472}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trident.Core", "Trident.Core\Trident.Core.csproj", "{BCB539DC-4CDB-4D3A-90E9-8F26D5CD4472}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trident.Tests", "Trident.Tests\Trident.Tests.csproj", "{28992C56-B35E-4CB8-A25D-8108637A8E6B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{BCB539DC-4CDB-4D3A-90E9-8F26D5CD4472}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BCB539DC-4CDB-4D3A-90E9-8F26D5CD4472}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BCB539DC-4CDB-4D3A-90E9-8F26D5CD4472}.Release|Any CPU.Build.0 = Release|Any CPU
+		{28992C56-B35E-4CB8-A25D-8108637A8E6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{28992C56-B35E-4CB8-A25D-8108637A8E6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{28992C56-B35E-4CB8-A25D-8108637A8E6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{28992C56-B35E-4CB8-A25D-8108637A8E6B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

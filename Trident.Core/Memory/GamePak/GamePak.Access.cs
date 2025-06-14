@@ -7,14 +7,18 @@ namespace Trident.Core.Memory.GamePak
     {
         private MemoryAccessHandler GetHandler<TAccess>() where TAccess : struct, IAccess
         {
-            return new MemoryAccessHandler()
-            {
-                Read8 = Read8<TAccess>,
-                Read16 = Read16<TAccess>,
-                Read32 = Read32<TAccess>,
+            return new MemoryAccessHandler
+            (
+                read8: Read8<TAccess>,
+                read16: Read16<TAccess>,
+                read32: Read32<TAccess>,
 
-                Dispose = Dispose
-            };
+                null, 
+                null, 
+                null,
+
+                dispose: Dispose
+            );
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -38,18 +42,18 @@ namespace Trident.Core.Memory.GamePak
 
         private MemoryAccessHandler InitBackupHandler()
         {
-            return new MemoryAccessHandler()
-            {
-                Read8 = ReadBackup8,
-                Read16 = ReadBackup16,
-                Read32 = ReadBackup32,
+            return new MemoryAccessHandler
+            (
+                read8: ReadBackup8,
+                read16: ReadBackup16,
+                read32: ReadBackup32,
 
-                Write8 = WriteBackup8,
-                Write16 = WriteBackup16,
-                Write32 = WriteBackup32,
+                write8: WriteBackup8,
+                write16: WriteBackup16,
+                write32: WriteBackup32,
 
-                Dispose = _backupDevice.Dispose
-            };
+                dispose: _backupDevice.Dispose
+            );
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

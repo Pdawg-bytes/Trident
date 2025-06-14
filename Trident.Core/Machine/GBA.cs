@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,8 +14,8 @@ namespace Trident.Core.Machine
 {
     public class GBA
     {
-        internal ARM7TDMI CPU;
-        internal DataBus Bus;
+        internal ARM7TDMI<GBABus> CPU;
+        internal GBABus Bus;
 
         private readonly BIOS _bios;
         private readonly UnusedSection _unused = new();
@@ -25,7 +26,7 @@ namespace Trident.Core.Machine
         public GBA()
         {
             CPU = new();
-            Bus = new DataBus();
+            Bus = new GBABus();
 
             _bios = new(() => CPU.Registers.GetRegisterRef(15));
 
@@ -68,6 +69,7 @@ namespace Trident.Core.Machine
                 throw new Exception("BIOS image is not the correct size.");
 
             _bios.LoadBIOS(bios);
+            Bus.RegisterHandler(0x00, _bios.GetAccessHandler());
         }
     }
 }

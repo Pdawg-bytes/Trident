@@ -1,7 +1,7 @@
 ﻿namespace Trident.Core.Enums
 {
     [Flags]
-    internal enum PipelineAccess : uint
+    public enum PipelineAccess : uint
     {
         NonSequential = 0,
         Sequential =    1 << 0,

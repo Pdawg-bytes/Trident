@@ -22,17 +22,17 @@ namespace Trident.Core.Memory
         internal MemoryAccessHandler GetAccessHandler()
         {
             return new MemoryAccessHandler
-            {
-                Read8 = this.Read8,
-                Read16 = this.Read16,
-                Read32 = this.Read32,
+            (
+                read8: this.Read8,
+                read16: this.Read16,
+                read32: this.Read32,
 
-                Write8 = this.Write8,
-                Write16 = this.Write16,
-                Write32 = this.Write32,
+                write8: this.Write8,
+                write16: this.Write16,
+                write32: this.Write32,
 
-                Dispose = _memory.Dispose
-            };
+                dispose: _memory.Dispose
+            );
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -54,8 +54,8 @@ namespace Trident.Core.Memory
 
         internal void LoadBIOS(byte[] bios) => _memory.WriteBytes(0, bios);
 
-        private void Write8(uint address, PipelineAccess access, byte value) => DataBus.InvalidAccess(MemorySection.BIOS, address, true, value);
-        private void Write16(uint address, PipelineAccess access, ushort value) => DataBus.InvalidAccess(MemorySection.BIOS, address, true, value);
-        private void Write32(uint address, PipelineAccess access, uint value) => DataBus.InvalidAccess(MemorySection.BIOS, address, true, value);
+        private void Write8(uint address, PipelineAccess access, byte value) => GBABus.InvalidAccess(MemorySection.BIOS, address, true, value);
+        private void Write16(uint address, PipelineAccess access, ushort value) => GBABus.InvalidAccess(MemorySection.BIOS, address, true, value);
+        private void Write32(uint address, PipelineAccess access, uint value) => GBABus.InvalidAccess(MemorySection.BIOS, address, true, value);
     }
 }

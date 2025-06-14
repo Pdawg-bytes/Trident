@@ -38,7 +38,7 @@ namespace Trident.Core.Machine
                 BackupSize = backupDevice == null ? 0 : backupDevice.Size,
             };
 
-            uint addressMask = GamePak.MaxSize - 1;
+            uint addressMask = ((uint)romData.Length).NearestPow2() - 1 /*GamePak.MaxSize - 1*/;
             // TODO: when ROM is mirrored: ((uint)romData.Length).NearestPow2() - 1
 
             return new GamePak(romData, addressMask, info, backupDevice, null);
@@ -53,10 +53,10 @@ namespace Trident.Core.Machine
             return BackupType.None;
         }
 
-        private static IBackupDevice CreateBackupDevice(byte[]? saveData, BackupType backupType) => backupType switch
+        private static IBackupDevice? CreateBackupDevice(byte[]? saveData, BackupType backupType) => backupType switch
         {
             BackupType.SRAM => new SRAM(saveData),
-            _ => throw new NotImplementedException($"The backup device \"{backupType}\" is not currently implemented.")
+            _ => null,
         };
 
         private static unsafe ROMHeader GetHeader(byte[] romData)
