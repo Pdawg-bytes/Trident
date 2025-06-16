@@ -21,13 +21,16 @@ namespace Trident.Tests.SingleStep
         [DynamicData(nameof(GetJsonFiles), DynamicDataSourceType.Method, DynamicDataDisplayName = nameof(GetFileName))]
         public async Task RunTestsFromFileAsync(string filePath)
         {
-            ConcurrentBag<string> failures = new();
+            string failureFile = $"{filePath}.failures.tmp";
+            object writeLock = new();
+
+            using StreamWriter failureWriter = new(failureFile, false);
             var channel = Channel.CreateUnbounded<IndexedTestCase>();
 
-            int consumerCount = Environment.ProcessorCount / 2;
+            int consumerCount = Environment.ProcessorCount;
             List<Task> tasks = Enumerable.Range(0, consumerCount).Select(workerId => Task.Run(async () =>
             {
-                var cpu = new ARM7TDMI<TransactionalMemory>();
+                ARM7TDMI<TransactionalMemory> cpu = new();
                 cpu.AttachBus(new TransactionalMemory());
 
                 await foreach (var entry in channel.Reader.ReadAllAsync())
@@ -37,18 +40,22 @@ namespace Trident.Tests.SingleStep
                         SystemState testCase = entry.TestCase;
                         CPUInitializer.ApplyInitialState(cpu, testCase.Initial);
 
-                        // TODO: actually step cpu and then test. This is just to see if the runner is working.
                         if (testCase.Opcode > 0xDDAA)
-                            failures.Add($"[#{entry.Index}] failed: Opcode=0x{testCase.Opcode:X8}");
+                        {
+                            // TODO: actually step cpu and then test. This is just to see if the runner is working.
+                            lock (writeLock)
+                                failureWriter.WriteLine($"[#{entry.Index}] failed: Opcode=0x{testCase.Opcode:X8}");
+                        }
                     }
                     catch (Exception ex)
                     {
-                        failures.Add($"[Worker {workerId}, #{entry.Index}] exception: {ex.Message}");
+                        lock (writeLock)
+                            failureWriter.WriteLine($"[Worker {workerId}, #{entry.Index}] exception: {ex.Message}");
                     }
                 }
             })).ToList();
 
-            await using var stream = File.OpenRead(filePath);
+            await using FileStream stream = File.OpenRead(filePath);
             int index = 0;
             await foreach (var testCase in JsonSerializer.DeserializeAsyncEnumerable<SystemState>(stream))
                 await channel.Writer.WriteAsync(new IndexedTestCase(index++, testCase));
@@ -56,21 +63,41 @@ namespace Trident.Tests.SingleStep
             channel.Writer.Complete();
             await Task.WhenAll(tasks);
 
-            if (!failures.IsEmpty)
+            failureWriter.Flush();
+            failureWriter.Close();
+
+            if (File.Exists(failureFile))
             {
-                var orderedFailures = failures.OrderBy(failure =>
+                int failureCount = 0;
+                List<string> sampleLines = new();
+
+                using (StreamReader reader = File.OpenText(failureFile))
                 {
-                    Match match = Regex.Match(failure, @"\[#(\d+)\]");
-                    return match.Success ? int.Parse(match.Groups[1].Value) : int.MaxValue;
-                }).ToList();
-                Assert.Fail($"{orderedFailures.Count} failures:\n{string.Join("\n", orderedFailures)}");
-                //Assert.IsFalse(failures.Count != 0);
+                    string? line;
+                    while ((line = reader.ReadLine()) is not null)
+                    {
+                        failureCount++;
+                        if (sampleLines.Count < 10)
+                            sampleLines.Add(line);
+                    }
+                }
+
+                if (failureCount > 0)
+                {
+                    string preview = string.Join("\n", sampleLines);
+                    Assert.Fail(
+                        $"{failureCount} failures. Showing first {sampleLines.Count}:\n" +
+                        $"{preview}\n\n" +
+                        $"Full log saved to: {failureFile}");
+                }
+                else
+                    File.Delete(failureFile);
             }
         }
 
         public static IEnumerable<string[]> GetJsonFiles()
         {
-            string baseDir = @"";
+            string baseDir = @"D:\Source\Git\ARM7TDMI\v1";
             foreach (var file in Directory.GetFiles(baseDir, "*.json"))
                 yield return new string[] { file };
         }
