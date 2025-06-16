@@ -2,6 +2,8 @@
 
 namespace Trident.Tests.SingleStep.Models
 {
+    public record IndexedTestCase(int Index, SystemState TestCase);
+
     public class SystemState
     {
         [JsonPropertyName("initial")]

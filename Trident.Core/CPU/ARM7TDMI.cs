@@ -28,7 +28,7 @@ namespace Trident.Core.CPU
             _thumbDispatcher = new(this);
         }
 
-        internal void AttachBus(TBus bus) => _bus = bus;
+        public void AttachBus(TBus bus) => _bus = bus;
 
 
         public void Reset()
