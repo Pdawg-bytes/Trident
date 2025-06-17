@@ -115,6 +115,15 @@ namespace Trident.Core.CPU
         }
 
 
+        public void FillPipeline(List<uint> opcodes)
+        {
+            _pipeline.Prefetch[0] = opcodes[0];
+            _pipeline.Prefetch[1] = opcodes[1];
+        }
+
+        public void SetPipelineAccess(PipelineAccess access) => _pipeline.Access = access;
+
+
         internal uint NonImplementedARMInstr(uint opcode) => throw new NotImplementedException("This ARM instruction group is not implemented.");
 
         internal uint NonImplementedThumbInstr(ref ThumbArguments args) => throw new NotImplementedException("This Thumb instruction group is not implemented.");

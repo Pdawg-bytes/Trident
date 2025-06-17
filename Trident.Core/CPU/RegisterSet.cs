@@ -19,7 +19,7 @@ namespace Trident.Core.CPU
         // In reality, we have 6 distinct modes, but we are once again indexing based on the mode,
         // meaning we have 2^5 possible indices. Masking out the MSB could bring us down to 2^4,
         // but it's really not worth it to add more logic to the mode switch.
-        private readonly BankParameters[] bankParams = new BankParameters[32];
+        private readonly BankParameters[] _bankParams = new BankParameters[32];
 
         private uint[] _bankStore = new uint[22];   // USR/SYS (7 regs, default set), FIQ (7 regs), other 4 modes (2 regs ea.)
         private Flags[] _bankedSpsr = new Flags[6]; // 6 distinct modes, usr/sys don't use SPSR, but our bank switch relies on it anyways.
@@ -29,13 +29,13 @@ namespace Trident.Core.CPU
 
         public RegisterSet()
         {
-            bankParams[(uint)PrivilegeMode.User] = new BankParameters(8, 0, 7, 0);
-            bankParams[(uint)PrivilegeMode.System] = new BankParameters(8, 0, 7, 0);
-            bankParams[(uint)PrivilegeMode.FIQ] = new BankParameters(8, 7, 7, 1);
-            bankParams[(uint)PrivilegeMode.IRQ] = new BankParameters(13, 14, 2, 2);
-            bankParams[(uint)PrivilegeMode.Supervisor] = new BankParameters(13, 16, 2, 3);
-            bankParams[(uint)PrivilegeMode.Abort] = new BankParameters(13, 18, 2, 4);
-            bankParams[(uint)PrivilegeMode.Undefined] = new BankParameters(13, 20, 2, 5);
+            _bankParams[(uint)PrivilegeMode.User] = new BankParameters(8, 0, 7, 0);
+            _bankParams[(uint)PrivilegeMode.System] = new BankParameters(8, 0, 7, 0);
+            _bankParams[(uint)PrivilegeMode.FIQ] = new BankParameters(8, 7, 7, 1);
+            _bankParams[(uint)PrivilegeMode.IRQ] = new BankParameters(13, 14, 2, 2);
+            _bankParams[(uint)PrivilegeMode.Supervisor] = new BankParameters(13, 16, 2, 3);
+            _bankParams[(uint)PrivilegeMode.Abort] = new BankParameters(13, 18, 2, 4);
+            _bankParams[(uint)PrivilegeMode.Undefined] = new BankParameters(13, 20, 2, 5);
 
             CurrentMode = PrivilegeMode.System;
             SwitchMode(PrivilegeMode.System);
@@ -89,7 +89,7 @@ namespace Trident.Core.CPU
             if (CurrentMode == newMode) return;
 
             // Copy state into respective bank
-            BankParameters currentCopy = bankParams[(uint)CurrentMode];
+            BankParameters currentCopy = _bankParams[(uint)CurrentMode];
             for (int i = 0; i < currentCopy.RegisterCount; i++)
                 _bankStore[currentCopy.BankIndex + i] = _registers[currentCopy.ActiveSetIndex + i];
 
@@ -97,11 +97,11 @@ namespace Trident.Core.CPU
 
             // Copy in r8-r12 from the user bank if we're leaving FIQ and entering anything except for USR/SYS.
             // We don't need to copy r13 or r14 because every other mode overwrites them anyways.
-            if (CurrentMode is PrivilegeMode.FIQ && (newMode is not PrivilegeMode.User && newMode is not PrivilegeMode.System))
+            if (CurrentMode == PrivilegeMode.FIQ && (newMode != PrivilegeMode.User && newMode != PrivilegeMode.System))
                 for (int i = 0; i < 5; i++) _registers[8 + i] = _bankStore[i];
 
             // Copy new bank into working set
-            BankParameters newCopy = bankParams[(uint)newMode];
+            BankParameters newCopy = _bankParams[(uint)newMode];
             for (int i = 0; i < newCopy.RegisterCount; i++)
                 _registers[newCopy.ActiveSetIndex + i] = _bankStore[newCopy.BankIndex + i];
 
@@ -109,6 +109,30 @@ namespace Trident.Core.CPU
 
             CPSR = (CPSR & ~(Flags)0x1F) | (Flags)(uint)newMode;
             CurrentMode = newMode;
+        }
+
+        public void SetBankForMode(List<uint> values, PrivilegeMode mode)
+        {
+            BankParameters bank = _bankParams[(uint)mode];
+
+            if (values.Count != bank.RegisterCount)
+                throw new ArgumentException($"Expected {bank.RegisterCount} registers for mode {mode}, got {values.Count}");
+
+            for (int i = 0; i < bank.RegisterCount; i++)
+                _bankStore[bank.BankIndex + i] = values[i];
+        }
+
+        public void SetSpsrForMode(PrivilegeMode mode, Flags value) => _bankedSpsr[_bankParams[(uint)mode].SPSRIndex] = value;
+
+        public void GetBankForMode(PrivilegeMode mode, Span<uint> destination)
+        {
+            BankParameters bank = _bankParams[(uint)mode];
+
+            if (destination.Length < bank.RegisterCount)
+                throw new ArgumentException("Destination span too small");
+
+            for (int i = 0; i < bank.RegisterCount; i++)
+                destination[i] = _bankStore[bank.BankIndex + i];
         }
 
         internal void ResetRegisters()

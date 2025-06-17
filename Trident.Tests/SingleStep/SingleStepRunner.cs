@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using Trident.Tests.SingleStep.Infrastructure;
-using Trident.Tests.SingleStep.Models;
+﻿using System.Text.Json;
 using Trident.Core.CPU;
-using System.Collections.Concurrent;
 using System.Reflection;
 using System.Threading.Channels;
-using System.Text.RegularExpressions;
+using Trident.Tests.SingleStep.Models;
+using Trident.Tests.SingleStep.Infrastructure;
 
 namespace Trident.Tests.SingleStep
 {
@@ -27,22 +20,26 @@ namespace Trident.Tests.SingleStep
             using StreamWriter failureWriter = new(failureFile, false);
             var channel = Channel.CreateUnbounded<IndexedTestCase>();
 
-            int consumerCount = Environment.ProcessorCount;
+            int consumerCount = Environment.ProcessorCount / 2;
             List<Task> tasks = Enumerable.Range(0, consumerCount).Select(workerId => Task.Run(async () =>
             {
                 ARM7TDMI<TransactionalMemory> cpu = new();
-                cpu.AttachBus(new TransactionalMemory());
+                cpu.Reset();
+                TransactionalMemory memory = new();
+                cpu.AttachBus(memory);
 
                 await foreach (var entry in channel.Reader.ReadAllAsync())
                 {
                     try
                     {
                         SystemState testCase = entry.TestCase;
-                        CPUInitializer.ApplyInitialState(cpu, testCase.Initial);
+                        CPUHelper.ApplyInitialState(cpu, testCase.Initial);
+                        memory.Initialize(testCase.BaseAddr, testCase.Opcode, testCase.Transactions);
+                        //cpu.Step();
 
-                        if (testCase.Opcode > 0xDDAA)
+                        // TODO: actually step cpu and then test. This is just to see if the runner is working.
+                        if (cpu.Registers[0] > 0x000BFFFF)
                         {
-                            // TODO: actually step cpu and then test. This is just to see if the runner is working.
                             lock (writeLock)
                                 failureWriter.WriteLine($"[#{entry.Index}] failed: Opcode=0x{testCase.Opcode:X8}");
                         }
@@ -97,7 +94,7 @@ namespace Trident.Tests.SingleStep
 
         public static IEnumerable<string[]> GetJsonFiles()
         {
-            string baseDir = @"D:\Source\Git\ARM7TDMI\v1";
+            string baseDir = @"C:\Users\pgago\Source\Git\ARM7TDMI\v1";
             foreach (var file in Directory.GetFiles(baseDir, "*.json"))
                 yield return new string[] { file };
         }
