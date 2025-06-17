@@ -122,14 +122,15 @@ namespace Trident.Core.CPU
                 _bankStore[bank.BankIndex + i] = values[i];
         }
 
+        public uint GetSpsrForMode(PrivilegeMode mode) => (uint)_bankedSpsr[_bankParams[(uint)mode].SPSRIndex];
         public void SetSpsrForMode(PrivilegeMode mode, Flags value) => _bankedSpsr[_bankParams[(uint)mode].SPSRIndex] = value;
 
         public void GetBankForMode(PrivilegeMode mode, Span<uint> destination)
         {
             BankParameters bank = _bankParams[(uint)mode];
 
-            if (destination.Length < bank.RegisterCount)
-                throw new ArgumentException("Destination span too small");
+            if (destination.Length != bank.RegisterCount)
+                throw new ArgumentException("Destination span size does not match register count.");
 
             for (int i = 0; i < bank.RegisterCount; i++)
                 destination[i] = _bankStore[bank.BankIndex + i];
