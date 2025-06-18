@@ -39,7 +39,7 @@ namespace Trident.Core.CPU.Decoding.ARM
                 new(mask: BX_MASK,           expected: BX_EXPECTED,           handler: cpu.ARM_BX),
                 new(mask: DP_IMM_SHIFT_MASK, expected: DP_IMM_SHIFT_EXPECTED, handler: cpu.NonImplementedARMInstr),
                 new(mask: DP_REG_SHIFT_MASK, expected: DP_REG_SHIFT_EXPECTED, handler: cpu.NonImplementedARMInstr),
-                new(mask: UNDEFINED_MASK,    expected: UNDEFINED_EXPECTED,    handler: cpu.NonImplementedARMInstr),
+                new(mask: UNDEFINED_MASK,    expected: UNDEFINED_EXPECTED,    handler: cpu.ARM_UND),
                 new(mask: DP_IMM_MASK,       expected: DP_IMM_EXPECTED,       handler: cpu.NonImplementedARMInstr),
                 new(mask: LDR_STR_IMM_MASK,  expected: LDR_STR_IMM_EXPECTED,  handler: cpu.NonImplementedARMInstr),
                 new(mask: LDR_STR_REG_MASK,  expected: LDR_STR_REG_EXPECTED,  handler: cpu.NonImplementedARMInstr),
