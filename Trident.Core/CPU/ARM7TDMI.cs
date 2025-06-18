@@ -8,11 +8,11 @@ using static Trident.Core.CPU.Conditions;
 
 namespace Trident.Core.CPU
 {
-    public class ARM7TDMI<TBus> where TBus : struct, IDataBus
+    public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
         public RegisterSet Registers;
-        private Pipeline _pipeline;
-        private TBus _bus;
+        public Pipeline Pipeline;
+        public TBus Bus;
 
         private readonly ARMDispatcher<TBus> _armDispatcher;
 
@@ -22,13 +22,13 @@ namespace Trident.Core.CPU
         public ARM7TDMI()
         {
             Registers = new();
-            _pipeline = new();
+            Pipeline = new();
 
             _armDispatcher = new(this);
             _thumbDispatcher = new(this);
         }
 
-        public void AttachBus(TBus bus) => _bus = bus;
+        public void AttachBus(TBus bus) => Bus = bus;
 
 
         public void Reset()
@@ -48,9 +48,9 @@ namespace Trident.Core.CPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Step()
         {
-            uint opcode = _pipeline.Prefetch[0];
-            _pipeline.Prefetch[0] = _pipeline.Prefetch[1];
-            _pipeline.Address[0] = _pipeline.Address[1];
+            uint opcode = Pipeline.Prefetch[0];
+            Pipeline.Prefetch[0] = Pipeline.Prefetch[1];
+            Registers.PC &= 0xFFFFFFFE;
 
             if (Registers.IsFlagSet(Flags.T))
                 StepThumb(opcode);
@@ -62,9 +62,7 @@ namespace Trident.Core.CPU
         private void StepThumb(uint opcode)
         {
             uint pc = Registers.PC;
-            _pipeline.Prefetch[1] = _bus.Read16(pc, _pipeline.Access);
-            _pipeline.Address[1] = pc;
-            Registers.PC += 2;
+            Pipeline.Prefetch[1] = Bus.Read16(pc, Pipeline.Access);
 
             ThumbMetadata instr = _thumbDispatcher.GetInstruction(opcode);
             instr.ArgDecoder(ref _thumbParams, opcode);
@@ -75,14 +73,13 @@ namespace Trident.Core.CPU
         private void StepARM(uint opcode)
         {
             uint pc = Registers.PC;
-            _pipeline.Prefetch[1] = _bus.Read32(pc, _pipeline.Access);
-            _pipeline.Address[1] = pc;
-            Registers.PC += 4;
+            Pipeline.Prefetch[1] = Bus.Read32(pc, Pipeline.Access);
 
             uint cond = opcode >> 28;
-            if (cond != CondAL && !ConditionMet(cond, (int)Registers.CPSR >> 28))
+            if (cond != CondAL && !ConditionMet(cond, (int)((uint)Registers.CPSR >> 28)))
             {
-                _pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
+                Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
+                Registers.PC += 4;
                 return;
             }
 
@@ -92,40 +89,23 @@ namespace Trident.Core.CPU
 
         private void ReloadPipelineThumb()
         {
-            uint pc = Registers.PC;
-            uint pcNext = pc + 2;
-            _pipeline.Prefetch[0] = _bus.Read32(pc, PipelineAccess.Code | PipelineAccess.NonSequential);
-            _pipeline.Prefetch[1] = _bus.Read32(pcNext, PipelineAccess.Code | PipelineAccess.Sequential);
-            _pipeline.Address[0] = pc;
-            _pipeline.Address[1] = pcNext;
-            _pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
+            Pipeline.Prefetch[0] = Bus.Read16(Registers.PC, PipelineAccess.Code | PipelineAccess.NonSequential);
+            Pipeline.Prefetch[1] = Bus.Read16(Registers.PC + 2, PipelineAccess.Code | PipelineAccess.Sequential);
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
             Registers.PC += 4;
         }
 
         private void ReloadPipelineARM()
         {
-            uint pc = Registers.PC;
-            uint pcNext = pc + 4;
-            _pipeline.Prefetch[0] = _bus.Read32(pc, PipelineAccess.Code | PipelineAccess.NonSequential);
-            _pipeline.Prefetch[1] = _bus.Read32(pcNext, PipelineAccess.Code | PipelineAccess.Sequential);
-            _pipeline.Address[0] = pc;
-            _pipeline.Address[1] = pcNext;
-            _pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
+            Pipeline.Prefetch[0] = Bus.Read32(Registers.PC, PipelineAccess.Code | PipelineAccess.NonSequential);
+            Pipeline.Prefetch[1] = Bus.Read32(Registers.PC + 4, PipelineAccess.Code | PipelineAccess.Sequential);
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
             Registers.PC += 8;
         }
 
 
-        public void FillPipeline(List<uint> opcodes)
-        {
-            _pipeline.Prefetch[0] = opcodes[0];
-            _pipeline.Prefetch[1] = opcodes[1];
-        }
+        internal void NonImplementedARMInstr(uint opcode) => throw new NotImplementedException("This ARM instruction group is not implemented.");
 
-        public void SetPipelineAccess(PipelineAccess access) => _pipeline.Access = access;
-
-
-        internal uint NonImplementedARMInstr(uint opcode) => throw new NotImplementedException("This ARM instruction group is not implemented.");
-
-        internal uint NonImplementedThumbInstr(ref ThumbArguments args) => throw new NotImplementedException("This Thumb instruction group is not implemented.");
+        internal void NonImplementedThumbInstr(ref ThumbArguments args) => throw new NotImplementedException("This Thumb instruction group is not implemented.");
     }
 }

@@ -4,6 +4,9 @@ using System.Reflection;
 using System.Threading.Channels;
 using Trident.Tests.SingleStep.Models;
 using Trident.Tests.SingleStep.Infrastructure;
+using System.Diagnostics;
+using System.Text;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 
 namespace Trident.Tests.SingleStep
 {
@@ -20,37 +23,32 @@ namespace Trident.Tests.SingleStep
             using StreamWriter failureWriter = new(failureFile, false);
             var channel = Channel.CreateUnbounded<IndexedTestCase>();
 
-            int consumerCount = Environment.ProcessorCount / 2;
+            int consumerCount = Debugger.IsAttached ? 1 : Environment.ProcessorCount / 2;
+
             List<Task> tasks = Enumerable.Range(0, consumerCount).Select(workerId => Task.Run(async () =>
             {
                 ARM7TDMI<TransactionalMemory> cpu = new();
+                cpu.AttachBus(new TransactionalMemory());
                 cpu.Reset();
-                TransactionalMemory memory = new();
-                cpu.AttachBus(memory);
 
                 await foreach (var entry in channel.Reader.ReadAllAsync())
                 {
+                    SystemState testCase = entry.TestCase;
                     try
                     {
-                        SystemState testCase = entry.TestCase;
                         CPUHelper.ApplyInitialState(cpu, testCase.Initial);
-                        memory.Initialize(testCase.BaseAddr, testCase.Opcode, testCase.Transactions);
-                        //cpu.Step();
-
-                        // TODO: actually step cpu and then test. This is just to see if the runner is working.
-                        if (cpu.Registers[0] > 0x000BFFFF)
-                        {
-                            lock (writeLock)
-                                failureWriter.WriteLine($"[#{entry.Index}] failed: Opcode=0x{testCase.Opcode:X8}");
-                        }
+                        cpu.Bus.Initialize(testCase.BaseAddr, testCase.Opcode, testCase.Transactions);
+                        cpu.Step();
+                        CPUHelper.AssertState(cpu, testCase.Final);
                     }
                     catch (Exception ex)
                     {
-                        lock (writeLock)
-                            failureWriter.WriteLine($"[Worker {workerId}, #{entry.Index}] exception: {ex.Message}");
+                        lock (writeLock) 
+                            failureWriter.WriteLine($"[#{entry.Index}] failed: Opcode={testCase.Opcode}, message: {ex.Message}");
                     }
                 }
             })).ToList();
+
 
             await using FileStream stream = File.OpenRead(filePath);
             int index = 0;

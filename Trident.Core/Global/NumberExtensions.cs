@@ -16,10 +16,10 @@ namespace Trident.Core.Global
             (value >> lo) & ((1u << (hi - lo + 1)) - 1);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static uint Extend(this uint value, int bits)
+        internal static int Extend(this uint value, int bits)
         {
             int shift = 32 - bits;
-            return (value << shift) >> shift;
+            return ((int)(value << shift)) >> shift;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

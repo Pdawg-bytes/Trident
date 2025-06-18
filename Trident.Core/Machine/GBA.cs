@@ -15,7 +15,6 @@ namespace Trident.Core.Machine
     public class GBA
     {
         internal ARM7TDMI<GBABus> CPU;
-        internal GBABus Bus;
 
         private readonly BIOS _bios;
         private readonly UnusedSection _unused = new();
@@ -26,11 +25,10 @@ namespace Trident.Core.Machine
         public GBA()
         {
             CPU = new();
-            Bus = new GBABus();
 
             _bios = new(() => CPU.Registers.GetRegisterRef(15));
 
-            CPU.AttachBus(Bus);
+            CPU.AttachBus(new GBABus());
         }
 
 
@@ -46,7 +44,7 @@ namespace Trident.Core.Machine
             MemoryAccessHandler gamePakLower = _gamePak.GetLowerHandler();
             MemoryAccessHandler backupHandler = _gamePak.GetBackupHandler();
 
-            Bus.RegisterHandlers
+            CPU.Bus.RegisterHandlers
             ([
                 (0x08, gamePakLower),
                 (0x09, gamePakUpper),
@@ -69,7 +67,7 @@ namespace Trident.Core.Machine
                 throw new Exception("BIOS image is not the correct size.");
 
             _bios.LoadBIOS(bios);
-            Bus.RegisterHandler(0x00, _bios.GetAccessHandler());
+            CPU.Bus.RegisterHandler(0x00, _bios.GetAccessHandler());
         }
     }
 }

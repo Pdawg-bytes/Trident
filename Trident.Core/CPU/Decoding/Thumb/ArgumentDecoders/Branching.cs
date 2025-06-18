@@ -45,7 +45,7 @@ namespace Trident.Core.CPU.Decoding.Thumb
             if (subOpBits is not null)
                 args.SubOp = opcode.Extract(subOpBits.Value.high, subOpBits.Value.low);
 
-            args.Imm = opcode.Extract(immBits, 0).Extend(extBits) << shift;
+            args.Imm = (uint)opcode.Extract(immBits, 0).Extend(extBits) << shift;
         }
     }
 }

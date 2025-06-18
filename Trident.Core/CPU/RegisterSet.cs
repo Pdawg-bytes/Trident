@@ -27,6 +27,10 @@ namespace Trident.Core.CPU
 
         public PrivilegeMode CurrentMode { get; private set; }
 
+        /// <summary>The current program status register.</summary>
+        public Flags CPSR;
+
+
         public RegisterSet()
         {
             _bankParams[(uint)PrivilegeMode.User] = new BankParameters(8, 0, 7, 0);
@@ -85,15 +89,12 @@ namespace Trident.Core.CPU
         /// <param name="newMode">The mode to set the processor to.</param>
         public void SwitchMode(PrivilegeMode newMode)
         {
-            // Don't copy anything unless we have to
-            if (CurrentMode == newMode) return;
+            if (newMode == CurrentMode) return;
 
             // Copy state into respective bank
             BankParameters currentCopy = _bankParams[(uint)CurrentMode];
             for (int i = 0; i < currentCopy.RegisterCount; i++)
                 _bankStore[currentCopy.BankIndex + i] = _registers[currentCopy.ActiveSetIndex + i];
-
-            _bankedSpsr[currentCopy.SPSRIndex] = SPSR;
 
             // Copy in r8-r12 from the user bank if we're leaving FIQ and entering anything except for USR/SYS.
             // We don't need to copy r13 or r14 because every other mode overwrites them anyways.
@@ -105,25 +106,21 @@ namespace Trident.Core.CPU
             for (int i = 0; i < newCopy.RegisterCount; i++)
                 _registers[newCopy.ActiveSetIndex + i] = _bankStore[newCopy.BankIndex + i];
 
-            SPSR = _bankedSpsr[newCopy.SPSRIndex];
-
             CPSR = (CPSR & ~(Flags)0x1F) | (Flags)(uint)newMode;
             CurrentMode = newMode;
         }
 
-        public void SetBankForMode(List<uint> values, PrivilegeMode mode)
+
+        public void SetBankForMode(PrivilegeMode mode, Span<uint> values)
         {
             BankParameters bank = _bankParams[(uint)mode];
 
-            if (values.Count != bank.RegisterCount)
-                throw new ArgumentException($"Expected {bank.RegisterCount} registers for mode {mode}, got {values.Count}");
+            if (values.Length != bank.RegisterCount)
+                throw new ArgumentException($"Expected {bank.RegisterCount} registers for mode {mode}, got {values.Length}");
 
             for (int i = 0; i < bank.RegisterCount; i++)
                 _bankStore[bank.BankIndex + i] = values[i];
         }
-
-        public uint GetSpsrForMode(PrivilegeMode mode) => (uint)_bankedSpsr[_bankParams[(uint)mode].SPSRIndex];
-        public void SetSpsrForMode(PrivilegeMode mode, Flags value) => _bankedSpsr[_bankParams[(uint)mode].SPSRIndex] = value;
 
         public void GetBankForMode(PrivilegeMode mode, Span<uint> destination)
         {
@@ -135,6 +132,10 @@ namespace Trident.Core.CPU
             for (int i = 0; i < bank.RegisterCount; i++)
                 destination[i] = _bankStore[bank.BankIndex + i];
         }
+
+        public uint GetSPSR(PrivilegeMode mode) => (uint)_bankedSpsr[_bankParams[(uint)mode].SPSRIndex];
+        public void SetSPSR(PrivilegeMode mode, Flags value) => _bankedSpsr[_bankParams[(uint)mode].SPSRIndex] = value;
+
 
         internal void ResetRegisters()
         {
@@ -151,16 +152,10 @@ namespace Trident.Core.CPU
                 Console.WriteLine($"R{i}: 0x{_registers[i]:X8}");
             }
             Console.WriteLine($"CPSR: 0x{CPSR:X8}");
-            if (CurrentMode is not PrivilegeMode.User && CurrentMode is not PrivilegeMode.System) Console.WriteLine($"SPSR: 0x{SPSR:X8}");
+            if (CurrentMode is not PrivilegeMode.User && CurrentMode is not PrivilegeMode.System) Console.WriteLine($"SPSR: 0x{GetSPSR(CurrentMode):X8}");
             Console.WriteLine(new string('-', 30));
         }
 
-
-        /// <summary>The saved program status register.</summary>
-        public Flags SPSR;
-
-        /// <summary>The current program status register.</summary>
-        public Flags CPSR;
 
         #region Program status utilities
         /// <summary>

@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Trident.Core.Global;
+﻿using Trident.Core.Bus;
 
-namespace Trident.Core.CPU.Instructions.ARM
+namespace Trident.Core.CPU
 {
-    internal partial class ARMInstructions
+    public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
+
     }
 }

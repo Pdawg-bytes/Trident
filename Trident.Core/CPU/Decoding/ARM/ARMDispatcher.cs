@@ -36,7 +36,7 @@ namespace Trident.Core.CPU.Decoding.ARM
                 new(mask: MRS_MASK,          expected: MRS_EXPECTED,          handler: cpu.NonImplementedARMInstr),
                 new(mask: MSR_REG_MASK,      expected: MSR_REG_EXPECTED,      handler: cpu.NonImplementedARMInstr),
                 new(mask: MSR_IMM_MASK,      expected: MSR_IMM_EXPECTED,      handler: cpu.NonImplementedARMInstr),
-                new(mask: BX_MASK,           expected: BX_EXPECTED,           handler: cpu.NonImplementedARMInstr),
+                new(mask: BX_MASK,           expected: BX_EXPECTED,           handler: cpu.ARM_BX),
                 new(mask: DP_IMM_SHIFT_MASK, expected: DP_IMM_SHIFT_EXPECTED, handler: cpu.NonImplementedARMInstr),
                 new(mask: DP_REG_SHIFT_MASK, expected: DP_REG_SHIFT_EXPECTED, handler: cpu.NonImplementedARMInstr),
                 new(mask: UNDEFINED_MASK,    expected: UNDEFINED_EXPECTED,    handler: cpu.NonImplementedARMInstr),
@@ -44,11 +44,11 @@ namespace Trident.Core.CPU.Decoding.ARM
                 new(mask: LDR_STR_IMM_MASK,  expected: LDR_STR_IMM_EXPECTED,  handler: cpu.NonImplementedARMInstr),
                 new(mask: LDR_STR_REG_MASK,  expected: LDR_STR_REG_EXPECTED,  handler: cpu.NonImplementedARMInstr),
                 new(mask: LDM_STM_MASK,      expected: LDM_STM_EXPECTED,      handler: cpu.NonImplementedARMInstr),
-                new(mask: B_BL_MASK,         expected: B_BL_EXPECTED,         handler: cpu.NonImplementedARMInstr),
+                new(mask: B_BL_MASK,         expected: B_BL_EXPECTED,         handler: cpu.ARM_B_BL),
                 new(mask: STC_LDC_MASK,      expected: STC_LDC_EXPECTED,      handler: cpu.NonImplementedARMInstr),
                 new(mask: CDP_MASK,          expected: CDP_EXPECTED,          handler: cpu.NonImplementedARMInstr),
                 new(mask: MCR_MRC_MASK,      expected: MCR_MRC_EXPECTED,      handler: cpu.NonImplementedARMInstr),
-                new(mask: SWI_MASK,          expected: SWI_EXPECTED,          handler: cpu.NonImplementedARMInstr),
+                new(mask: SWI_MASK,          expected: SWI_EXPECTED,          handler: cpu.ARM_SWI),
             ];
         }
 
