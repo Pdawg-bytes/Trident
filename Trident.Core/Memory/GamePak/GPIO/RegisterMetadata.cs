@@ -1,4 +1,4 @@
-﻿namespace Trident.Core.Enums
+﻿namespace Trident.Core.Memory.GamePak.GPIO
 {
     internal enum GPIODirection
     {

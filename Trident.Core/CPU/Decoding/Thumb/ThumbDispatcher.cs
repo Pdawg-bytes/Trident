@@ -5,14 +5,14 @@ namespace Trident.Core.CPU.Decoding.Thumb
 {
     internal sealed class ThumbDispatcher<TBus> where TBus : struct, IDataBus
     {
-        private const int THUMB_DISPATCH_COUNT = 0xFF;
+        private const int THUMB_DISPATCH_COUNT = 0x100;
         private ThumbInstruction[] _instructionHandlers = new ThumbInstruction[THUMB_DISPATCH_COUNT];
         private ThumbArgumentDecoder[] _argumentDecoders = new ThumbArgumentDecoder[THUMB_DISPATCH_COUNT];
 
         private readonly ThumbArgumentDecoders _argDecoderInstance;
         private ThumbDecodePattern[] _decodePatterns;
 
-        private static ThumbMetadata _cachedInstruction;
+        private ThumbMetadata _cachedInstruction;
 
         internal ThumbDispatcher(ARM7TDMI<TBus> cpu)
         {
@@ -26,7 +26,7 @@ namespace Trident.Core.CPU.Decoding.Thumb
         /// Gets the handler and argument decoder for the current Thumb instruction.
         /// </summary>
         /// <param name="opcode">The Thumb instruction to return the handler of.</param>
-        /// <returns>A delegate that points to the handler of the instruction, and another point to its respective argument decoder.</returns>
+        /// <returns>A delegate that points to the handler of the instruction, and another that points to its respective argument decoder.</returns>
         internal ref ThumbMetadata GetInstruction(uint opcode)
         {
             uint index = (opcode & 0xFF00) >> 8;
@@ -46,7 +46,7 @@ namespace Trident.Core.CPU.Decoding.Thumb
                 new(mask: SHIFT_IMM_MASK,       expected: SHIFT_IMM_EXPECTED,       handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleShiftImm),
                 new(mask: MOV_CMP_ADD_SUB_MASK, expected: MOV_CMP_ADD_SUB_EXPECTED, handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleMovCmpAddSub),
                 new(mask: DP_REG_MASK,          expected: DP_REG_EXPECTED,          handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleDataProcReg),
-                new(mask: BX_MASK,              expected: BX_EXPECTED,              handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleBX),
+                new(mask: BX_MASK,              expected: BX_EXPECTED,              handler: cpu.Thumb_BranchExchange, argDecoder: _argDecoderInstance.HandleBX),
                 new(mask: HIGH_REG_OPS_MASK,    expected: HIGH_REG_OPS_EXPECTED,    handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleHighRegOps),
                 new(mask: LDR_PC_REL_MASK,      expected: LDR_PC_REL_EXPECTED,      handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleLdrPCRel),
                 new(mask: LDRH_STRH_REG_MASK,   expected: LDRH_STRH_REG_EXPECTED,   handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleLdrhStrhReg),
@@ -61,12 +61,12 @@ namespace Trident.Core.CPU.Decoding.Thumb
                 new(mask: ADD_SUB_SP_MASK,      expected: ADD_SUB_SP_EXPECTED,      handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleAddSubSP),
                 new(mask: PUSH_POP_MASK,        expected: PUSH_POP_EXPECTED,        handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandlePushPop),
                 new(mask: LDM_STM_MASK,         expected: LDM_STM_EXPECTED,         handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleLdmStm),
-                new(mask: SWI_MASK,             expected: SWI_EXPECTED,             handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleSWI),
-                new(mask: UNDEFINED_BCC_MASK,   expected: UNDEFINED_BCC_EXPECTED,   handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleBCC),
-                new(mask: BCC_MASK,             expected: BCC_EXPECTED,             handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleBCC),
-                new(mask: B_UNCOND_MASK,        expected: B_UNCOND_EXPECTED,        handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleBUncond),
-                new(mask: BL_BLX_PREFIX_MASK,   expected: BL_BLX_PREFIX_EXPECTED,   handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleBlBlxPrefix),
-                new(mask: BL_SUFFIX_MASK,       expected: BL_SUFFIX_EXPECTED,       handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleBlSuffix),
+                new(mask: SWI_MASK,             expected: SWI_EXPECTED,             handler: cpu.Thumb_SWI, argDecoder: _argDecoderInstance.HandleSWI),
+                new(mask: UNDEFINED_BCC_MASK,   expected: UNDEFINED_BCC_EXPECTED,   handler: cpu.Thumb_ConditionalBranch, argDecoder: _argDecoderInstance.HandleBCC),
+                new(mask: BCC_MASK,             expected: BCC_EXPECTED,             handler: cpu.Thumb_ConditionalBranch, argDecoder: _argDecoderInstance.HandleBCC),
+                new(mask: B_UNCOND_MASK,        expected: B_UNCOND_EXPECTED,        handler: cpu.Thumb_Branch, argDecoder: _argDecoderInstance.HandleBUncond),
+                new(mask: BL_BLX_PREFIX_MASK,   expected: BL_BLX_PREFIX_EXPECTED,   handler: cpu.Thumb_LongBranchPrefix, argDecoder: _argDecoderInstance.HandleBlBlxPrefix),
+                new(mask: BL_SUFFIX_MASK,       expected: BL_SUFFIX_EXPECTED,       handler: cpu.Thumb_LongBranchSuffix, argDecoder: _argDecoderInstance.HandleBlSuffix),
             ];
         }
 

@@ -1,4 +1,4 @@
-﻿using Trident.Core.Enums;
+﻿using Trident.Core.CPU.Pipeline;
 using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Memory.GamePak

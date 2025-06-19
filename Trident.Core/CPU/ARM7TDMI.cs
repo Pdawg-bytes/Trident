@@ -1,23 +1,24 @@
 ﻿using Trident.Core.Bus;
-using Trident.Core.Enums;
+using Trident.Core.CPU.Pipeline;
 using Trident.Core.CPU.Decoding.ARM;
 using Trident.Core.CPU.Decoding.Thumb;
 using System.Runtime.CompilerServices;
 
 using static Trident.Core.CPU.Conditions;
+using Trident.Core.CPU.Registers;
 
 namespace Trident.Core.CPU
 {
     public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
         public RegisterSet Registers;
-        public Pipeline Pipeline;
+        public InstructionPipeline Pipeline;
         public TBus Bus;
 
         private readonly ARMDispatcher<TBus> _armDispatcher;
 
         private readonly ThumbDispatcher<TBus> _thumbDispatcher;
-        private ThumbArguments _thumbParams;
+        private ThumbArguments _thumbParams = new();
 
         public ARM7TDMI()
         {
@@ -36,7 +37,6 @@ namespace Trident.Core.CPU
             Registers.ResetRegisters();
             Registers.SetFlag(Flags.F);
             Registers.SwitchMode(PrivilegeMode.Supervisor);
-            Registers.SPSR = Registers.CPSR;
             ReloadPipelineARM();
         }
 
@@ -63,7 +63,7 @@ namespace Trident.Core.CPU
         {
             uint pc = Registers.PC;
             Pipeline.Prefetch[1] = Bus.Read16(pc, Pipeline.Access);
-
+            
             ThumbMetadata instr = _thumbDispatcher.GetInstruction(opcode);
             instr.ArgDecoder(ref _thumbParams, opcode);
             instr.Handler(ref _thumbParams);
@@ -76,7 +76,7 @@ namespace Trident.Core.CPU
             Pipeline.Prefetch[1] = Bus.Read32(pc, Pipeline.Access);
 
             uint cond = opcode >> 28;
-            if (cond != CondAL && !ConditionMet(cond, (int)((uint)Registers.CPSR >> 28)))
+            if (cond != CondAL && !ConditionMet(cond, Registers.CPSR))
             {
                 Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
                 Registers.PC += 4;
@@ -105,7 +105,6 @@ namespace Trident.Core.CPU
 
 
         internal void NonImplementedARMInstr(uint opcode) => throw new NotImplementedException("This ARM instruction group is not implemented.");
-
         internal void NonImplementedThumbInstr(ref ThumbArguments args) => throw new NotImplementedException("This Thumb instruction group is not implemented.");
     }
 }

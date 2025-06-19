@@ -1,5 +1,4 @@
-﻿using Trident.Core.Enums;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using Trident.Core.Memory.GamePak.GPIO;
 using Trident.Core.Memory.GamePak.Backup;
 

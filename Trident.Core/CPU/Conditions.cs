@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using Trident.Core.CPU.Registers;
 
 namespace Trident.Core.CPU
 {
@@ -41,6 +42,6 @@ namespace Trident.Core.CPU
         ];
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static bool ConditionMet(uint condition, int flags) => (_conditionLUT[condition] & (1 << flags)) != 0;
+		internal static bool ConditionMet(uint condition, Flags cpsr) => (_conditionLUT[condition] & (1 << (int)((uint)cpsr >> 28))) != 0;
     }
 }

@@ -1,13 +1,11 @@
-﻿using Trident.Core.Enums;
-
-namespace Trident.Core.CPU
+﻿namespace Trident.Core.CPU.Pipeline
 {
-    public struct Pipeline
+    public struct InstructionPipeline
     {
         public uint[] Prefetch;
         public PipelineAccess Access;
 
-        public Pipeline()
+        public InstructionPipeline()
         {
             Prefetch = new uint[2];
         }

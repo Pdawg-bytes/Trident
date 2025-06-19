@@ -1,4 +1,4 @@
-﻿using Trident.Core.Enums;
+﻿using Trident.Core.CPU.Pipeline;
 
 namespace Trident.Core.Bus
 {

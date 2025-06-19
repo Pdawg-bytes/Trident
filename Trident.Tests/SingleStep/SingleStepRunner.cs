@@ -1,12 +1,10 @@
 ﻿using System.Text.Json;
 using Trident.Core.CPU;
 using System.Reflection;
+using System.Diagnostics;
 using System.Threading.Channels;
 using Trident.Tests.SingleStep.Models;
 using Trident.Tests.SingleStep.Infrastructure;
-using System.Diagnostics;
-using System.Text;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 
 namespace Trident.Tests.SingleStep
 {

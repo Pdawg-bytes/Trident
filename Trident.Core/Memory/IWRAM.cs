@@ -1,6 +1,6 @@
-﻿using System.Runtime.CompilerServices;
-using Trident.Core.Enums;
-using Trident.Core.Global;
+﻿using Trident.Core.Global;
+using Trident.Core.CPU.Pipeline;
+using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Memory
 {

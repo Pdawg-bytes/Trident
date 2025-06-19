@@ -1,4 +1,4 @@
-﻿namespace Trident.Core.Enums
+﻿namespace Trident.Core.CPU
 {
     /// <summary>
     /// The current operating mode of the processor.

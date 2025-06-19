@@ -1,4 +1,5 @@
 ﻿using Trident.Core.Bus;
+using Trident.Core.CPU.Registers;
 using Trident.Core.Global;
 
 namespace Trident.Core.CPU
@@ -13,7 +14,7 @@ namespace Trident.Core.CPU
 
             if ((address & 1) != 0)
             {
-                Registers.SetFlag(Enums.Flags.T);
+                Registers.SetFlag(Flags.T);
                 ReloadPipelineThumb();
             }
             else

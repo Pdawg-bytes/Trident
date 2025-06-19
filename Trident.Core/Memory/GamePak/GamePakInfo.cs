@@ -1,4 +1,4 @@
-﻿using Trident.Core.Enums;
+﻿using Trident.Core.Memory.GamePak.Backup;
 
 namespace Trident.Core.Memory.GamePak
 {

@@ -1,4 +1,5 @@
-﻿using Trident.Core.Global;
+﻿using System.Runtime.CompilerServices;
+using Trident.Core.Global;
 
 namespace Trident.Core.CPU.Decoding.Thumb
 {
@@ -32,12 +33,13 @@ namespace Trident.Core.CPU.Decoding.Thumb
         }
 
 
-        internal void HandleBCC(ref ThumbArguments args, uint opcode) => HandleBranch(ref args, opcode, 8, 7, shift: 1, subOpBits: (11, 8));
+        internal void HandleBCC(ref ThumbArguments args, uint opcode) => HandleBranch(ref args, opcode, extBits: 8, immBits: 7, shift: 1, subOpBits: (11, 8));
 
-        internal void HandleBUncond(ref ThumbArguments args, uint opcode) => HandleBranch(ref args, opcode, 11, 10, shift: 1);
+        internal void HandleBUncond(ref ThumbArguments args, uint opcode) => HandleBranch(ref args, opcode, extBits: 11, immBits: 10, shift: 1);
 
-        internal void HandleBlBlxPrefix(ref ThumbArguments args, uint opcode) => HandleBranch(ref args, opcode, 11, 10, shift: 12);
+        internal void HandleBlBlxPrefix(ref ThumbArguments args, uint opcode) => HandleBranch(ref args, opcode, extBits: 11, immBits: 10, shift: 12);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void HandleBranch(ref ThumbArguments args, uint opcode, int extBits, int immBits, int shift, (int high, int low)? subOpBits = null)
         {
             args.Opcode = opcode;

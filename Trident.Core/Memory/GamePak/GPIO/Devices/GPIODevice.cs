@@ -1,6 +1,4 @@
-﻿using Trident.Core.Enums;
-
-namespace Trident.Core.Memory.GamePak.GPIO
+﻿namespace Trident.Core.Memory.GamePak.GPIO
 {
     public abstract class GPIODevice
     {

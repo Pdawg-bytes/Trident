@@ -1,6 +1,6 @@
-﻿using System.Drawing;
-using Trident.Core.CPU;
-using Trident.Core.Enums;
+﻿using Trident.Core.CPU;
+using Trident.Core.CPU.Pipeline;
+using Trident.Core.CPU.Registers;
 using System.Runtime.InteropServices;
 using Trident.Tests.SingleStep.Models;
 

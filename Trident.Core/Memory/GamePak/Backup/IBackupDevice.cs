@@ -1,6 +1,4 @@
-﻿using Trident.Core.Enums;
-
-namespace Trident.Core.Memory.GamePak.Backup
+﻿namespace Trident.Core.Memory.GamePak.Backup
 {
     internal interface IBackupDevice
     {

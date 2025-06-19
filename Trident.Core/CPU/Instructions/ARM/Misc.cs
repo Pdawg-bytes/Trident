@@ -1,5 +1,5 @@
 ﻿using Trident.Core.Bus;
-using Trident.Core.Enums;
+using Trident.Core.CPU.Registers;
 
 namespace Trident.Core.CPU
 {

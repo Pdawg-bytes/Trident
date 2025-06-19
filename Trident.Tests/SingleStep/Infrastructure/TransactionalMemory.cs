@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using Trident.Core.Bus;
-using Trident.Core.Enums;
 using Trident.Tests.SingleStep.Models;
+using Trident.Core.CPU.Pipeline;
 
 namespace Trident.Tests.SingleStep.Infrastructure
 {
@@ -37,9 +37,7 @@ namespace Trident.Tests.SingleStep.Infrastructure
         {
             if (_transactions == null) return 0;
 
-            int kind = 0;
-            if ((access & PipelineAccess.Code) != PipelineAccess.Code)
-                kind = 1;
+            int kind = ((access & PipelineAccess.Code) == PipelineAccess.Code) ? 0 : 1;
 
             Transaction? expected = FindTransaction(address, size, kind);
             return expected?.Data ?? throw new InvalidOperationException($"Unexpected read @ {address}");

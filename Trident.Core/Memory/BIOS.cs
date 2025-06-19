@@ -1,5 +1,5 @@
 ﻿using Trident.Core.Bus;
-using Trident.Core.Enums;
+using Trident.Core.CPU.Pipeline;
 using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Memory
@@ -54,8 +54,8 @@ namespace Trident.Core.Memory
 
         internal void LoadBIOS(byte[] bios) => _memory.WriteBytes(0, bios);
 
-        private void Write8(uint address, PipelineAccess access, byte value) => GBABus.InvalidAccess(MemorySection.BIOS, address, true, value);
-        private void Write16(uint address, PipelineAccess access, ushort value) => GBABus.InvalidAccess(MemorySection.BIOS, address, true, value);
-        private void Write32(uint address, PipelineAccess access, uint value) => GBABus.InvalidAccess(MemorySection.BIOS, address, true, value);
+        private void Write8(uint address, PipelineAccess access, byte value) => GBABus.InvalidAccess("BIOS", address, true, value);
+        private void Write16(uint address, PipelineAccess access, ushort value) => GBABus.InvalidAccess("BIOS", address, true, value);
+        private void Write32(uint address, PipelineAccess access, uint value) => GBABus.InvalidAccess("BIOS", address, true, value);
     }
 }

@@ -1,8 +1,7 @@
 ﻿using System.Diagnostics;
-using Trident.Core.Enums;
 using System.Runtime.CompilerServices;
 
-namespace Trident.Core.CPU
+namespace Trident.Core.CPU.Registers
 {
     /// <summary>
     /// Defines the ARM7TDMI register set, with support for register banking based on the current mode.
@@ -98,7 +97,7 @@ namespace Trident.Core.CPU
 
             // Copy in r8-r12 from the user bank if we're leaving FIQ and entering anything except for USR/SYS.
             // We don't need to copy r13 or r14 because every other mode overwrites them anyways.
-            if (CurrentMode == PrivilegeMode.FIQ && (newMode != PrivilegeMode.User && newMode != PrivilegeMode.System))
+            if (CurrentMode == PrivilegeMode.FIQ && newMode != PrivilegeMode.User && newMode != PrivilegeMode.System)
                 for (int i = 0; i < 5; i++) _registers[8 + i] = _bankStore[i];
 
             // Copy new bank into working set
@@ -106,7 +105,7 @@ namespace Trident.Core.CPU
             for (int i = 0; i < newCopy.RegisterCount; i++)
                 _registers[newCopy.ActiveSetIndex + i] = _bankStore[newCopy.BankIndex + i];
 
-            CPSR = (CPSR & ~(Flags)0x1F) | (Flags)(uint)newMode;
+            CPSR = CPSR & ~(Flags)0x1F | (Flags)(uint)newMode;
             CurrentMode = newMode;
         }
 

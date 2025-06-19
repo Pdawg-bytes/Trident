@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using Trident.Core.Enums;
 using Trident.Core.Global;
 using Trident.Core.Memory.GamePak;
 using System.Runtime.InteropServices;

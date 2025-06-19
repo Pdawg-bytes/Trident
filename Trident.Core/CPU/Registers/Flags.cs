@@ -1,4 +1,4 @@
-﻿namespace Trident.Core.Enums
+﻿namespace Trident.Core.CPU.Registers
 {
     /// <summary>
     /// The flags used in the status registers.
