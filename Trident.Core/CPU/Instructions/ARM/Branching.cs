@@ -6,7 +6,7 @@ namespace Trident.Core.CPU
 {
     public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
-        internal void ARM_BX(uint opcode)
+        internal void ARM_BranchExchange(uint opcode)
         {
             uint address = Registers[opcode & 0b1111];
 
@@ -21,7 +21,7 @@ namespace Trident.Core.CPU
                 ReloadPipelineARM();
         }
 
-        internal void ARM_B_BL(uint opcode)
+        internal void ARM_BranchWithLink(uint opcode)
         {
             bool link = opcode.IsBitSet(24);
             int offset = ((opcode & 0xFFFFFF).Extend(24)) << 2;

@@ -5,7 +5,7 @@ namespace Trident.Core.CPU
 {
     public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
-        internal void ARM_UND(uint opcode)
+        internal void ARM_Undefined(uint opcode)
         {
             Registers.SetSPSR(PrivilegeMode.Undefined, Registers.CPSR);
             Registers.SwitchMode(PrivilegeMode.Undefined);
@@ -16,7 +16,7 @@ namespace Trident.Core.CPU
             ReloadPipelineARM();
         }
 
-        internal void ARM_SWI(uint opcode)
+        internal void ARM_SoftwareInterrupt(uint opcode)
         {
             Registers.SetSPSR(PrivilegeMode.Supervisor, Registers.CPSR);
             Registers.SwitchMode(PrivilegeMode.Supervisor);

@@ -29,6 +29,19 @@ namespace Trident.Core.CPU.Registers
         /// <summary>The current program status register.</summary>
         public Flags CPSR;
 
+        /// <summary>The currently saved program status register.</summary>
+        public Flags SPSR
+        {
+            get => (CurrentMode == PrivilegeMode.User || CurrentMode == PrivilegeMode.System) ? CPSR : _bankedSpsr[_bankParams[(uint)CurrentMode].SPSRIndex];
+            set
+            {
+                if (CurrentMode == PrivilegeMode.User || CurrentMode == PrivilegeMode.System)
+                    CPSR = value;
+                else
+                    _bankedSpsr[_bankParams[(uint)CurrentMode].SPSRIndex] = value;
+            }
+        }
+
 
         public RegisterSet()
         {
@@ -90,24 +103,34 @@ namespace Trident.Core.CPU.Registers
         {
             if (newMode == CurrentMode) return;
 
-            // Copy state into respective bank
+            bool leavingFIQ = CurrentMode == PrivilegeMode.FIQ;
+            bool enteringUsrSys = newMode == PrivilegeMode.User || newMode == PrivilegeMode.System;
+
+            // Save current banked registers
             BankParameters currentCopy = _bankParams[(uint)CurrentMode];
             for (int i = 0; i < currentCopy.RegisterCount; i++)
                 _bankStore[currentCopy.BankIndex + i] = _registers[currentCopy.ActiveSetIndex + i];
 
-            // Copy in r8-r12 from the user bank if we're leaving FIQ and entering anything except for USR/SYS.
-            // We don't need to copy r13 or r14 because every other mode overwrites them anyways.
-            if (CurrentMode == PrivilegeMode.FIQ && newMode != PrivilegeMode.User && newMode != PrivilegeMode.System)
+            // Special case: copy in r8–r12 if leaving FIQ and entering non-USR/SYS.
+            // We don't have to copy in r13/r14 since every mode overwrites them anyways.
+            if (leavingFIQ && !enteringUsrSys)
                 for (int i = 0; i < 5; i++) _registers[8 + i] = _bankStore[i];
 
-            // Copy new bank into working set
-            BankParameters newCopy = _bankParams[(uint)newMode];
+            // Unless we're leaving FIQ, then USR & SYS behave like every other mode: only restore SP, LR
+            // However, if we're leaving FIQ and entering USR/SYS, then we need to restore the full r8-r12.
+            BankParameters newCopy = (enteringUsrSys && !leavingFIQ)
+                ? new BankParameters(13, 5, 2, 0) // Just restore SP, LR.
+                : _bankParams[(uint)newMode];     // The regular USR/SYS BankParameters account for the full r8-r12 copy.
+
+            // Restore new banked registers
             for (int i = 0; i < newCopy.RegisterCount; i++)
                 _registers[newCopy.ActiveSetIndex + i] = _bankStore[newCopy.BankIndex + i];
 
-            CPSR = CPSR & ~(Flags)0x1F | (Flags)(uint)newMode;
+            // Update CPSR and mode
+            CPSR = (CPSR & ~(Flags)0x1F) | (Flags)(uint)newMode;
             CurrentMode = newMode;
         }
+
 
 
         public void SetBankForMode(PrivilegeMode mode, Span<uint> values)
@@ -136,7 +159,7 @@ namespace Trident.Core.CPU.Registers
         public void SetSPSR(PrivilegeMode mode, Flags value) => _bankedSpsr[_bankParams[(uint)mode].SPSRIndex] = value;
 
 
-        internal void ResetRegisters()
+        public void ResetRegisters()
         {
             for (int i = 0; i < 16; i++) _registers[i] = 0;
             Array.Clear(_bankStore, 0, _bankStore.Length);

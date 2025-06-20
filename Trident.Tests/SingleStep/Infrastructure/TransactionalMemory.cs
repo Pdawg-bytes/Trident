@@ -39,6 +39,15 @@ namespace Trident.Tests.SingleStep.Infrastructure
 
             int kind = ((access & PipelineAccess.Code) == PipelineAccess.Code) ? 0 : 1;
 
+            address = kind == 0
+                ? size switch
+                {
+                    2 => Align<ushort>(address),
+                    4 => Align<uint>(address),
+                    _ => address
+                }
+                : address;
+
             Transaction? expected = FindTransaction(address, size, kind);
             return expected?.Data ?? throw new InvalidOperationException($"Unexpected read @ {address}");
         }
@@ -54,12 +63,12 @@ namespace Trident.Tests.SingleStep.Infrastructure
         internal static uint Align<T>(uint value) where T : unmanaged =>
             value & ~(uint)(Unsafe.SizeOf<T>() - 1);
 
-        public byte Read8(uint address, PipelineAccess access) => (byte)ReadTransactions(Align<byte>(address), access, size: 1);
-        public ushort Read16(uint address, PipelineAccess access) => (ushort)ReadTransactions(Align<ushort>(address), access, size: 2);
-        public uint Read32(uint address, PipelineAccess access) => ReadTransactions(Align<uint>(address), access, size: 4);
+        public byte Read8(uint address, PipelineAccess access) => (byte)ReadTransactions(address, access, size: 1);
+        public ushort Read16(uint address, PipelineAccess access) => (ushort)ReadTransactions(address, access, size: 2);
+        public uint Read32(uint address, PipelineAccess access) => ReadTransactions(address, access, size: 4);
 
-        public void Write8(uint address, PipelineAccess access, byte value) => WriteTransactions(Align<byte>(address), access, value, size: 1);
-        public void Write16(uint address, PipelineAccess access, ushort value) => WriteTransactions(Align<ushort>(address), access, value, size: 2);
-        public void Write32(uint address, PipelineAccess access, uint value) => WriteTransactions(Align<uint>(address), access, value, size: 4);
+        public void Write8(uint address, byte value, PipelineAccess access) => WriteTransactions(address, access, value, size: 1);
+        public void Write16(uint address, ushort value, PipelineAccess access) => WriteTransactions(address, access, value, size: 2);
+        public void Write32(uint address, uint value, PipelineAccess access) => WriteTransactions(address, access, value, size: 4);
     }
 }

@@ -8,8 +8,8 @@ namespace Trident.Core.Bus
         public ushort Read16(uint address, PipelineAccess access);
         public uint Read32(uint address, PipelineAccess access);
 
-        public void Write8(uint address, PipelineAccess access, byte value);
-        public void Write16(uint address, PipelineAccess access, ushort value);
-        public void Write32(uint address, PipelineAccess access, uint value);
+        public void Write8(uint address, byte value, PipelineAccess access);
+        public void Write16(uint address, ushort value, PipelineAccess access);
+        public void Write32(uint address, uint value, PipelineAccess access);
     }
 }

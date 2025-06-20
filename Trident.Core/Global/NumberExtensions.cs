@@ -9,7 +9,7 @@ namespace Trident.Core.Global
         internal static uint GetBit(this uint value, int bit) => (value >> bit) & 1;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool IsBitSet(this uint value, byte bit) => ((value >> bit) & 1) != 0;
+        internal static bool IsBitSet(this uint value, int bit) => ((value >> bit) & 1) != 0;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static uint Extract(this uint value, int hi, int lo) =>
@@ -20,6 +20,13 @@ namespace Trident.Core.Global
         {
             int shift = 32 - bits;
             return ((int)(value << shift)) >> shift;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static uint RotateWord(this uint value, uint address)
+        {
+            int shift = ((int)address & 3) << 3;
+            return BitOperations.RotateRight(value, shift);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

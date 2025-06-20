@@ -100,7 +100,7 @@ namespace Trident.Core.Bus
         #endregion
 
         #region Write
-        public void Write8(uint address, PipelineAccess access, byte value)
+        public void Write8(uint address, byte value, PipelineAccess access)
         {
             uint section = address >> 24;
             if (section < 2 || section > 15)
@@ -112,7 +112,7 @@ namespace Trident.Core.Bus
             _accessHandlers[section].Write8(address, access, value);
         }
 
-        public void Write16(uint address, PipelineAccess access, ushort value)
+        public void Write16(uint address, ushort value, PipelineAccess access)
         {
             uint section = address >> 24;
             if (section < 2 || section > 15)
@@ -124,7 +124,7 @@ namespace Trident.Core.Bus
             _accessHandlers[section].Write16(address, access, value);
         }
 
-        public void Write32(uint address, PipelineAccess access, uint value)
+        public void Write32(uint address, uint value, PipelineAccess access)
         {
             uint section = address >> 24;
             if (section < 2 || section > 15)

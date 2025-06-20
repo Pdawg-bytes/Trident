@@ -1,9 +1,36 @@
 ﻿using Trident.Core.Bus;
+using Trident.Core.Global;
+using Trident.Core.CPU.Pipeline;
 
 namespace Trident.Core.CPU
 {
     public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
+        internal void ARM_Swap(uint opcode)
+        {
+            Registers.PC += 4;
+            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
 
+            bool byteMode = opcode.IsBitSet(22);
+            uint src = Registers[opcode & 0x0F];
+            uint addr = Registers[(opcode >> 16) & 0x0F];
+
+            uint readRn = 0;
+            if (byteMode)
+            {
+                readRn = Bus.Read8(addr, PipelineAccess.NonSequential);
+                Bus.Write8(addr, (byte)src, PipelineAccess.NonSequential | PipelineAccess.Lock);
+            }
+            else
+            {
+                readRn = Bus.Read32(addr, PipelineAccess.NonSequential).RotateWord(addr);
+                Bus.Write32(addr, src, PipelineAccess.NonSequential | PipelineAccess.Lock);
+            }
+
+            uint rd = (opcode >> 12) & 0x0F;
+            Registers[rd] = readRn;
+            if (rd == 15)
+                ReloadPipelineARM();
+        }
     }
 }

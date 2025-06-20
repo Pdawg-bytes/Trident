@@ -10,6 +10,7 @@ namespace Trident.Tests.SingleStep.Infrastructure
     {
         internal static void ApplyInitialState(ARM7TDMI<TransactionalMemory> cpu, RegisterState state)
         {
+            cpu.Registers.ResetRegisters();
             cpu.Registers.SwitchMode(PrivilegeMode.User);
 
             for (uint i = 0; i < 16; i++)
