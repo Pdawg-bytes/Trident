@@ -20,5 +20,16 @@ namespace Trident.Core.CPU
             Registers.PC = 0x00000008;
             ReloadPipelineARM();
         }
+
+        internal void Thumb_AddSpecialOffset(ref ThumbArguments args)
+        {
+            if (args.SP != 0)
+                Registers[args.Rd] = Registers.SP + args.Imm;
+            else
+                Registers[args.Rd] = (Registers.PC & 0xFFFFFFFD) + args.Imm;
+
+            Registers.PC += 2;
+            Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
+        }
     }
 }

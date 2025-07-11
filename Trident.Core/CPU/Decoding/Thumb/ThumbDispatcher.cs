@@ -42,12 +42,12 @@ namespace Trident.Core.CPU.Decoding.Thumb
         {
             _decodePatterns =
             [
-                new(mask: ADD_SUB_MASK,         expected: ADD_SUB_EXPECTED,         handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleAddSub),
+                new(mask: ADD_SUB_MASK,         expected: ADD_SUB_EXPECTED,         handler: cpu.Thumb_AddSub, argDecoder: _argDecoderInstance.HandleAddSub),
                 new(mask: SHIFT_IMM_MASK,       expected: SHIFT_IMM_EXPECTED,       handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleShiftImm),
-                new(mask: MOV_CMP_ADD_SUB_MASK, expected: MOV_CMP_ADD_SUB_EXPECTED, handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleMovCmpAddSub),
+                new(mask: MOV_CMP_ADD_SUB_MASK, expected: MOV_CMP_ADD_SUB_EXPECTED, handler: cpu.Thumb_MovCmpAddSubImm, argDecoder: _argDecoderInstance.HandleMovCmpAddSubImm),
                 new(mask: DP_REG_MASK,          expected: DP_REG_EXPECTED,          handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleDataProcReg),
                 new(mask: BX_MASK,              expected: BX_EXPECTED,              handler: cpu.Thumb_BranchExchange, argDecoder: _argDecoderInstance.HandleBX),
-                new(mask: HIGH_REG_OPS_MASK,    expected: HIGH_REG_OPS_EXPECTED,    handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleHighRegOps),
+                new(mask: HIGH_REG_OPS_MASK,    expected: HIGH_REG_OPS_EXPECTED,    handler: cpu.Thumb_HighRegister, argDecoder: _argDecoderInstance.HandleHighRegister),
                 new(mask: LDR_PC_REL_MASK,      expected: LDR_PC_REL_EXPECTED,      handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleLdrPCRel),
                 new(mask: LDRH_STRH_REG_MASK,   expected: LDRH_STRH_REG_EXPECTED,   handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleLdrhStrhReg),
                 new(mask: LDRSH_LDRSB_REG_MASK, expected: LDRSB_LDRSH_REG_EXPECTED, handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleLdrsbLdrshReg),
@@ -57,8 +57,8 @@ namespace Trident.Core.CPU.Decoding.Thumb
                 new(mask: LDRB_STRB_IMM_MASK,   expected: LDRB_STRB_IMM_EXPECTED,   handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleLdrbStrbImm),
                 new(mask: LDRH_STRH_IMM_MASK,   expected: LDRH_STRH_IMM_EXPECTED,   handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleLdrhStrhImm),
                 new(mask: LDR_STR_SP_REL_MASK,  expected: LDR_STR_SP_REL_EXPECTED,  handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleLdrStrSPRel),
-                new(mask: ADD_SP_PC_MASK,       expected: ADD_SP_PC_EXPECTED,       handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleAddSPPC),
-                new(mask: ADD_SUB_SP_MASK,      expected: ADD_SUB_SP_EXPECTED,      handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleAddSubSP),
+                new(mask: ADD_SP_PC_MASK,       expected: ADD_SP_PC_EXPECTED,       handler: cpu.Thumb_AddSpecialOffset, argDecoder: _argDecoderInstance.HandleAddSPPC),
+                new(mask: ADD_SUB_SP_MASK,      expected: ADD_SUB_SP_EXPECTED,      handler: cpu.Thumb_AddSubSP, argDecoder: _argDecoderInstance.HandleAddSubSP),
                 new(mask: PUSH_POP_MASK,        expected: PUSH_POP_EXPECTED,        handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandlePushPop),
                 new(mask: LDM_STM_MASK,         expected: LDM_STM_EXPECTED,         handler: cpu.NonImplementedThumbInstr, argDecoder: _argDecoderInstance.HandleLdmStm),
                 new(mask: SWI_MASK,             expected: SWI_EXPECTED,             handler: cpu.Thumb_SWI, argDecoder: _argDecoderInstance.HandleSWI),

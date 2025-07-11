@@ -29,13 +29,24 @@ namespace Trident.Core.CPU.Decoding.Thumb
             args.Rd = opcode.Extract(2, 0);
         }
 
-        internal void HandleMovCmpAddSub(ref ThumbArguments args, uint opcode)
+        internal void HandleMovCmpAddSubImm(ref ThumbArguments args, uint opcode)
         {
             args.Opcode = opcode;
             args.SubOp = opcode.Extract(12, 11);
 
             args.Rd = opcode.Extract(10, 8);
             args.Imm = opcode.Extract(7, 0);
+        }
+
+        internal void HandleHighRegister(ref ThumbArguments args, uint opcode)
+        {
+            args.Opcode = opcode;
+            args.SubOp = opcode.Extract(9, 8);
+
+            args.Rd = opcode.GetBit(7) << 3;
+            args.Rd |= opcode.Extract(2, 0);
+            args.Rs = opcode.GetBit(6) << 3;
+            args.Rs |= opcode.Extract(5, 3);
         }
 
         internal void HandleDataProcReg(ref ThumbArguments args, uint opcode)

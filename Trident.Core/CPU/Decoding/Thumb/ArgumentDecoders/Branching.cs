@@ -15,17 +15,6 @@ namespace Trident.Core.CPU.Decoding.Thumb
             args.Rs |= opcode.Extract(5, 3);
         }
 
-        internal void HandleHighRegOps(ref ThumbArguments args, uint opcode)
-        {
-            args.Opcode = opcode;
-            args.SubOp = opcode.Extract(9, 8);
-
-            args.Rd = opcode.GetBit(7) << 3;
-            args.Rd |= opcode.Extract(2, 0);
-            args.Rs = opcode.GetBit(6) << 3;
-            args.Rs |= opcode.Extract(5, 3);
-        }
-
         internal void HandleBlSuffix(ref ThumbArguments args, uint opcode)
         {
             args.Opcode = opcode;
