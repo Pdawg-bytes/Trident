@@ -30,6 +30,9 @@ namespace Trident.Core.Global
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static uint RotateRight(this uint value, int shift) => BitOperations.RotateRight(value, shift);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static uint NearestPow2(this uint value)
         {
             if (value == 0) return 1;

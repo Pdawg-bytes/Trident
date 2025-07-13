@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trident.Core", "Trident.Cor
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trident.Tests", "Trident.Tests\Trident.Tests.csproj", "{28992C56-B35E-4CB8-A25D-8108637A8E6B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Trident.CodeGeneration", "Trident.CodeGeneration\Trident.CodeGeneration.csproj", "{11104C53-53CD-4244-AECD-D177981E26C6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{28992C56-B35E-4CB8-A25D-8108637A8E6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{28992C56-B35E-4CB8-A25D-8108637A8E6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{28992C56-B35E-4CB8-A25D-8108637A8E6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{11104C53-53CD-4244-AECD-D177981E26C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11104C53-53CD-4244-AECD-D177981E26C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11104C53-53CD-4244-AECD-D177981E26C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11104C53-53CD-4244-AECD-D177981E26C6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,6 +1,6 @@
 ﻿using Trident.Core.Bus;
-using Trident.Core.CPU.Registers;
 using Trident.Core.Global;
+using Trident.Core.CPU.Registers;
 
 namespace Trident.Core.CPU
 {

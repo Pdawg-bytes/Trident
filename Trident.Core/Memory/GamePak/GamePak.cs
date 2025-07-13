@@ -69,7 +69,7 @@ namespace Trident.Core.Memory.GamePak
                 // EEPROM does not use the address parameter; it is a purely serial device. Pass in 0xFFFFFFFF to signify that it doesn't matter.
                 if (IsEEPROMAddress(address)) return _backupDevice.Read(0xFFFF_FFFF);
 
-            // Seqential accesses from one address will not overwrite the latch! We should instead use the auto-incremented value.
+            // Seqential accesses from one address will not overwrite the pointer! We should instead use the auto-incremented value.
             if (!seqAccess)
                 _romAddress = address & _addressMask;
 
@@ -79,7 +79,7 @@ namespace Trident.Core.Memory.GamePak
             else
                 value = (ushort)(_romAddress >> 1);
 
-            // The GBA ROM uses an internal latch which automatically increments.
+            // The GBA ROM uses an internal pointer which automatically increments.
             _romAddress = (_romAddress + sizeof(ushort)) & _addressMask;
             return value;
         }
@@ -107,7 +107,7 @@ namespace Trident.Core.Memory.GamePak
                 }
             }
 
-            // Seqential accesses from one address will not overwrite the latch! We should instead use the auto-incremented value.
+            // Seqential accesses from one address will not overwrite the pointer! We should instead use the auto-incremented value.
             if (!seqAccess)
                 _romAddress = address & _addressMask;
 
@@ -121,7 +121,7 @@ namespace Trident.Core.Memory.GamePak
                 value = (uint)((top << 16) | low);
             }
 
-            // The GBA ROM uses an internal latch which automatically increments.
+            // The GBA ROM uses an internal pointer which automatically increments.
             _romAddress = (_romAddress + sizeof(uint)) & _addressMask;
             return value;
         }

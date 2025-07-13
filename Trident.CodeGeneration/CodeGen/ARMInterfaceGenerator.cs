@@ -1,0 +1,27 @@
+﻿using System.Linq;
+using Microsoft.CodeAnalysis;
+using System.Collections.Generic;
+using Trident.CodeGeneration.Attributes;
+
+namespace Trident.CodeGeneration.CodeGen
+{
+    internal static class ARMInterfaceGenerator
+    {
+        internal static string Generate(IMethodSymbol method)
+        {
+            var traits = ARMAttributeParser.Parse(method);
+            string interfaceName = $"I{method.Name}_Traits";
+            IEnumerable<string> members = traits.Select(t => $"static abstract {t.Type} {t.Name} {{ get; }}");
+
+            string source = $@"namespace Trident.Core.CPU.Decoding.ARM
+{{
+    public interface {interfaceName}
+    {{
+        {string.Join("\n        ", members)}
+    }}
+}}";
+            source += '\n';
+            return source;
+        }
+    }
+}

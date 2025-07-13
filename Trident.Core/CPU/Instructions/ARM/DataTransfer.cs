@@ -1,6 +1,7 @@
 ﻿using Trident.Core.Bus;
 using Trident.Core.Global;
 using Trident.Core.CPU.Pipeline;
+using Trident.Core.CPU.Decoding.ARM;
 
 namespace Trident.Core.CPU
 {
@@ -26,6 +27,8 @@ namespace Trident.Core.CPU
                 readRn = Bus.Read32(addr, PipelineAccess.NonSequential).RotateWord(addr);
                 Bus.Write32(addr, src, PipelineAccess.NonSequential | PipelineAccess.Lock);
             }
+
+            // TODO: wait state
 
             uint rd = (opcode >> 12) & 0x0F;
             Registers[rd] = readRn;

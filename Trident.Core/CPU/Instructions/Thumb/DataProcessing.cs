@@ -18,9 +18,9 @@ namespace Trident.Core.CPU
             uint src = Registers[args.Rs];
 
             if (args.SubOp != 0) 
-                Registers[rd] = Subtract(src, op, true);
+                Registers[rd] = Subtract(src, op, modifyFlags: true);
             else 
-                Registers[rd] = Add(src, op, true);
+                Registers[rd] = Add(src, op, modifyFlags: true);
         }
 
         internal void Thumb_MovCmpAddSubImm(ref ThumbArguments args)
@@ -36,13 +36,13 @@ namespace Trident.Core.CPU
                     Registers.ModifyFlag(Flags.Z, imm == 0);
                     break;
                 case 1: // CMP
-                    Subtract(Registers[rd], imm, true);
+                    Subtract(Registers[rd], imm, modifyFlags: true);
                     break;
                 case 2: // ADD
-                    Registers[rd] = Add(Registers[rd], imm, true);
+                    Registers[rd] = Add(Registers[rd], imm, modifyFlags: true);
                     break;
                 case 3: // SUB
-                    Registers[rd] = Subtract(Registers[rd], imm, true);
+                    Registers[rd] = Subtract(Registers[rd], imm, modifyFlags: true);
                     break;
             }
 
@@ -65,13 +65,13 @@ namespace Trident.Core.CPU
                     Registers[rd] = dst + op;
                     break;
                 case 1: // CMP
-                    Subtract(dst, op, true);
+                    Subtract(dst, op, modifyFlags: true);
                     return;
                 case 2: // MOV
                     Registers[rd] = op;
                     break;
                 case 3:
-                    throw new InvalidOperationException("Thumb: BX encoded in high-register operation.");
+                    throw new InvalidInstructionException<TBus>("BX encoded in high-register operation.", this);
             }
 
             if (rd == 15)
