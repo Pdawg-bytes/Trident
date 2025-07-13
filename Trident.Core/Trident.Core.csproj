@@ -20,4 +20,7 @@
     </ProjectReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Trident.CodeGeneration\Shared\ARMGroup.cs" Link="Shared\ARMGroup.cs" />
+  </ItemGroup>
 </Project>

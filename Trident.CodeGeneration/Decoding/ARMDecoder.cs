@@ -1,31 +1,13 @@
 ﻿using System.Linq;
 using Microsoft.CodeAnalysis;
+using System.Collections.Generic;
+using Trident.CodeGeneration.Shared;
 using Trident.CodeGeneration.CodeGen;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Trident.CodeGeneration.Decoding
 {
     internal static class ARMDecoder
     {
-        public enum ARMGroup
-        {
-            Multiply,
-            MultiplyLong,
-            BranchExchange,
-            BranchWithLink,
-            Swap,
-            SmallSignedTransfer,
-            DataProcessing,
-            PSRTransfer,
-            SingleDataTrasnfer,
-            BlockDataTransfer,
-            Undefined,
-            SoftwareInterrupt,
-            CoprocDataOperation,
-            CoprocDataTransfer,
-            CoprocRegisterTransfer
-        }
-
         internal static ARMGroup DetermineARMGroup(uint instruction)
         {
             uint opcode = instruction & 0x0FFFFFFF;
@@ -77,28 +59,19 @@ namespace Trident.CodeGeneration.Decoding
         }
 
 
-        internal static IMethodSymbol FindGroupMethod(Compilation compilation, ARMGroup group)
+        internal static IMethodSymbol? FindGroupMethod(IEnumerable<IMethodSymbol> methods, ARMGroup group)
         {
-            foreach (SyntaxTree syntaxTree in compilation.SyntaxTrees)
+            return methods.FirstOrDefault(method =>
             {
-                SemanticModel semanticModel = compilation.GetSemanticModel(syntaxTree);
-                var methodDecls = syntaxTree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>();
+                var attr = method.GetAttributes()
+                    .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "Trident.Core.CPU.Decoding.ARM.ARMGroupAttribute");
 
-                foreach (MethodDeclarationSyntax methodDecl in methodDecls)
-                {
-                    IMethodSymbol symbol = semanticModel.GetDeclaredSymbol(methodDecl) as IMethodSymbol;
-                    AttributeData groupAttr = symbol?.GetAttributes().FirstOrDefault(attr =>
-                        attr.AttributeClass?.Name == "ARMGroupAttribute");
+                if (attr is null)
+                    return false;
 
-                    if (groupAttr is not null &&
-                        (int)(groupAttr.ConstructorArguments[0].Value ?? -1) == (int)group)
-                    {
-                        return symbol;
-                    }
-                }
-            }
-
-            return null!;
+                var arg = attr.ConstructorArguments.FirstOrDefault();
+                return arg.Value is int value && value == (int)group;
+            });
         }
     }
 }
