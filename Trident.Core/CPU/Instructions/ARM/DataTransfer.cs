@@ -8,19 +8,17 @@ namespace Trident.Core.CPU
 {
     public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
-        [ARMParameter<bool>("ByteMode", bit: 22)]
-        [ARMGroup(ARMGroup.Swap)]
-        internal void ARM_Swap<TTraits>(uint opcode)
-            where TTraits : struct, IARM_Swap_Traits
+        internal void ARM_Swap(uint opcode)
         {
             Registers.PC += 4;
             Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
 
+            bool byteMode = opcode.IsBitSet(22);
             uint src = Registers[opcode & 0x0F];
             uint addr = Registers[(opcode >> 16) & 0x0F];
 
             uint readRn = 0;
-            if (TTraits.ByteMode)
+            if (byteMode)
             {
                 readRn = Bus.Read8(addr, PipelineAccess.NonSequential);
                 Bus.Write8(addr, (byte)src, PipelineAccess.NonSequential | PipelineAccess.Lock);
