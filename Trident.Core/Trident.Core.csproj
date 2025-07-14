@@ -22,5 +22,6 @@
 
   <ItemGroup>
     <Compile Include="..\Trident.CodeGeneration\Shared\ARMGroup.cs" Link="Shared\ARMGroup.cs" />
+    <Compile Include="..\Trident.CodeGeneration\Shared\ThumbGroup.cs" Link="Shared\ThumbGroup.cs" />
   </ItemGroup>
 </Project>

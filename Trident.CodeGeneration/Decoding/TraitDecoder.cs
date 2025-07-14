@@ -1,8 +1,6 @@
 ﻿using System;
-using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using Trident.CodeGeneration.CodeGen;
-using Trident.CodeGeneration.Attributes;
 
 namespace Trident.CodeGeneration.Decoding
 {
@@ -10,9 +8,8 @@ namespace Trident.CodeGeneration.Decoding
     {
         internal static Dictionary<string, object> DecodeTraitValues(
             uint opcode,
-            IMethodSymbol methodSymbol)
+            List<TemplateTrait> traits)
         {
-            var traits = ARMAttributeParser.ParseFullTraits(methodSymbol);
             var results = new Dictionary<string, object>();
 
             foreach (var (name, type, size, bit, hi, lo) in traits)

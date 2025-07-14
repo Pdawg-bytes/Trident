@@ -64,7 +64,7 @@ namespace Trident.CodeGeneration.Decoding
             return methods.FirstOrDefault(method =>
             {
                 var attr = method.GetAttributes()
-                    .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "Trident.Core.CPU.Decoding.ARM.ARMGroupAttribute");
+                    .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == CodeGenUtils.GenericParameterAttributeName);
 
                 if (attr is null)
                     return false;
@@ -72,6 +72,20 @@ namespace Trident.CodeGeneration.Decoding
                 var arg = attr.ConstructorArguments.FirstOrDefault();
                 return arg.Value is int value && value == (int)group;
             });
+        }
+
+        internal static Dictionary<ARMGroup, List<uint>> BuildGroupOpcodeMap()
+        {
+            var map = new Dictionary<ARMGroup, List<uint>>();
+            for (uint opcode = 0; opcode < 4096; opcode++)
+            {
+                uint expanded = (opcode & 0xFF0) << 16 | (opcode & 0x00F) << 4;
+                ARMGroup group = DetermineARMGroup(expanded);
+                if (!map.TryGetValue(group, out var list))
+                    map[group] = list = new List<uint>();
+                list.Add(expanded);
+            }
+            return map;
         }
     }
 }
