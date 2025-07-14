@@ -1,11 +1,14 @@
 ﻿using Trident.Core.Bus;
 using Trident.Core.Global;
+using Trident.Core.CPU.Decoding;
 using Trident.Core.CPU.Registers;
+using Trident.CodeGeneration.Shared;
 
 namespace Trident.Core.CPU
 {
     public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
+        [TemplateGroup<ARMGroup>(ARMGroup.BranchExchange)]
         internal void ARM_BranchExchange(uint opcode)
         {
             uint address = Registers[opcode & 0b1111];
@@ -21,6 +24,7 @@ namespace Trident.Core.CPU
                 ReloadPipelineARM();
         }
 
+        [TemplateGroup<ARMGroup>(ARMGroup.BranchWithLink)]
         internal void ARM_BranchWithLink(uint opcode)
         {
             bool link = opcode.IsBitSet(24);

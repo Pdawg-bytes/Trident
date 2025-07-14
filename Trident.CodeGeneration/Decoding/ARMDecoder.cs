@@ -1,6 +1,4 @@
-﻿using System.Linq;
-using Microsoft.CodeAnalysis;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Trident.CodeGeneration.Shared;
 using Trident.CodeGeneration.CodeGen;
 
@@ -58,21 +56,6 @@ namespace Trident.CodeGeneration.Decoding
             };
         }
 
-
-        internal static IMethodSymbol? FindGroupMethod(IEnumerable<IMethodSymbol> methods, ARMGroup group)
-        {
-            return methods.FirstOrDefault(method =>
-            {
-                var attr = method.GetAttributes()
-                    .FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == CodeGenUtils.GenericParameterAttributeName);
-
-                if (attr is null)
-                    return false;
-
-                var arg = attr.ConstructorArguments.FirstOrDefault();
-                return arg.Value is int value && value == (int)group;
-            });
-        }
 
         internal static Dictionary<ARMGroup, List<uint>> BuildGroupOpcodeMap()
         {

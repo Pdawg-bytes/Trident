@@ -20,7 +20,7 @@ namespace Trident.CodeGeneration.CodeGen
 
 
         internal const string GenericParameterAttributeName = "Trident.Core.CPU.Decoding.TemplateParameterAttribute`1";
-        internal const string GroupAttributeName = "Trident.Core.CPU.Decoding.TemplateGroupAttribute";
+        internal const string GroupAttributeName = "Trident.Core.CPU.Decoding.TemplateGroupAttribute`1";
 
 
         internal static void GenerateDispatcherInitializer(SourceProductionContext spc, ImmutableArray<string> methodNames, bool isARM)

@@ -24,7 +24,7 @@ namespace Trident.CodeGeneration.CodeGen.Metadata
 
             // Determine group from method
             AttributeData groupAttribute = method.GetAttributes()
-                .FirstOrDefault(a => a.AttributeClass?.ToDisplayString().Contains(CodeGenUtils.GroupAttributeName) == true);
+                .FirstOrDefault(a => a.AttributeClass?.ToDisplayString().Contains(CodeGenUtils.GroupAttributeName.Split('`')[0]) == true);
 
             if (groupAttribute?.ConstructorArguments[0].Value is int value)
                 Group = value;

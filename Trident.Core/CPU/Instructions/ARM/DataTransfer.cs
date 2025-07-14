@@ -3,14 +3,14 @@ using Trident.Core.Global;
 using Trident.Core.CPU.Pipeline;
 using Trident.Core.CPU.Decoding;
 using Trident.CodeGeneration.Shared;
+using Trident.Core.CPU.Decoding.ARM;
 
 namespace Trident.Core.CPU
 {
     public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
-        [TemplateParameter<bool>("ByteMode", bit: 22)]
         [TemplateGroup<ARMGroup>(ARMGroup.Swap)]
-        internal void ARM_Swap<TTraits>(uint opcode)
+        internal void ARM_Swap(uint opcode)
         {
             Registers.PC += 4;
             Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;

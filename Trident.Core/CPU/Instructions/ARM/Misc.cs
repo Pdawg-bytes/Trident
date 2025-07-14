@@ -1,10 +1,13 @@
 ﻿using Trident.Core.Bus;
+using Trident.Core.CPU.Decoding;
 using Trident.Core.CPU.Registers;
+using Trident.CodeGeneration.Shared;
 
 namespace Trident.Core.CPU
 {
     public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
+        [TemplateGroup<ARMGroup>(ARMGroup.Undefined)]
         internal void ARM_Undefined(uint opcode)
         {
             Registers.SetSPSR(PrivilegeMode.Undefined, Registers.CPSR);
@@ -16,6 +19,7 @@ namespace Trident.Core.CPU
             ReloadPipelineARM();
         }
 
+        [TemplateGroup<ARMGroup>(ARMGroup.SoftwareInterrupt)]
         internal void ARM_SoftwareInterrupt(uint opcode)
         {
             Registers.SetSPSR(PrivilegeMode.Supervisor, Registers.CPSR);
