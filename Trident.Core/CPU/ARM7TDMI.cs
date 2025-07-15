@@ -16,9 +16,7 @@ namespace Trident.Core.CPU
         public TBus Bus;
 
         private readonly ARMDispatcher<TBus> _armDispatcher;
-
         private readonly ThumbDispatcher<TBus> _thumbDispatcher;
-        private ThumbArguments _thumbParams = new();
 
         public ARM7TDMI()
         {
@@ -64,9 +62,8 @@ namespace Trident.Core.CPU
             uint pc = Registers.PC;
             Pipeline.Prefetch[1] = Bus.Read16(pc, Pipeline.Access);
             
-            ThumbMetadata instr = _thumbDispatcher.GetInstruction(opcode);
-            instr.ArgDecoder(ref _thumbParams, opcode);
-            instr.Handler(ref _thumbParams);
+            ThumbInstruction instr = _thumbDispatcher.GetInstruction((ushort)opcode);
+            instr((ushort)opcode);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -105,6 +102,6 @@ namespace Trident.Core.CPU
 
 
         internal void NonImplementedARMInstr(uint opcode) => throw new NotImplementedException("This ARM instruction group is not implemented.");
-        internal void NonImplementedThumbInstr(ref ThumbArguments args) => throw new NotImplementedException("This Thumb instruction group is not implemented.");
+        internal void NonImplementedThumbInstr(ushort opcode) => throw new NotImplementedException("This Thumb instruction group is not implemented.");
     }
 }

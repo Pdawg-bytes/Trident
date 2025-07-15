@@ -12,11 +12,14 @@ namespace Trident.Core.Global
         internal static bool IsBitSet(this uint value, int bit) => ((value >> bit) & 1) != 0;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool IsBitSet(this ushort value, int bit) => ((value >> bit) & 1) != 0;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static uint Extract(this uint value, int hi, int lo) =>
             (value >> lo) & ((1u << (hi - lo + 1)) - 1);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static int Extend(this uint value, int bits)
+        internal static int ExtendFrom(this uint value, int bits)
         {
             int shift = 32 - bits;
             return ((int)(value << shift)) >> shift;

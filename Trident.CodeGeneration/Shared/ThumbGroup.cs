@@ -2,6 +2,24 @@
 {
     public enum ThumbGroup
     {
-        Test = 4
+        ShiftImmediate,
+        AddSubtract,
+        UnnamedGroup3,
+        ThumbALU,
+        HiRegisterOps,
+        BranchExchange,
+        LoadStorePCRelative,
+        LoadStoreSigned,
+        LoadStoreImmOffset,
+        LoadStoreSPRelative,
+        LoadAddress,
+        AddOffsetSP,
+        PushPop,
+        LoadStoreMultiple,
+        ConditionalBranch,
+        SoftwareInterrupt,
+        UnconditionalBranch,
+        LongBranchWithLink,
+        Undefined
     }
 }

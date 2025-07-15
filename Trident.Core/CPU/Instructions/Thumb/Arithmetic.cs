@@ -1,34 +1,45 @@
 ﻿using Trident.Core.Bus;
 using Trident.Core.CPU.Pipeline;
+using Trident.Core.CPU.Decoding;
 using Trident.Core.CPU.Registers;
+using Trident.CodeGeneration.Shared;
 using Trident.Core.CPU.Decoding.Thumb;
 
 namespace Trident.Core.CPU
 {
     public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
-        internal void Thumb_AddSub(ref ThumbArguments args)
+        [TemplateParameter<bool>("UseImmediate", bit: 10)]
+        [TemplateParameter<bool>("Subtract", bit: 9)]
+        [TemplateParameter<byte>("Param3", size: 3, hi: 8, lo: 6)]
+        [TemplateGroup<ThumbGroup>(ThumbGroup.AddSubtract)]
+        internal void Thumb_AddSub<TTraits>(ushort opcode)
+            where TTraits : struct, IThumb_AddSub_Traits
         {
-            uint op = args.I != 0 ? args.Imm : Registers[args.Rn];
+            uint op = TTraits.UseImmediate ? TTraits.Param3 : Registers[TTraits.Param3];
 
             Registers.PC += 2;
             Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
 
-            uint rd = args.Rd;
-            uint src = Registers[args.Rs];
+            uint rd = (uint)opcode & 0b111;
+            uint src = Registers[(opcode >> 3) & 0b111];
 
-            if (args.SubOp != 0) 
+            if (TTraits.Subtract) 
                 Registers[rd] = Subtract(src, op, modifyFlags: true);
             else 
                 Registers[rd] = Add(src, op, modifyFlags: true);
         }
 
-        internal void Thumb_MovCmpAddSubImm(ref ThumbArguments args)
-        {
-            uint rd = args.Rd;
-            uint imm = args.Imm;
 
-            switch (args.SubOp)
+        [TemplateParameter<byte>("Operation", size: 2, hi: 12, lo: 11)]
+        [TemplateGroup<ThumbGroup>(ThumbGroup.UnnamedGroup3)]
+        internal void Thumb_MovCmpAddSubImm<TTraits>(ushort opcode)
+            where TTraits : struct, IThumb_MovCmpAddSubImm_Traits
+        {
+            uint rd = ((uint)opcode >> 8) & 0b111;
+            uint imm = (uint)opcode & 0xFF;
+
+            switch (TTraits.Operation)
             {
                 case 0: // MOV
                     Registers[rd] = imm;
@@ -50,25 +61,33 @@ namespace Trident.Core.CPU
             Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
         }
 
-        internal void Thumb_HighRegister(ref ThumbArguments args)
+
+        [TemplateParameter<byte>("Operation", size: 2, hi: 9, lo: 8)]
+        [TemplateParameter<bool>("High1", bit: 7)]
+        [TemplateParameter<bool>("High2", bit: 6)]
+        [TemplateGroup<ThumbGroup>(ThumbGroup.HiRegisterOps)]
+        internal void Thumb_HighRegister<TTraits>(ushort opcode)
+            where TTraits : struct, IThumb_HighRegister_Traits
         {
-            uint rd = args.Rd;
-            uint dst = Registers[rd];
-            uint op = Registers[args.Rs];
+            uint rs = (((uint)opcode >> 3) & 0b111) | (uint)(TTraits.High2 ? 8 : 0);
+            uint rd = ((uint)opcode & 0b111)        | (uint)(TTraits.High1 ? 8 : 0);
+
+            uint op1 = Registers[rs];
+            uint op2 = Registers[rd];
 
             Registers.PC += 2;
             Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
 
-            switch (args.SubOp)
+            switch (TTraits.Operation)
             {
                 case 0: // ADD
-                    Registers[rd] = dst + op;
+                    Registers[rd] = op1 + op2;
                     break;
                 case 1: // CMP
-                    Subtract(dst, op, modifyFlags: true);
+                    Subtract(op2, op1, modifyFlags: true);
                     return;
                 case 2: // MOV
-                    Registers[rd] = op;
+                    Registers[rd] = op1;
                     break;
                 case 3:
                     throw new InvalidInstructionException<TBus>("BX encoded in high-register operation.", this);

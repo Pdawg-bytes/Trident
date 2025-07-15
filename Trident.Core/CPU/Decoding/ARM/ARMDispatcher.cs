@@ -1,5 +1,5 @@
 ﻿using Trident.Core.Bus;
-using static Trident.Core.CPU.Decoding.ARM.ARMDecodeMasks;
+using System.Runtime.CompilerServices;
 
 namespace Trident.Core.CPU.Decoding.ARM
 {
@@ -13,6 +13,7 @@ namespace Trident.Core.CPU.Decoding.ARM
         public ARMDispatcher(ARM7TDMI<TBus> cpu)
         {
             _cpu = cpu;
+
             foreach (var i in Enumerable.Range(0, ARM_DISPATCH_COUNT))
                 _instructionHandlers[i] = _cpu.NonImplementedARMInstr;
 
@@ -24,6 +25,7 @@ namespace Trident.Core.CPU.Decoding.ARM
         /// </summary>
         /// <param name="opcode">The ARM instruction to return the handler of.</param>
         /// <returns>A delegate that points to the handler of the instruction.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal ARMInstruction GetInstruction(uint opcode) =>
             _instructionHandlers[(opcode & 0x0FF00000) >> 16 | (opcode & 0x00F0) >> 4];
     }

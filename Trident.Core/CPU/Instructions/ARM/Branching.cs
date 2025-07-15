@@ -28,7 +28,7 @@ namespace Trident.Core.CPU
         internal void ARM_BranchWithLink(uint opcode)
         {
             bool link = opcode.IsBitSet(24);
-            int offset = ((opcode & 0xFFFFFF).Extend(24)) << 2;
+            int offset = ((opcode & 0xFFFFFF).ExtendFrom(24)) << 2;
 
             if (link) Registers.LR = Registers.PC - 4;
             Registers.PC += (uint)offset;

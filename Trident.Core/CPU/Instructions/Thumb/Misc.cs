@@ -1,13 +1,16 @@
 ﻿using Trident.Core.Bus;
 using Trident.Core.CPU.Pipeline;
+using Trident.Core.CPU.Decoding;
 using Trident.Core.CPU.Registers;
+using Trident.CodeGeneration.Shared;
 using Trident.Core.CPU.Decoding.Thumb;
 
 namespace Trident.Core.CPU
 {
     public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
-        internal void Thumb_SWI(ref ThumbArguments args)
+        [TemplateGroup<ThumbGroup>(ThumbGroup.SoftwareInterrupt)]
+        internal void Thumb_SWI(ushort opcode)
         {
             Registers.SetSPSR(PrivilegeMode.Supervisor, Registers.CPSR);
             Registers.SwitchMode(PrivilegeMode.Supervisor);
@@ -21,12 +24,19 @@ namespace Trident.Core.CPU
             ReloadPipelineARM();
         }
 
-        internal void Thumb_AddSpecialOffset(ref ThumbArguments args)
+
+        [TemplateParameter<bool>("UseSP", bit: 11)]
+        [TemplateGroup<ThumbGroup>(ThumbGroup.LoadAddress)]
+        internal void Thumb_LoadAddress<TTraits>(ushort opcode)
+            where TTraits : struct, IThumb_LoadAddress_Traits
         {
-            if (args.SP != 0)
-                Registers[args.Rd] = Registers.SP + args.Imm;
+            uint rd = ((uint)opcode >> 8) & 0b111;
+            uint offset = ((uint)opcode & 0xFF) << 2;
+
+            if (TTraits.UseSP)
+                Registers[rd] = Registers.SP + offset;
             else
-                Registers[args.Rd] = (Registers.PC & 0xFFFFFFFD) + args.Imm;
+                Registers[rd] = (Registers.PC & 0xFFFFFFFD) + offset;
 
             Registers.PC += 2;
             Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
