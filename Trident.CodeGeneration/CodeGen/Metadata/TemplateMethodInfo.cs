@@ -4,8 +4,6 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using Trident.CodeGeneration.Attributes;
-using System.Collections.Immutable;
-using System.Diagnostics;
 
 namespace Trident.CodeGeneration.CodeGen.Metadata
 {

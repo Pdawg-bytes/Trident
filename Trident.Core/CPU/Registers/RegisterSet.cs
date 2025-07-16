@@ -32,12 +32,10 @@ namespace Trident.Core.CPU.Registers
         /// <summary>The currently saved program status register.</summary>
         public Flags SPSR
         {
-            get => (CurrentMode == PrivilegeMode.User || CurrentMode == PrivilegeMode.System) ? CPSR : _bankedSpsr[_bankParams[(uint)CurrentMode].SPSRIndex];
+            get => (CurrentMode is PrivilegeMode.User || CurrentMode is PrivilegeMode.System) ? CPSR : _bankedSpsr[_bankParams[(uint)CurrentMode].SPSRIndex];
             set
             {
-                if (CurrentMode == PrivilegeMode.User || CurrentMode == PrivilegeMode.System)
-                    CPSR = value;
-                else
+                if (CurrentMode is not PrivilegeMode.User && CurrentMode is not PrivilegeMode.System)
                     _bankedSpsr[_bankParams[(uint)CurrentMode].SPSRIndex] = value;
             }
         }

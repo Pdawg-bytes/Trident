@@ -1,7 +1,9 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 
 namespace Trident.CodeGeneration.CodeGen
 {
@@ -25,6 +27,14 @@ namespace Trident.CodeGeneration.CodeGen
         }
 
         internal static string GetPermutationKey(string methodName, Dictionary<string, object> traitValues) =>
-            $"{methodName}_{string.Join("_", traitValues.Select(kv => $"{kv.Key}{kv.Value.ToString()}"))}";
+            $"{methodName}__{ComputeSafeHash(traitValues)}";
+
+        static string ComputeSafeHash(Dictionary<string, object> traits)
+        {
+            using SHA256 sha = SHA256.Create();
+            string input = string.Join("_", traits.OrderBy(kv => kv.Key).Select(kv => $"{kv.Key}_{kv.Value}"));
+            byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
+            return BitConverter.ToString(hash).Replace("-", "").Substring(0, 24);
+        }
     }
 }

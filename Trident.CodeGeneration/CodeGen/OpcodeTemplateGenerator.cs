@@ -16,10 +16,10 @@ namespace Trident.CodeGeneration.CodeGen
         private static readonly Dictionary<ARMGroup, List<uint>> _armGroupToOpcodes = ARMDecoder.BuildGroupOpcodeMap();
         private static readonly Dictionary<ThumbGroup, List<uint>> _thumbGroupToOpcodes = ThumbDecoder.BuildGroupOpcodeMap();
 
-        static Func<uint, uint> _compressARMOpcode = expandedOpcode =>
+        private static readonly Func<uint, uint> _compressARMOpcode = expandedOpcode =>
             ((expandedOpcode >> 16) & 0xFF0) | ((expandedOpcode >> 4) & 0x00F);
 
-        static Func<uint, uint> _compressThumbOpcode = expandedOpcode =>
+        private static readonly Func<uint, uint> _compressThumbOpcode = expandedOpcode =>
             ((expandedOpcode >> 6));
 
 
@@ -96,27 +96,28 @@ namespace {targetNamespace}
             {
                 uint compressedOpcode = info.IsARM ? _compressARMOpcode(expandedOpcode) : _compressThumbOpcode(expandedOpcode);
                 var values = TraitDecoder.DecodeTraitValues(expandedOpcode, info.Traits);
-                string structName = TraitStructGenerator.GetPermutationKey(info.Name, values);
+
                 if (hasTraits)
                 {
+                    string structName = TraitStructGenerator.GetPermutationKey(info.Name, values);
+
                     builder.AppendLine(
-                        $"            _instructionHandlers[0x{compressedOpcode:X}]" +
+                        $"            _instructionHandlers[0x{compressedOpcode:X3}]" +
                         $" = _cpu.{info.Name}<{structName}>;"
                     );
 
+                    if (emittedStructs.Add(structName))
+                    {
+                        string structBody = TraitStructGenerator.GenerateTraitStruct(structName, info.Name, info.Traits, values);
+                        structBuilder.AppendLine(structBody);
+                    }
                 }
                 else
                 {
                     builder.AppendLine(
-                        $"            _instructionHandlers[0x{compressedOpcode:X}]" +
+                        $"            _instructionHandlers[0x{compressedOpcode:X3}]" +
                         $" = _cpu.{info.Name};"
                     );
-                }
-
-                if (hasTraits && emittedStructs.Add(structName))
-                {
-                    string structBody = TraitStructGenerator.GenerateTraitStruct(structName, info.Name, info.Traits, values);
-                    structBuilder.AppendLine(structBody);
                 }
             }
 
