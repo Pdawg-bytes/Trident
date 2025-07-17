@@ -28,7 +28,7 @@ namespace Trident.Core.CPU
             }
             else
             {
-                readRn = Bus.Read32(addr, PipelineAccess.NonSequential).RotateWord(addr);
+                readRn = Read32Rotated(addr, PipelineAccess.NonSequential);
                 Bus.Write32(addr, src, PipelineAccess.NonSequential | PipelineAccess.Lock);
             }
 

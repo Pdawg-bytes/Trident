@@ -25,7 +25,7 @@ namespace Trident.Core.CPU
             uint result = Registers[rd] = PerformShift((ShiftType)TTraits.ShiftOp, immediateShift: true, operand, TTraits.ShiftAmt, ref carry);
 
             Registers.ModifyFlag(Flags.C, carry);
-            SetZeroSign(result);
+            SetNZ(result);
 
             Registers.PC += 2;
             Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;

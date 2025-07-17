@@ -26,13 +26,6 @@ namespace Trident.Core.Global
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static uint RotateWord(this uint value, uint address)
-        {
-            int shift = ((int)address & 3) << 3;
-            return BitOperations.RotateRight(value, shift);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static uint RotateRight(this uint value, int shift) => BitOperations.RotateRight(value, shift);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -49,6 +42,7 @@ namespace Trident.Core.Global
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static uint Align<T>(this uint value) where T : unmanaged =>
             value & ~(uint)(Unsafe.SizeOf<T>() - 1);
+
 
         static readonly uint[] PromotionTable =
         [

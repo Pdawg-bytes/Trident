@@ -19,6 +19,7 @@ namespace Trident.Core.CPU
             ReloadPipelineARM();
         }
 
+
         [TemplateGroup<ARMGroup>(ARMGroup.SoftwareInterrupt)]
         internal void ARM_SoftwareInterrupt(uint opcode)
         {

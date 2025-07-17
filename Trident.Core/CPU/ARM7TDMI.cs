@@ -1,11 +1,12 @@
-﻿using Trident.Core.Bus;
-using Trident.Core.CPU.Pipeline;
+﻿using System.Numerics;
+using System.Runtime.CompilerServices;
+using Trident.Core.Bus;
 using Trident.Core.CPU.Decoding.ARM;
 using Trident.Core.CPU.Decoding.Thumb;
-using System.Runtime.CompilerServices;
-
-using static Trident.Core.CPU.Conditions;
+using Trident.Core.CPU.Pipeline;
 using Trident.Core.CPU.Registers;
+using Trident.Core.Global;
+using static Trident.Core.CPU.Conditions;
 
 namespace Trident.Core.CPU
 {
@@ -98,6 +99,40 @@ namespace Trident.Core.CPU
             Pipeline.Prefetch[1] = Bus.Read32(Registers.PC + 4, PipelineAccess.Code | PipelineAccess.Sequential);
             Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
             Registers.PC += 8;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private uint Read32Rotated(uint address, PipelineAccess access)
+        {
+            uint val = Bus.Read32(address, access);
+
+            int shift = ((int)address & 0b111) << 3;
+            return BitOperations.RotateRight(val, shift);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private uint Read16Rotated(uint address, PipelineAccess access)
+        {
+            uint val = Bus.Read16(address, access);
+
+            return (address & 1) != 0
+                ? BitOperations.RotateRight(val, 8)
+                : val;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private uint Read8Extended(uint address, PipelineAccess access) => 
+            (uint)((uint)Bus.Read8(address, access)).ExtendFrom(8);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private uint Read16Extended(uint address, PipelineAccess access)
+        {
+            uint val = Bus.Read16(address, access);
+
+            return (address & 1) != 0
+                ? (uint)(val >> 8).ExtendFrom(8)
+                : (uint)val.ExtendFrom(16);
         }
 
 

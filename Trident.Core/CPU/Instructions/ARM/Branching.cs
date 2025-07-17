@@ -24,6 +24,7 @@ namespace Trident.Core.CPU
                 ReloadPipelineARM();
         }
 
+
         [TemplateGroup<ARMGroup>(ARMGroup.BranchWithLink)]
         internal void ARM_BranchWithLink(uint opcode)
         {

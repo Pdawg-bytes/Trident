@@ -16,7 +16,7 @@ namespace Trident.Core.CPU
         internal void Thumb_AddSub<TTraits>(ushort opcode)
             where TTraits : struct, IThumb_AddSub_Traits
         {
-            uint op = TTraits.UseImmediate ? TTraits.Param3 : Registers[TTraits.Param3];
+            uint operand = TTraits.UseImmediate ? TTraits.Param3 : Registers[TTraits.Param3];
 
             Registers.PC += 2;
             Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
@@ -25,9 +25,22 @@ namespace Trident.Core.CPU
             uint src = Registers[(opcode >> 3) & 0b111];
 
             if (TTraits.Subtract) 
-                Registers[rd] = Subtract(src, op, modifyFlags: true);
+                Registers[rd] = Subtract(src, operand, modifyFlags: true);
             else 
-                Registers[rd] = Add(src, op, modifyFlags: true);
+                Registers[rd] = Add(src, operand, modifyFlags: true);
+        }
+
+
+        [TemplateParameter<bool>("Subtract", bit: 7)]
+        [TemplateGroup<ThumbGroup>(ThumbGroup.AddOffsetSP)]
+        internal void Thumb_AddOffsetSP<TTraits>(ushort opcode)
+            where TTraits : struct, IThumb_AddOffsetSP_Traits
+        {
+            uint offset = ((uint)opcode & 0x7F) << 2;
+            Registers.SP += TTraits.Subtract ? (uint)-offset : offset;
+
+            Registers.PC += 2;
+            Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
         }
 
 
