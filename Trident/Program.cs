@@ -9,8 +9,6 @@ namespace Trident
         static void Main(string[] args)
         {
             GBA gba = new();
-            gba.AttachGamePak(@"D:\GBA_ROM\Metroid Fusion (USA)\Metroid Fusion (USA).gba");
-            Console.WriteLine(gba.GetGamePakInfo());
         }
     }
 }

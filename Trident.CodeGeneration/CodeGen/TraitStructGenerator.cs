@@ -12,7 +12,7 @@ namespace Trident.CodeGeneration.CodeGen
         internal static string GenerateTraitStruct(string structName, string methodName, List<TemplateTrait> traits, Dictionary<string, object> values)
         {
             StringBuilder structBuilder = new();
-            structBuilder.AppendLine($"    public struct {structName} : I{methodName}_Traits");
+            structBuilder.AppendLine($"    internal struct {structName} : I{methodName}_Traits");
             structBuilder.AppendLine("    {");
 
             for (int i = 0; i < traits.Count; i++)

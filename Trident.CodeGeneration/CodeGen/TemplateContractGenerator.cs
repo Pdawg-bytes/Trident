@@ -11,7 +11,7 @@ namespace Trident.CodeGeneration.CodeGen
             string interfaceName = $"I{methodName}_Traits";
             IEnumerable<string> members = traits.Select(t => $"static abstract {t.Type} {t.Name} {{ get; }}");
 
-            string source = $@"    public interface {interfaceName}
+            string source = $@"    internal interface {interfaceName}
     {{
         {string.Join("\n        ", members)}
     }}";
