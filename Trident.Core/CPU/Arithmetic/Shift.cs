@@ -54,7 +54,7 @@ namespace Trident.Core.CPU
             uint result = (uint)((ulong)value >> shamt);
 
             if (shiftAmount != 0)
-                carry = (((ulong)value >> (shamt - 1)) & 1u) != 0;
+                carry = (((ulong)value >> (shamt - 1)) & 1) != 0;
 
             return result;
         }
@@ -69,7 +69,7 @@ namespace Trident.Core.CPU
             uint result = (uint)((long)(int)value >> shiftAmount);
 
             if (shiftAmount != 0)
-                carry = (((long)(int)value >> (shiftAmount - 1)) & 1u) != 0;
+                carry = (((long)(int)value >> (shiftAmount - 1)) & 1) != 0;
 
             return result;
         }
@@ -82,7 +82,7 @@ namespace Trident.Core.CPU
             if (immediateShift && shiftAmount == 0)
             {
                 uint oldLsb = value & 1;
-                result = value.RotateRight(shiftAmount);
+                result = (value >> 1) | ((carry ? (uint)1 : 0) << 31);
                 carry = oldLsb != 0;
             }
             else

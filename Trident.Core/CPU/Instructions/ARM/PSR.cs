@@ -21,7 +21,7 @@ namespace Trident.Core.CPU
             {
                 uint rd = (opcode >> 12) & 0x0F;
                 Registers[rd] = TTraits.SPSR ? (uint)Registers.SPSR : (uint)Registers.CPSR;
-                goto Exit;
+                goto Finalize;
             }
 
             uint operand;
@@ -53,7 +53,7 @@ namespace Trident.Core.CPU
             else
                 Registers.SPSR = (Registers.SPSR & ~(Flags)statusMask) | (Flags)(operand & statusMask);
 
-        Exit:
+        Finalize:
             Registers.PC += 4;
             Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
         }

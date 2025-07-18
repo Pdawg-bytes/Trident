@@ -36,8 +36,8 @@ namespace Trident.Core.CPU
         internal void Thumb_AddOffsetSP<TTraits>(ushort opcode)
             where TTraits : struct, IThumb_AddOffsetSP_Traits
         {
-            uint offset = ((uint)opcode & 0x7F) << 2;
-            Registers.SP += TTraits.Subtract ? (uint)-offset : offset;
+            uint immOffset = ((uint)opcode & 0x7F) << 2;
+            Registers.SP += TTraits.Subtract ? (uint)-immOffset : immOffset;
 
             Registers.PC += 2;
             Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
@@ -50,23 +50,23 @@ namespace Trident.Core.CPU
             where TTraits : struct, IThumb_MovCmpAddSubImm_Traits
         {
             uint rd = ((uint)opcode >> 8) & 0b111;
-            uint imm = (uint)opcode & 0xFF;
+            uint immOperand = (uint)opcode & 0xFF;
 
             switch (TTraits.Operation)
             {
                 case 0: // MOV
-                    Registers[rd] = imm;
+                    Registers[rd] = immOperand;
                     Registers.ClearFlag(Flags.N);
-                    Registers.ModifyFlag(Flags.Z, imm == 0);
+                    Registers.ModifyFlag(Flags.Z, immOperand == 0);
                     break;
                 case 1: // CMP
-                    Subtract(Registers[rd], imm, modifyFlags: true);
+                    Subtract(Registers[rd], immOperand, modifyFlags: true);
                     break;
                 case 2: // ADD
-                    Registers[rd] = Add(Registers[rd], imm, modifyFlags: true);
+                    Registers[rd] = Add(Registers[rd], immOperand, modifyFlags: true);
                     break;
                 case 3: // SUB
-                    Registers[rd] = Subtract(Registers[rd], imm, modifyFlags: true);
+                    Registers[rd] = Subtract(Registers[rd], immOperand, modifyFlags: true);
                     break;
             }
 

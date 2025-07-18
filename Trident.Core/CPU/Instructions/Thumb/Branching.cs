@@ -16,15 +16,14 @@ namespace Trident.Core.CPU
         internal void Thumb_BranchExchange<TTraits>(ushort opcode)
             where TTraits : struct, IThumb_BranchExchange_Traits
         {
-            uint rs = ((uint)opcode >> 3) & 0b111;
-            if (TTraits.HighRegister) rs |= 8;
+            uint rs = (((uint)opcode >> 3) & 0b111) | (TTraits.HighRegister ? (uint)8 : 0);
 
-            uint address = Registers[rs];
+            uint target = Registers[rs];
 
-            Registers.PC = address & 0xFFFFFFFE;
+            Registers.PC = target & 0xFFFFFFFE;
             Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
 
-            if ((address & 1) == 0)
+            if ((target & 1) == 0)
             {
                 Registers.ClearFlag(Flags.T);
                 ReloadPipelineARM();
@@ -66,12 +65,12 @@ namespace Trident.Core.CPU
         internal void Thumb_LongBranchWithLink<TTraits>(ushort opcode)
             where TTraits : struct, IThumb_LongBranchWithLink_Traits
         {
-            uint offset = (uint)opcode & 0x07FF;
+            uint immOffset = (uint)opcode & 0x07FF;
 
             if (!TTraits.CompletesBranch)
-                Thumb_LongBranchPrefix(offset);
+                Thumb_LongBranchPrefix(immOffset);
             else
-                Thumb_LongBranchSuffix(offset);
+                Thumb_LongBranchSuffix(immOffset);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

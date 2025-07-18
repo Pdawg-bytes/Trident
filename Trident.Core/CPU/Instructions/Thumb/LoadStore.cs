@@ -13,13 +13,13 @@ namespace Trident.Core.CPU
         [TemplateGroup<ThumbGroup>(ThumbGroup.LoadPCRelative)]
         internal void Thumb_LoadPCRelative(ushort opcode)
         {
-            uint offset = (uint)opcode & 0xFF;
-            uint target = Registers.PC.Align<uint>() + (offset << 2);
+            uint immOffset = (uint)opcode & 0xFF;
+            uint address = Registers.PC.Align<uint>() + (immOffset << 2);
 
             Registers.PC += 2;
             Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
 
-            Registers[(opcode >> 8) & 0b111] = Bus.Read32(target, PipelineAccess.NonSequential);
+            Registers[(opcode >> 8) & 0b111] = Bus.Read32(address, PipelineAccess.NonSequential);
             // TODO: wait state
         }
 
@@ -31,19 +31,19 @@ namespace Trident.Core.CPU
         {
             uint rd = ((uint)opcode >> 8) & 0b111;
 
-            uint offset = (uint)opcode & 0xFF;
-            uint target = Registers.SP + (offset << 2);
+            uint immOffset = (uint)opcode & 0xFF;
+            uint address = Registers.SP + (immOffset << 2);
 
             Registers.PC += 2;
             Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
 
             if (TTraits.Load)
             {
-                Registers[rd] = Read32Rotated(target, PipelineAccess.NonSequential);
+                Registers[rd] = Read32Rotated(address, PipelineAccess.NonSequential);
                 // TODO: wait state
             }
             else
-                Bus.Write32(target, Registers[rd], PipelineAccess.NonSequential);
+                Bus.Write32(address, Registers[rd], PipelineAccess.NonSequential);
         }
 
 
@@ -54,9 +54,9 @@ namespace Trident.Core.CPU
         {
             uint rd = (uint)opcode & 0b111;
 
-            uint @base  = Registers[(opcode >> 3) & 0b111];
-            uint offset = Registers[(opcode >> 6) & 0b111];
-            uint target = @base + offset;
+            uint baseAddr = Registers[(opcode >> 3) & 0b111];
+            uint offset   = Registers[(opcode >> 6) & 0b111];
+            uint address  = baseAddr + offset;
 
             Registers.PC += 2;
             Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
@@ -64,17 +64,17 @@ namespace Trident.Core.CPU
             switch (TTraits.Operation & 0b11)
             {
                 case 0b00: // STR
-                    Bus.Write32(target, Registers[rd], PipelineAccess.NonSequential);
+                    Bus.Write32(address, Registers[rd], PipelineAccess.NonSequential);
                     break;
                 case 0b01: // STRB
-                    Bus.Write8(target, (byte)Registers[rd], PipelineAccess.NonSequential);
+                    Bus.Write8(address, (byte)Registers[rd], PipelineAccess.NonSequential);
                     break;
                 case 0b10: // LDR
-                    Registers[rd] = Read32Rotated(target, PipelineAccess.NonSequential);
+                    Registers[rd] = Read32Rotated(address, PipelineAccess.NonSequential);
                     // TODO: wait state
                     break;
                 case 0b11: // LDRB
-                    Registers[rd] = Bus.Read8(target, PipelineAccess.NonSequential);
+                    Registers[rd] = Bus.Read8(address, PipelineAccess.NonSequential);
                     // TODO: wait state
                     break;
             }
@@ -88,8 +88,8 @@ namespace Trident.Core.CPU
         {
             uint rd = (uint)opcode & 0b111;
 
+            uint immOffset = (uint)(opcode >> 6) & 0x1F;
             uint baseAddr = Registers[(opcode >> 3) & 0b111];
-            uint imm = (uint)(opcode >> 6) & 0x1F;
 
             Registers.PC += 2;
             Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
@@ -97,17 +97,17 @@ namespace Trident.Core.CPU
             switch (TTraits.Operation & 0b11)
             {
                 case 0b00: // STR
-                    Bus.Write32(baseAddr + (imm << 2), Registers[rd], PipelineAccess.NonSequential);
+                    Bus.Write32(baseAddr + (immOffset << 2), Registers[rd], PipelineAccess.NonSequential);
                     break;
                 case 0b01: // LDR
-                    Registers[rd] = Read32Rotated(baseAddr + (imm << 2), PipelineAccess.NonSequential);
+                    Registers[rd] = Read32Rotated(baseAddr + (immOffset << 2), PipelineAccess.NonSequential);
                     // TODO: wait state
                     break;
                 case 0b10: // STRB
-                    Bus.Write8(baseAddr + imm, (byte)Registers[rd], PipelineAccess.NonSequential);
+                    Bus.Write8(baseAddr + immOffset, (byte)Registers[rd], PipelineAccess.NonSequential);
                     break;
                 case 0b11: // LDRB
-                    Registers[rd] = Bus.Read8(baseAddr + imm, PipelineAccess.NonSequential);
+                    Registers[rd] = Bus.Read8(baseAddr + immOffset, PipelineAccess.NonSequential);
                     // TODO: wait state
                     break;
             }
@@ -121,20 +121,20 @@ namespace Trident.Core.CPU
         {
             uint rd = (uint)opcode & 0b111;
 
+            uint immOffset = ((uint)opcode >> 6) & 0x1F;
             uint baseAddr = Registers[(opcode >> 3) & 0b111];
-            uint imm = ((uint)opcode >> 6) & 0x1F;
-            uint target = baseAddr + (imm << 1);
+            uint address = baseAddr + (immOffset << 1);
 
             Registers.PC += 2;
             Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
 
             if (TTraits.Load)
             {
-                Registers[rd] = Read16Rotated(target, PipelineAccess.NonSequential);
+                Registers[rd] = Read16Rotated(address, PipelineAccess.NonSequential);
                 // TODO: wait state
             }
             else
-                Bus.Write16(target, (ushort)Registers[rd], PipelineAccess.NonSequential);
+                Bus.Write16(address, (ushort)Registers[rd], PipelineAccess.NonSequential);
         }
 
 
@@ -145,9 +145,9 @@ namespace Trident.Core.CPU
         {
             uint rd = (uint)opcode & 0b111;
 
-            uint @base  = Registers[(opcode >> 3) & 0b111];
-            uint offset = Registers[(opcode >> 6) & 0b111];
-            uint target = @base + offset;
+            uint baseAddr  = Registers[(opcode >> 3) & 0b111];
+            uint immOffset = Registers[(opcode >> 6) & 0b111];
+            uint address   = baseAddr + immOffset;
 
             Registers.PC += 2;
             Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
@@ -155,18 +155,18 @@ namespace Trident.Core.CPU
             switch (TTraits.Operation & 0b11)
             {
                 case 0b00: // STRH
-                    Bus.Write16(target, (ushort)Registers[rd], PipelineAccess.NonSequential);
+                    Bus.Write16(address, (ushort)Registers[rd], PipelineAccess.NonSequential);
                     break;
                 case 0b01: // LDSB
-                    Registers[rd] = Read8Extended(target, PipelineAccess.NonSequential);
+                    Registers[rd] = Read8Extended(address, PipelineAccess.NonSequential);
                     // TODO: wait state
                     break;
                 case 0b10: // LDRH
-                    Registers[rd] = Read16Rotated(target, PipelineAccess.NonSequential);
+                    Registers[rd] = Read16Rotated(address, PipelineAccess.NonSequential);
                     // TODO: wait state
                     break;
                 case 0b11: // LDSH
-                    Registers[rd] = Read16Extended(target, PipelineAccess.NonSequential);
+                    Registers[rd] = Read16Extended(address, PipelineAccess.NonSequential);
                     // TODO: wait state
                     break;
             }

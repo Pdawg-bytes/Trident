@@ -115,6 +115,8 @@ namespace Trident.Core.CPU
                         Registers[rd] *= Registers[rs];
                         SetNZ(Registers[rd]);
                         // TODO: handle carry properly
+                        // this is kind of optional; the C flag is unimportant (ARM7TDMI-manual part 2, page 24)
+                        // however to achieve better accuracy, i should do it at some point
                         break;
                     }
 

@@ -31,12 +31,12 @@ namespace Trident.Core.CPU
             where TTraits : struct, IThumb_LoadAddress_Traits
         {
             uint rd = ((uint)opcode >> 8) & 0b111;
-            uint offset = ((uint)opcode & 0xFF) << 2;
+            uint immOffset = ((uint)opcode & 0xFF) << 2;
 
             if (TTraits.UseSP)
-                Registers[rd] = Registers.SP + offset;
+                Registers[rd] = Registers.SP + immOffset;
             else
-                Registers[rd] = (Registers.PC & 0xFFFFFFFD) + offset;
+                Registers[rd] = (Registers.PC & 0xFFFFFFFD) + immOffset;
 
             Registers.PC += 2;
             Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;

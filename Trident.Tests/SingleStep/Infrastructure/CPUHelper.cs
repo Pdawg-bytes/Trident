@@ -32,22 +32,49 @@ namespace Trident.Tests.SingleStep.Infrastructure
 
         internal static void AssertState(ARM7TDMI<TransactionalMemory> cpu, RegisterState state)
         {
-            Assert.AreEqual(state.Cpsr, (uint)cpu.Registers.CPSR, "CPSR");
+            var errors = new List<string>();
+
+            void AddError(string label, object expected, object actual) =>
+                errors.Add($"    {label} mismatch: expected <{expected}>, actual <{actual}>");
+
+
+            if (state.Cpsr != (uint)cpu.Registers.CPSR)
+            {
+                uint expected = state.Cpsr;
+                uint actual = (uint)cpu.Registers.CPSR;
+                string flagDiff = FormatPSRDiff(expected, actual);
+                errors.Add($"    CPSR mismatch: expected <0x{expected:X8}>, actual <0x{actual:X8}>");
+                errors.Add(string.Join("\n", flagDiff.Split('\n').Select(line => "        " + line)));
+            }
 
             cpu.Registers.SwitchMode(PrivilegeMode.User);
 
             for (int i = 0; i < 16; i++)
-                Assert.AreEqual(state.R[i], cpu.Registers[i], $"R{i}");
+            {
+                if (state.R[i] != cpu.Registers[i])
+                    AddError($"R{i}", $"0x{state.R[i]:X8}", $"0x{cpu.Registers[i]:X8}");
+            }
 
-            CompareBank(cpu, PrivilegeMode.FIQ, state);
-            CompareBank(cpu, PrivilegeMode.IRQ, state);
-            CompareBank(cpu, PrivilegeMode.Supervisor, state);
-            CompareBank(cpu, PrivilegeMode.Abort, state);
-            CompareBank(cpu, PrivilegeMode.Undefined, state);
+            CompareBank(cpu, PrivilegeMode.FIQ, state, errors);
+            CompareBank(cpu, PrivilegeMode.IRQ, state, errors);
+            CompareBank(cpu, PrivilegeMode.Supervisor, state, errors);
+            CompareBank(cpu, PrivilegeMode.Abort, state, errors);
+            CompareBank(cpu, PrivilegeMode.Undefined, state, errors);
 
-            Assert.AreEqual(state.Pipeline[0], cpu.Pipeline.Prefetch[0], "Pipeline[0]");
-            Assert.AreEqual(state.Pipeline[1], cpu.Pipeline.Prefetch[1], "Pipeline[1]");
-            Assert.AreEqual((PipelineAccess)state.Access, cpu.Pipeline.Access, "Pipeline access");
+            if (state.Pipeline[0] != cpu.Pipeline.Prefetch[0])
+                AddError("Pipeline[0]", $"0x{state.Pipeline[0]:X8}", $"0x{cpu.Pipeline.Prefetch[0]:X8}");
+
+            if (state.Pipeline[1] != cpu.Pipeline.Prefetch[1])
+                AddError("Pipeline[1]", $"0x{state.Pipeline[1]:X8}", $"0x{cpu.Pipeline.Prefetch[1]:X8}");
+
+            if ((PipelineAccess)state.Access != cpu.Pipeline.Access)
+                AddError("Pipeline access", (PipelineAccess)state.Access, cpu.Pipeline.Access);
+
+            if (errors.Count > 0)
+            {
+                var message = "State assertion failed with the following mismatches:\n" + string.Join("\n", errors);
+                Assert.Fail(message);
+            }
         }
 
 
@@ -67,16 +94,16 @@ namespace Trident.Tests.SingleStep.Infrastructure
             cpu.Registers.SetSPSR(mode, spsr);
         }
 
-        private static void CompareBank(ARM7TDMI<TransactionalMemory> cpu, PrivilegeMode mode, RegisterState expected)
+        private static void CompareBank(ARM7TDMI<TransactionalMemory> cpu, PrivilegeMode mode, RegisterState expected, List<string> errors)
         {
             (List<uint> expectedBank, Flags spsr) = mode switch
             {
                 PrivilegeMode.User or PrivilegeMode.System => (expected.R, (Flags)0),
-                PrivilegeMode.FIQ =>                          (expected.RFiq, (Flags)expected.Spsr[0]),
-                PrivilegeMode.IRQ =>                          (expected.RIrq, (Flags)expected.Spsr[3]),
-                PrivilegeMode.Supervisor =>                   (expected.RSvc, (Flags)expected.Spsr[1]),
-                PrivilegeMode.Abort =>                        (expected.RAbt, (Flags)expected.Spsr[2]),
-                PrivilegeMode.Undefined =>                    (expected.RUnd, (Flags)expected.Spsr[4]),
+                PrivilegeMode.FIQ => (expected.RFiq, (Flags)expected.Spsr[0]),
+                PrivilegeMode.IRQ => (expected.RIrq, (Flags)expected.Spsr[3]),
+                PrivilegeMode.Supervisor => (expected.RSvc, (Flags)expected.Spsr[1]),
+                PrivilegeMode.Abort => (expected.RAbt, (Flags)expected.Spsr[2]),
+                PrivilegeMode.Undefined => (expected.RUnd, (Flags)expected.Spsr[4]),
                 _ => throw new InvalidOperationException($"Unexpected mode: {mode} for bank comparison")
             };
 
@@ -84,10 +111,50 @@ namespace Trident.Tests.SingleStep.Infrastructure
             cpu.Registers.GetBankForMode(mode, bank);
 
             for (int i = 0; i < bank.Length; i++)
-                Assert.AreEqual(expectedBank[i], bank[i], $"R_{mode}_{i}");
+            {
+                if (expectedBank[i] != bank[i])
+                    errors.Add($"    R_{mode}_{i} mismatch: expected 0x{expectedBank[i]:X8}, actual 0x{bank[i]:X8}");
+            }
 
             if (mode != PrivilegeMode.User && mode != PrivilegeMode.System)
-                Assert.AreEqual(spsr, (Flags)cpu.Registers.GetSPSR(mode), $"SPSR_{mode}");
+            {
+                var actualSpsr = (Flags)cpu.Registers.GetSPSR(mode);
+                if (spsr != actualSpsr)
+                    errors.Add($"    SPSR_{mode} mismatch: expected {spsr}, actual {actualSpsr}");
+            }
+        }
+
+
+        private static string FormatPSRDiff(uint expected, uint actual)
+        {
+            var flags = new[]
+            {
+                ("N", 31),
+                ("Z", 30),
+                ("C", 29),
+                ("V", 28),
+                ("I", 7),
+                ("F", 6),
+                ("T", 5)
+            };
+
+            var result = new List<string>();
+
+            foreach (var (name, bit) in flags)
+            {
+                bool exp = (expected & (1u << bit)) != 0;
+                bool act = (actual & (1u << bit)) != 0;
+
+                if (exp != act)
+                    result.Add($"{name}: {(exp ? "1" : "0")} -> {(act ? "1" : "0")}");
+            }
+
+            uint expectedMode = expected & 0b11111;
+            uint actualMode = actual & 0b11111;
+            if (expectedMode != actualMode)
+                result.Add($"Mode: 0b{Convert.ToString(expectedMode, 2).PadLeft(5, '0')} -> 0b{Convert.ToString(actualMode, 2).PadLeft(5, '0')}\n");
+
+            return string.Join("\n", result);
         }
     }
 }
