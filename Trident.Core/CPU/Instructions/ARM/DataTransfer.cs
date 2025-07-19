@@ -53,11 +53,12 @@ namespace Trident.Core.CPU
                 if (TTraits.Writeback || !TTraits.PreIndexed)
                 {
                     Registers[rn] += offset;
-                    if (rn == 15 && (rd != rn)) ReloadPipelineARM();
+                    if (rn == 15 && (rn != rd)) ReloadPipelineARM();
                 }
 
-                Registers[rd] = value;
+                // TODO: wait state
 
+                Registers[rd] = value;
                 if (rd == 15) ReloadPipelineARM();
             }
             else

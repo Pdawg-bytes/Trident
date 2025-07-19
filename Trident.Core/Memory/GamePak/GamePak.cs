@@ -131,7 +131,8 @@ namespace Trident.Core.Memory.GamePak
         private bool IsEEPROMAddress(uint address) => _isEEPROM && (address & _eepromMask) == _eepromMask;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool IsGPIOAddress(uint address) => _isGPIO && address >= 0xC4 && address <= 0xC8;
+        private bool IsGPIOAddress(uint address) => _isGPIO && address <= 0xC8 &&address >= 0xC4;
+
 
         public void Dispose()
         {
