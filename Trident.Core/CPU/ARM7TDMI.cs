@@ -103,15 +103,6 @@ namespace Trident.Core.CPU
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private uint Read32Rotated(uint address, PipelineAccess access)
-        {
-            uint val = Bus.Read32(address, access);
-
-            int shift = ((int)address & 0b111) << 3;
-            return BitOperations.RotateRight(val, shift);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private uint Read16Rotated(uint address, PipelineAccess access)
         {
             uint val = Bus.Read16(address, access);
@@ -119,6 +110,15 @@ namespace Trident.Core.CPU
             return (address & 1) != 0
                 ? BitOperations.RotateRight(val, 8)
                 : val;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private uint Read32Rotated(uint address, PipelineAccess access)
+        {
+            uint val = Bus.Read32(address, access);
+
+            int shift = ((int)address & 0b111) << 3;
+            return BitOperations.RotateRight(val, shift);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -10,7 +10,7 @@ namespace Trident.Core.CPU
 {
     public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
-        [TemplateParameter<bool>("ImmediateOperand", bit: 25)]
+        [TemplateParameter<bool>("UseImmediate", bit: 25)]
         [TemplateParameter<byte>("Operation", size: 4, hi: 24, lo: 21)]
         [TemplateParameter<bool>("SetFlags", bit: 20)]
         [TemplateParameter<bool>("ShiftByReg", bit: 4)]
@@ -22,11 +22,11 @@ namespace Trident.Core.CPU
             uint rn = (opcode >> 16) & 0xF;
 
             bool carry = Registers.IsFlagSet(Flags.C);
+
             Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
             
             uint op2;
-
-            if (TTraits.ImmediateOperand)
+            if (TTraits.UseImmediate)
             {
                 int shamt = ((int)(opcode >> 8) & 0x0F) << 1;
                 op2 = (opcode & 0xFF).RotateRight(shamt);
@@ -57,39 +57,41 @@ namespace Trident.Core.CPU
 
             uint op1 = Registers[rn];
 
-            uint result = 0;
+
             switch ((ALUOpARM)TTraits.Operation)
             {
-                case ALUOpARM.AND: result = op1 &  op2; break;
-                case ALUOpARM.EOR: result = op1 ^  op2; break;
-                case ALUOpARM.ORR: result = op1 |  op2; break;
-                case ALUOpARM.BIC: result = op1 & ~op2; break;
-                case ALUOpARM.MVN: result =       ~op2; break;
-                case ALUOpARM.MOV: result =        op2; break;
+                case ALUOpARM.AND: SetResultAndFlags(op1 &  op2); break;
+                case ALUOpARM.EOR: SetResultAndFlags(op1 ^  op2); break;
+                case ALUOpARM.ORR: SetResultAndFlags(op1 |  op2); break;
+                case ALUOpARM.BIC: SetResultAndFlags(op1 & ~op2); break;
+                case ALUOpARM.MVN: SetResultAndFlags(      ~op2); break;
+                case ALUOpARM.MOV: SetResultAndFlags(       op2); break;
 
-                case ALUOpARM.TST: SetNZ(op1 & op2); Registers.ModifyFlag(Flags.C, carry); goto UpdatePC;
-                case ALUOpARM.TEQ: SetNZ(op1 ^ op2); Registers.ModifyFlag(Flags.C, carry); goto UpdatePC;
-                case ALUOpARM.CMP: Subtract(op1, op2, true); goto UpdatePC;
-                case ALUOpARM.CMN: Add(op1, op2, true); goto UpdatePC;
+                case ALUOpARM.TST: SetNZ(op1 & op2); Registers.ModifyFlag(Flags.C, carry); break;
+                case ALUOpARM.TEQ: SetNZ(op1 ^ op2); Registers.ModifyFlag(Flags.C, carry); break;
+                case ALUOpARM.CMP: Subtract(op1, op2, true); break;
+                case ALUOpARM.CMN: Add     (op1, op2, true); break;
 
-                case ALUOpARM.ADD: Registers[rd] = Add          (op1, op2, TTraits.SetFlags); goto UpdatePC;
-                case ALUOpARM.SUB: Registers[rd] = Subtract     (op1, op2, TTraits.SetFlags); goto UpdatePC;
-                case ALUOpARM.RSB: Registers[rd] = Subtract     (op2, op1, TTraits.SetFlags); goto UpdatePC;
-                case ALUOpARM.ADC: Registers[rd] = AddCarry     (op1, op2, TTraits.SetFlags); goto UpdatePC;
-                case ALUOpARM.SBC: Registers[rd] = SubtractCarry(op1, op2, TTraits.SetFlags); goto UpdatePC;
-                case ALUOpARM.RSC: Registers[rd] = SubtractCarry(op2, op1, TTraits.SetFlags); goto UpdatePC;
+                case ALUOpARM.ADD: Registers[rd] = Add          (op1, op2, TTraits.SetFlags); break;
+                case ALUOpARM.SUB: Registers[rd] = Subtract     (op1, op2, TTraits.SetFlags); break;
+                case ALUOpARM.RSB: Registers[rd] = Subtract     (op2, op1, TTraits.SetFlags); break;
+                case ALUOpARM.ADC: Registers[rd] = AddCarry     (op1, op2, TTraits.SetFlags); break;
+                case ALUOpARM.SBC: Registers[rd] = SubtractCarry(op1, op2, TTraits.SetFlags); break;
+                case ALUOpARM.RSC: Registers[rd] = SubtractCarry(op2, op1, TTraits.SetFlags); break;
             }
 
-            if (TTraits.SetFlags)
+            void SetResultAndFlags(uint result)
             {
-                SetNZ(result);
-                Registers.ModifyFlag(Flags.C, carry);
+                if (TTraits.SetFlags)
+                {
+                    SetNZ(result);
+                    Registers.ModifyFlag(Flags.C, carry);
+                }
+                Registers[rd] = result;
             }
-            Registers[rd] = result;
 
 
-        UpdatePC:
-            bool shouldUpdatePC = TTraits.ImmediateOperand || !TTraits.ShiftByReg;
+            bool shouldUpdatePC = TTraits.UseImmediate || !TTraits.ShiftByReg;
             if (rd == 15)
             {
                 if (TTraits.SetFlags)

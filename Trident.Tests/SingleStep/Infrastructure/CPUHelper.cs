@@ -113,14 +113,14 @@ namespace Trident.Tests.SingleStep.Infrastructure
             for (int i = 0; i < bank.Length; i++)
             {
                 if (expectedBank[i] != bank[i])
-                    errors.Add($"    R_{mode}_{i} mismatch: expected 0x{expectedBank[i]:X8}, actual 0x{bank[i]:X8}");
+                    errors.Add($"    R_{mode}_{i} mismatch: expected <0x{expectedBank[i]:X8}>, actual <0x{bank[i]:X8}>");
             }
 
             if (mode != PrivilegeMode.User && mode != PrivilegeMode.System)
             {
                 var actualSpsr = (Flags)cpu.Registers.GetSPSR(mode);
                 if (spsr != actualSpsr)
-                    errors.Add($"    SPSR_{mode} mismatch: expected {spsr}, actual {actualSpsr}");
+                    errors.Add($"    SPSR_{mode} mismatch: expected <0x{spsr}:X8>, actual <0x{actualSpsr}:X8>");
             }
         }
 

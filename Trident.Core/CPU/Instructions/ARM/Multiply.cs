@@ -61,12 +61,9 @@ namespace Trident.Core.CPU
             uint multiplier   = Registers[opcode & 0x0F];
             uint multiplicand = Registers[(opcode >> 8) & 0x0F];
 
-            ulong mulResult = 0;
-
-            if (TTraits.Signed)
-                mulResult = (ulong)((long)(int)multiplier * (long)(int)multiplicand);
-            else
-                mulResult = (ulong)multiplier * (ulong)multiplicand;
+            ulong mulResult = TTraits.Signed ?
+                (ulong)((long)(int)multiplier * (long)(int)multiplicand) :
+                (ulong)multiplier * (ulong)multiplicand;
 
             // TODO: wait state
 

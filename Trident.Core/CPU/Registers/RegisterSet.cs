@@ -64,13 +64,17 @@ namespace Trident.Core.CPU.Registers
 
         public uint this[int index]
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => GetRegisterRef(index);
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set => GetRegisterRef(index) = value;
         }
 
         public uint this[uint index]
         {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => GetRegisterRef((int)index);
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             set => GetRegisterRef((int)index) = value;
         }
 

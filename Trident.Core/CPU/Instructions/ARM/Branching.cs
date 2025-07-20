@@ -3,6 +3,7 @@ using Trident.Core.Global;
 using Trident.Core.CPU.Decoding;
 using Trident.Core.CPU.Registers;
 using Trident.CodeGeneration.Shared;
+using Trident.Core.CPU.Decoding.ARM;
 
 namespace Trident.Core.CPU
 {
@@ -25,13 +26,14 @@ namespace Trident.Core.CPU
         }
 
 
+        [TemplateParameter<bool>("Link", bit: 24)]
         [TemplateGroup<ARMGroup>(ARMGroup.BranchWithLink)]
-        internal void ARM_BranchWithLink(uint opcode)
+        internal void ARM_BranchWithLink<TTraits>(uint opcode)
+            where TTraits : IARM_BranchWithLink_Traits
         {
-            bool link = opcode.IsBitSet(24);
             int offset = ((opcode & 0xFFFFFF).ExtendFrom(24)) << 2;
 
-            if (link) Registers.LR = Registers.PC - 4;
+            if (TTraits.Link) Registers.LR = Registers.PC - 4;
             Registers.PC += (uint)offset;
 
             ReloadPipelineARM();

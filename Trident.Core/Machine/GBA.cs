@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Trident.Core.Bus;
+﻿using Trident.Core.Bus;
 using Trident.Core.CPU;
 using Trident.Core.Memory;
 using Trident.Core.Memory.GamePak;
@@ -31,9 +25,9 @@ namespace Trident.Core.Machine
             CPU.AttachBus(new GBABus());
         }
 
-
         public T? GetGPIODevice<T>() where T : GPIODevice
             => _gamePak?.GetGPIODevice<T>();
+
 
         public void AttachGamePak(string filePath)
         {
