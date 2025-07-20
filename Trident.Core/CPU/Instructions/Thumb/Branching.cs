@@ -5,7 +5,6 @@ using Trident.Core.CPU.Decoding;
 using Trident.Core.CPU.Registers;
 using Trident.CodeGeneration.Shared;
 using Trident.Core.CPU.Decoding.Thumb;
-using System.Runtime.CompilerServices;
 
 namespace Trident.Core.CPU
 {
@@ -68,26 +67,18 @@ namespace Trident.Core.CPU
             uint immOffset = (uint)opcode & 0x07FF;
 
             if (!TTraits.CompletesBranch)
-                Thumb_LongBranchPrefix(immOffset);
+            {
+                Registers.PC += 2;
+                Registers.LR = Registers.PC + ((uint)immOffset.ExtendFrom(11) << 12) - 2;
+                Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
+            }
             else
-                Thumb_LongBranchSuffix(immOffset);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Thumb_LongBranchPrefix(uint offset)
-        {
-            Registers.PC += 2;
-            Registers.LR = Registers.PC + ((uint)offset.ExtendFrom(11) << 12) - 2;
-            Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Thumb_LongBranchSuffix(uint offset)
-        {
-            uint returnAddress = (Registers.PC - 2) | 1; // Indicate Thumb state
-            Registers.PC = (Registers.LR + (offset << 1)) & 0xFFFFFFFE;
-            Registers.LR = returnAddress;
-            ReloadPipelineThumb();
+            {
+                uint returnAddress = (Registers.PC - 2) | 1; // Indicate Thumb state
+                Registers.PC = (Registers.LR + (immOffset << 1)) & 0xFFFFFFFE;
+                Registers.LR = returnAddress;
+                ReloadPipelineThumb();
+            }
         }
     }
 }

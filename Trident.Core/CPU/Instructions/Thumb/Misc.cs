@@ -1,4 +1,5 @@
 ﻿using Trident.Core.Bus;
+using Trident.Core.Global;
 using Trident.Core.CPU.Pipeline;
 using Trident.Core.CPU.Decoding;
 using Trident.Core.CPU.Registers;
@@ -33,10 +34,10 @@ namespace Trident.Core.CPU
             uint rd = ((uint)opcode >> 8) & 0b111;
             uint immOffset = ((uint)opcode & 0xFF) << 2;
 
-            if (TTraits.UseSP)
-                Registers[rd] = Registers.SP + immOffset;
-            else
-                Registers[rd] = (Registers.PC & 0xFFFFFFFD) + immOffset;
+            // When loading from PC, the address must be word-aligned.
+            Registers[rd] = TTraits.UseSP ?
+                Registers.SP + immOffset  :
+                Registers.PC.Align<uint>() + immOffset;
 
             Registers.PC += 2;
             Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;

@@ -47,8 +47,12 @@ namespace Trident.Core.CPU
                 address: ref address,
                 rb: rb,
                 displacement: (uint)(BitOperations.PopCount(regList) << 2),
-                updateRb: true);
+                updateRb: true
+            );
 
+            // TODO: wait state on load
+
+            // During a load, the final address is written back to rb if it's not in Rlist.
             if (TTraits.Load && !regList.IsBitSet((int)rb))
                 Registers[rb] = address;
         }
@@ -91,7 +95,8 @@ namespace Trident.Core.CPU
                 PerformThumbBlockTransfer(
                     isLoad: true,
                     regList: regList,
-                    address: ref address);
+                    address: ref address
+                );
 
                 if (TTraits.R)
                 {
@@ -112,7 +117,8 @@ namespace Trident.Core.CPU
                 PerformThumbBlockTransfer(
                     isLoad: false,
                     regList: regList,
-                    address: ref address);
+                    address: ref address
+                );
 
                 if (TTraits.R)
                     Bus.Write32(address, Registers.LR, access);
@@ -152,7 +158,6 @@ namespace Trident.Core.CPU
                 address += 4;
                 access = PipelineAccess.Sequential;
                 regList &= (byte)~(1 << index);
-
             }
         }
     }

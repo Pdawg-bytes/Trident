@@ -15,8 +15,8 @@ namespace Trident.Core.CPU
         internal void Thumb_ShiftImmediate<TTraits>(ushort opcode)
             where TTraits : struct, IThumb_ShiftImmediate_Traits
         {
-            uint operand = Registers[(opcode >> 3) & 0b111];
             uint rd = (uint)opcode & 0b111;
+            uint operand = Registers[(opcode >> 3) & 0b111];
 
             if (TTraits.Operation > 2)
                 throw new InvalidInstructionException<TBus>($"Shift immediate: unexpected sub-operation {TTraits.Operation}", this);
@@ -24,8 +24,8 @@ namespace Trident.Core.CPU
             bool carry = Registers.IsFlagSet(Flags.C);
             uint result = Registers[rd] = PerformShift((ShiftType)TTraits.Operation, immediateShift: true, operand, TTraits.ShiftAmt, ref carry);
 
-            Registers.ModifyFlag(Flags.C, carry);
             SetNZ(result);
+            Registers.ModifyFlag(Flags.C, carry);
 
             Registers.PC += 2;
             Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;

@@ -54,18 +54,18 @@ namespace Trident.Core.CPU
 
             switch (TTraits.Operation)
             {
-                case 0: // MOV
+                case 0b00: // MOV
                     Registers[rd] = immOperand;
                     Registers.ClearFlag(Flags.N);
                     Registers.ModifyFlag(Flags.Z, immOperand == 0);
                     break;
-                case 1: // CMP
+                case 0b01: // CMP
                     Subtract(Registers[rd], immOperand, modifyFlags: true);
                     break;
-                case 2: // ADD
+                case 0b10: // ADD
                     Registers[rd] = Add(Registers[rd], immOperand, modifyFlags: true);
                     break;
-                case 3: // SUB
+                case 0b11: // SUB
                     Registers[rd] = Subtract(Registers[rd], immOperand, modifyFlags: true);
                     break;
             }
@@ -93,16 +93,16 @@ namespace Trident.Core.CPU
 
             switch (TTraits.Operation)
             {
-                case 0: // ADD
+                case 0b00: // ADD
                     Registers[rd] = op1 + op2;
                     break;
-                case 1: // CMP
+                case 0b01: // CMP
                     Subtract(op2, op1, modifyFlags: true);
                     return;
-                case 2: // MOV
+                case 0b10: // MOV
                     Registers[rd] = op1;
                     break;
-                case 3:
+                case 0b11:
                     throw new InvalidInstructionException<TBus>("BX encoded in high-register operation.", this);
             }
 
