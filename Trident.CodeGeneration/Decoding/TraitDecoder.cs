@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using Trident.CodeGeneration.CodeGen;
+using Trident.CodeGeneration.Helpers;
+using Trident.CodeGeneration.CodeGen.Metadata;
 
 namespace Trident.CodeGeneration.Decoding
 {
@@ -8,7 +10,7 @@ namespace Trident.CodeGeneration.Decoding
     {
         internal static Dictionary<string, object> DecodeTraitValues(
             uint opcode,
-            List<TemplateTrait> traits)
+            EquatableArray<TemplateTrait> traits)
         {
             var results = new Dictionary<string, object>();
 

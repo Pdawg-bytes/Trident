@@ -4,18 +4,20 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Security.Cryptography;
+using Trident.CodeGeneration.Helpers;
+using Trident.CodeGeneration.CodeGen.Metadata;
 
 namespace Trident.CodeGeneration.CodeGen
 {
     internal static class TraitStructGenerator
     {
-        internal static string GenerateTraitStruct(string structName, string methodName, List<TemplateTrait> traits, Dictionary<string, object> values)
+        internal static string GenerateTraitStruct(string structName, string methodName, EquatableArray<TemplateTrait> traits, Dictionary<string, object> values)
         {
             StringBuilder structBuilder = new();
             structBuilder.AppendLine($"    internal struct {structName} : I{methodName}_Traits");
             structBuilder.AppendLine("    {");
 
-            for (int i = 0; i < traits.Count; i++)
+            for (int i = 0; i < traits.Count(); i++)
             {
                 TemplateTrait trait = traits[i];
                 object val = values[trait.Name];

@@ -2,14 +2,16 @@
 using Microsoft.CodeAnalysis;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using Trident.CodeGeneration.Helpers;
+using Trident.CodeGeneration.CodeGen.Metadata;
 
 namespace Trident.CodeGeneration.Attributes
 {
-    public static class TemplateAttributeParser
+    internal static class TemplateAttributeParser
     {
-        public static List<TemplateTrait> Parse(IMethodSymbol method)
+        internal static EquatableArray<TemplateTrait> Parse(IMethodSymbol method)
         {
-            var results = new List<(string, string, int, int, int, int)>();
+            var results = new List<TemplateTrait>();
 
             foreach (var attrData in method.GetAttributes())
             {
@@ -26,10 +28,10 @@ namespace Trident.CodeGeneration.Attributes
                 int lo = GetOptionalArg<int>(attrData, "lo");
 
                 if (name is not null && type is not null)
-                    results.Add((name, type, size, bit, hi, lo));
+                    results.Add(new TemplateTrait(name, type, size, bit, hi, lo));
             }
 
-            return results;
+            return ImmutableArray.Create(results.ToArray());
         }
 
         private static T GetOptionalArg<T>(AttributeData attr, string argName)

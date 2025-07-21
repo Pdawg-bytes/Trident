@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace Trident.CodeGeneration.CodeGen
 {
-    public static class CodeGenUtils
+    internal static class CodeGenUtils
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static uint GetBit(this uint value, int bit) => value >> bit & 1;

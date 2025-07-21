@@ -1,8 +1,6 @@
-﻿global using TemplateTrait = (string Name, string Type, int Size, int Bit, int Hi, int Lo);
-
-using System.Linq;
+﻿using System.Linq;
 using Microsoft.CodeAnalysis;
-using System.Collections.Generic;
+using Trident.CodeGeneration.Helpers;
 using Trident.CodeGeneration.Attributes;
 
 namespace Trident.CodeGeneration.CodeGen.Metadata
@@ -10,7 +8,7 @@ namespace Trident.CodeGeneration.CodeGen.Metadata
     internal sealed record class TemplateMethodInfo
     {
         public string Name { get; }
-        public List<TemplateTrait> Traits { get; }
+        public EquatableArray<TemplateTrait> Traits { get; }
         public int? Group { get; }
         public bool IsARM { get; }
 

@@ -52,7 +52,7 @@ namespace Trident.Core.CPU
 
             // TODO: wait state on load
 
-            // During a load, the final address is written back to rb if it's not in Rlist.
+            // During a load, the final address is written back to Rb if it's not in Rlist.
             if (TTraits.Load && !regList.IsBitSet((int)rb))
                 Registers[rb] = address;
         }
@@ -154,10 +154,10 @@ namespace Trident.Core.CPU
                 }
 
                 firstTransfer = false;
+                access = PipelineAccess.Sequential;
 
                 address += 4;
-                access = PipelineAccess.Sequential;
-                regList &= (byte)~(1 << index);
+                regList ^= 1u << index;
             }
         }
     }
