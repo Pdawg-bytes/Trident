@@ -20,10 +20,9 @@ namespace Trident.Core.CPU
             uint rb = ((uint)opcode >> 8) & 0b111;
 
             Registers.PC += 2;
-            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
             uint address = Registers[rb];
-            PipelineAccess access = PipelineAccess.NonSequential;
 
             // Handle when the register list is empty
             if (regList == 0)
@@ -67,10 +66,9 @@ namespace Trident.Core.CPU
             byte regList = (byte)opcode;
 
             Registers.PC += 2;
-            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
             uint address = Registers.SP;
-            PipelineAccess access = PipelineAccess.NonSequential;
 
             // Handle when the register list is empty and R is not set
             if (regList == 0 && !TTraits.R)
@@ -100,7 +98,7 @@ namespace Trident.Core.CPU
 
                 if (TTraits.R)
                 {
-                    Registers.PC = Bus.Read32(address, access) & 0xFFFFFFFE;
+                    Registers.PC = Bus.Read32(address, PipelineAccess.NonSequential) & 0xFFFFFFFE;
                     address += 4;
                     ReloadPipelineThumb();
                 }
@@ -121,7 +119,7 @@ namespace Trident.Core.CPU
                 );
 
                 if (TTraits.R)
-                    Bus.Write32(address, Registers.LR, access);
+                    Bus.Write32(address, Registers.LR, PipelineAccess.NonSequential);
             }
         }
 
@@ -150,10 +148,12 @@ namespace Trident.Core.CPU
                     Bus.Write32(address, Unsafe.Add(ref regBase, index), access);
 
                     if (firstTransfer && updateRb)
+                    {
+                        firstTransfer = false; 
                         Registers[rb] = address + displacement;
+                    }
                 }
 
-                firstTransfer = false;
                 access = PipelineAccess.Sequential;
 
                 address += 4;

@@ -18,7 +18,7 @@ namespace Trident.Core.CPU
             uint rs = ((uint)opcode >> 3) & 0b111;
 
             Registers.PC += 2;
-            Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
 
             switch ((ALUOpThumb)TTraits.Operation)
             {
@@ -28,7 +28,7 @@ namespace Trident.Core.CPU
                 case ALUOpThumb.ROR:
                     {
                         uint shamt = Registers[rs];
-                        Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+                        Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
                         bool carry = Registers.IsFlagSet(Flags.C);
 
@@ -90,7 +90,7 @@ namespace Trident.Core.CPU
 
                 case ALUOpThumb.MUL:
                     {
-                        Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+                        Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
                         Registers[rd] *= Registers[rs];
                         SetNZ(Registers[rd]);
                         // TODO: handle carry properly

@@ -55,7 +55,7 @@ namespace Trident.Core.CPU
             }
 
             Registers.PC += 4;
-            Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
         }
     }
 }

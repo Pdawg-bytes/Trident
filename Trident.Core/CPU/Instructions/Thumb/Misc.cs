@@ -20,7 +20,7 @@ namespace Trident.Core.CPU
             Registers.ClearFlag(Flags.T);
             Registers.SetFlag(Flags.I);
 
-            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
             Registers.PC = 0x00000008;
             ReloadPipelineARM();
         }
@@ -40,7 +40,7 @@ namespace Trident.Core.CPU
                 Registers.PC.Align<uint>() + immOffset;
 
             Registers.PC += 2;
-            Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
         }
     }
 }

@@ -1,11 +1,12 @@
 ﻿using System.Numerics;
-using System.Runtime.CompilerServices;
 using Trident.Core.Bus;
-using Trident.Core.CPU.Decoding.ARM;
-using Trident.Core.CPU.Decoding.Thumb;
+using Trident.Core.Global;
 using Trident.Core.CPU.Pipeline;
 using Trident.Core.CPU.Registers;
-using Trident.Core.Global;
+using Trident.Core.CPU.Decoding.ARM;
+using Trident.Core.CPU.Decoding.Thumb;
+using System.Runtime.CompilerServices;
+
 using static Trident.Core.CPU.Conditions;
 
 namespace Trident.Core.CPU
@@ -76,8 +77,8 @@ namespace Trident.Core.CPU
             uint cond = opcode >> 28;
             if (cond != CondAL && !ConditionMet(cond, Registers.CPSR))
             {
-                Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
                 Registers.PC += 4;
+                Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
                 return;
             }
 

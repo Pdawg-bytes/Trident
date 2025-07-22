@@ -1,6 +1,35 @@
-﻿using System.Runtime.CompilerServices;
+﻿using Trident.Core.Bus;
 using Trident.Core.CPU.Registers;
+using System.Runtime.CompilerServices;
 
+namespace Trident.Core.CPU
+{
+	public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
+	{
+        private static readonly ushort[] _conditionLUT =
+        [
+            0xF0F0, // EQ: Z == 1
+			0x0F0F, // NE: Z == 0
+			0xCCCC, // CS: C == 1
+			0x3333, // CC: C == 0
+			0xFF00, // MI: N == 1
+			0x00FF, // PL: N == 0
+			0xAAAA, // VS: V == 1
+			0x5555, // VC: V == 0
+			0x0C0C, // HI: (C == 1) && (Z == 0)
+			0xF3F3, // LS: (C == 0) || (Z == 1)
+			0xAA55, // GE: N == V
+			0x55AA, // LT: N != V
+			0x0A05, // GT: (Z == 0) && (N == V)
+			0xF5FA, // LE: (Z == 1) || (N != V)
+			0xFFFF, // AL: 1
+			0x0000  // NV: 0
+        ];
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool ConditionMet(uint condition, Flags cpsr) => (_conditionLUT[condition] & (1 << (int)((uint)cpsr >> 28))) != 0;
+    }
+}
 namespace Trident.Core.CPU
 {
     internal static class Conditions
@@ -20,28 +49,5 @@ namespace Trident.Core.CPU
 		internal const uint CondGT = 0b1100;
 		internal const uint CondLE = 0b1101;
 		internal const uint CondAL = 0b1110;
-
-        private static readonly ushort[] _conditionLUT =
-		[
-			0xF0F0, // EQ: Z == 1
-			0x0F0F, // NE: Z == 0
-			0xCCCC, // CS: C == 1
-			0x3333, // CC: C == 0
-			0xFF00, // MI: N == 1
-			0x00FF, // PL: N == 0
-			0xAAAA, // VS: V == 1
-			0x5555, // VC: V == 0
-			0x0C0C, // HI: (C == 1) && (Z == 0)
-			0xF3F3, // LS: (C == 0) || (Z == 1)
-			0xAA55, // GE: N == V
-			0x55AA, // LT: N != V
-			0x0A05, // GT: (Z == 0) && (N == V)
-			0xF5FA, // LE: (Z == 1) || (N != V)
-			0xFFFF, // AL: 1
-			0x0000  // NV: 0
-        ];
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static bool ConditionMet(uint condition, Flags cpsr) => (_conditionLUT[condition] & (1 << (int)((uint)cpsr >> 28))) != 0;
     }
 }

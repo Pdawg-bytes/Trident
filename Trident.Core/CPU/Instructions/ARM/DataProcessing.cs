@@ -23,7 +23,7 @@ namespace Trident.Core.CPU
 
             bool carry = Registers.IsFlagSet(Flags.C);
 
-            Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
             
             uint op2;
             if (TTraits.UseImmediate)
@@ -42,7 +42,7 @@ namespace Trident.Core.CPU
                 if (TTraits.ShiftByReg)
                 {
                     Registers.PC += 4;
-                    Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+                    Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
                 }
 
                 ShiftType shiftType = (ShiftType)((opcode >> 5) & 0b11);

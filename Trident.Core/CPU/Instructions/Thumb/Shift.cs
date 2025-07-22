@@ -28,7 +28,7 @@ namespace Trident.Core.CPU
             Registers.ModifyFlag(Flags.C, carry);
 
             Registers.PC += 2;
-            Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
         }
     }
 }

@@ -40,7 +40,7 @@ namespace Trident.Core.CPU
             address += TTraits.PreIndexed ? offset : 0;
 
             Registers.PC += 4;
-            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
 
             if (TTraits.Load)
@@ -100,7 +100,7 @@ namespace Trident.Core.CPU
             address += TTraits.PreIndexed ? offset : 0;
 
             Registers.PC += 4;
-            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
 
             if (TTraits.Operation == 0b00)
@@ -114,6 +114,7 @@ namespace Trident.Core.CPU
                     0b01 => Read16Rotated(address, PipelineAccess.NonSequential),
                     0b10 => Read8Extended(address, PipelineAccess.NonSequential),
                     0b11 => Read16Extended(address, PipelineAccess.NonSequential),
+                    _    => throw new InvalidInstructionException<TBus>($"Invalid operation encoded in ARM Signed Data Transfer: {TTraits.Operation}", this)
                 };
                 // TODO: wait state
             }
@@ -148,7 +149,7 @@ namespace Trident.Core.CPU
             where TTraits : struct, IARM_Swap_Traits
         {
             Registers.PC += 4;
-            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
             uint src = Registers[opcode & 0x0F];
             uint baseAddr = Registers[(opcode >> 16) & 0x0F];

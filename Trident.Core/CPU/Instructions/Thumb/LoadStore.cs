@@ -16,7 +16,7 @@ namespace Trident.Core.CPU
             uint address = Registers.PC.Align<uint>() + (immOffset << 2);
 
             Registers.PC += 2;
-            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
             Registers[(opcode >> 8) & 0b111] = Bus.Read32(address, PipelineAccess.NonSequential);
             // TODO: wait state
@@ -34,7 +34,7 @@ namespace Trident.Core.CPU
             uint address = Registers.SP + (immOffset << 2);
 
             Registers.PC += 2;
-            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
             if (TTraits.Load)
             {
@@ -58,7 +58,7 @@ namespace Trident.Core.CPU
             uint address  = baseAddr + offset;
 
             Registers.PC += 2;
-            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
             switch (TTraits.Operation & 0b11)
             {
@@ -91,7 +91,7 @@ namespace Trident.Core.CPU
             uint baseAddr = Registers[(opcode >> 3) & 0b111];
 
             Registers.PC += 2;
-            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
             switch (TTraits.Operation & 0b11)
             {
@@ -125,7 +125,7 @@ namespace Trident.Core.CPU
             uint address = baseAddr + (immOffset << 1);
 
             Registers.PC += 2;
-            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
             if (TTraits.Load)
             {
@@ -149,7 +149,7 @@ namespace Trident.Core.CPU
             uint address   = baseAddr + immOffset;
 
             Registers.PC += 2;
-            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
             switch (TTraits.Operation & 0b11)
             {

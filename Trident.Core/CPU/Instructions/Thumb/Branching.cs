@@ -20,7 +20,7 @@ namespace Trident.Core.CPU
             uint target = Registers[rs];
 
             Registers.PC = target & 0xFFFFFFFE;
-            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
             if ((target & 1) == 0)
             {
@@ -37,16 +37,16 @@ namespace Trident.Core.CPU
         internal void Thumb_ConditionalBranch<TTraits>(ushort opcode)
             where TTraits : struct, IThumb_ConditionalBranch_Traits
         {
-            if (Conditions.ConditionMet(TTraits.Condition, Registers.CPSR))
+            if (ConditionMet(TTraits.Condition, Registers.CPSR))
             {
-                Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+                Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
                 Registers.PC += (uint)((uint)opcode & 0xFF).ExtendFrom(8) << 1;
                 ReloadPipelineThumb();
             }
             else
             {
                 Registers.PC += 2;
-                Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
+                Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
             }
         }
 
@@ -70,11 +70,11 @@ namespace Trident.Core.CPU
             {
                 Registers.PC += 2;
                 Registers.LR = Registers.PC + ((uint)immOffset.ExtendFrom(11) << 12) - 2;
-                Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
+                Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
             }
             else
             {
-                uint returnAddress = (Registers.PC - 2) | 1; // Indicate Thumb state
+                uint returnAddress = (Registers.PC - 2) | 1;
                 Registers.PC = (Registers.LR + (immOffset << 1)) & 0xFFFFFFFE;
                 Registers.LR = returnAddress;
                 ReloadPipelineThumb();

@@ -1,8 +1,6 @@
-﻿using System.Diagnostics;
-using System.IO;
-using System.Text.Json;
-using System.Threading.Channels;
+﻿using System.Text.Json;
 using Trident.Core.CPU;
+using System.Threading.Channels;
 using Trident.Tests.SingleStep.Models;
 
 namespace Trident.Tests.SingleStep.Infrastructure
@@ -28,10 +26,6 @@ namespace Trident.Tests.SingleStep.Infrastructure
                 await foreach (var entry in channel.Reader.ReadAllAsync())
                 {
                     var testCase = entry.TestCase;
-
-                    if (entry.Index == 237)
-                        Debugger.Break();
-
                     try
                     {
                         constraintProcessor.ApplyConstraints(testType, testCase);

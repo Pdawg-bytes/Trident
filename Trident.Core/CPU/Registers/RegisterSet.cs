@@ -19,6 +19,7 @@ namespace Trident.Core.CPU.Registers
         // meaning we have 2^5 possible indices. Masking out the MSB could bring us down to 2^4,
         // but it's really not worth it to add more logic to the mode switch.
         private readonly BankParameters[] _bankParams = new BankParameters[32];
+        private static readonly BankParameters UsrSysPartialBank = new BankParameters(13, 5, 2, 0);
 
         private uint[] _bankStore = new uint[22];   // USR/SYS (7 regs, default set), FIQ (7 regs), other 4 modes (2 regs ea.)
         private Flags[] _bankedSpsr = new Flags[6]; // 6 distinct modes, usr/sys don't use SPSR, but our bank switch relies on it anyways.
@@ -105,33 +106,49 @@ namespace Trident.Core.CPU.Registers
         {
             if (newMode == CurrentMode) return;
 
-            bool leavingFIQ = CurrentMode == PrivilegeMode.FIQ;
-            bool enteringUsrSys = newMode == PrivilegeMode.User || newMode == PrivilegeMode.System;
+            bool fromFIQ    = CurrentMode is PrivilegeMode.FIQ;
+            bool toFIQ      = newMode is PrivilegeMode.FIQ;
+            bool fromUsrSys = IsUserOrSystem(CurrentMode);
+            bool toUsrSys   = IsUserOrSystem(newMode);
+
+            BankParameters oldBank = _bankParams[(uint)CurrentMode];
+            BankParameters newBank = (toUsrSys && !fromFIQ)
+                ? UsrSysPartialBank
+                : _bankParams[(uint)newMode];
+
 
             // Save current banked registers
-            BankParameters currentCopy = _bankParams[(uint)CurrentMode];
-            for (int i = 0; i < currentCopy.RegisterCount; i++)
-                _bankStore[currentCopy.BankIndex + i] = _registers[currentCopy.ActiveSetIndex + i];
+            int maxRegisters = Math.Max(toFIQ && !fromUsrSys ? 5 : 0, oldBank.RegisterCount);
+            for (int i = 0; i < maxRegisters; i++)
+            {
+                // If entering FIQ from a mode that's not USR/SYS, we need to save the current USR bank from r8-r12.
+                if (toFIQ && !fromUsrSys && i < 5)
+                    _bankStore[i] = _registers[8 + i];
 
-            // Special case: copy in r8–r12 if leaving FIQ and entering non-USR/SYS.
-            // We don't have to copy in r13/r14 since every mode overwrites them anyways.
-            if (leavingFIQ && !enteringUsrSys)
-                for (int i = 0; i < 5; i++) _registers[8 + i] = _bankStore[i];
+                if (i < oldBank.RegisterCount)
+                    _bankStore[oldBank.BankIndex + i] = _registers[oldBank.ActiveSetIndex + i];
+            }
 
-            // Unless we're leaving FIQ, then USR & SYS behave like every other mode: only restore SP, LR
-            // However, if we're leaving FIQ and entering USR/SYS, then we need to restore the full r8-r12.
-            BankParameters newCopy = (enteringUsrSys && !leavingFIQ)
-                ? new BankParameters(13, 5, 2, 0) // Just restore SP, LR.
-                : _bankParams[(uint)newMode];     // The regular USR/SYS BankParameters account for the full r8-r12 copy.
+            // Copy in new banked registers
+            maxRegisters = Math.Max(5, newBank.RegisterCount);
+            for (int i = 0; i < maxRegisters; i++)
+            {
+                // Perform the inverse of what we did in the save phase. When entering a mode that is not USR/SYS from FIQ,
+                // we need to copy in the USR r8-r12.
+                if (fromFIQ && !toUsrSys && i < 5)
+                    _registers[8 + i] = _bankStore[i];
 
-            // Restore new banked registers
-            for (int i = 0; i < newCopy.RegisterCount; i++)
-                _registers[newCopy.ActiveSetIndex + i] = _bankStore[newCopy.BankIndex + i];
+                if (i < newBank.RegisterCount)
+                    _registers[newBank.ActiveSetIndex + i] = _bankStore[newBank.BankIndex + i];
+            }
 
-            // Update CPSR and mode
+
             CPSR = (CPSR & ~(Flags)0x1F) | (Flags)(uint)newMode;
             CurrentMode = newMode;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal bool IsUserOrSystem(PrivilegeMode mode) => mode is PrivilegeMode.User || mode is PrivilegeMode.System;
 
 
 

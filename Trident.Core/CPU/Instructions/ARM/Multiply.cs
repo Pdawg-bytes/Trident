@@ -19,7 +19,7 @@ namespace Trident.Core.CPU
             uint rd = (opcode >> 16) & 0x0F;
 
             Registers.PC += 4;
-            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
             uint multiplier   = Registers[opcode & 0x0F];
             uint multiplicand = Registers[(opcode >> 8) & 0x0F];
@@ -56,7 +56,7 @@ namespace Trident.Core.CPU
             uint rdLo = (opcode >> 12) & 0x0F;
 
             Registers.PC += 4;
-            Pipeline.Access = PipelineAccess.NonSequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
             uint multiplier   = Registers[opcode & 0x0F];
             uint multiplicand = Registers[(opcode >> 8) & 0x0F];

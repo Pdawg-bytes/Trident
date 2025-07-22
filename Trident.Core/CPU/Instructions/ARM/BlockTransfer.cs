@@ -1,11 +1,12 @@
 ﻿using System.Numerics;
-using Trident.Core.Bus;
-using Trident.Core.Global;
-using Trident.Core.CPU.Decoding;
-using Trident.Core.CPU.Pipeline;
-using Trident.CodeGeneration.Shared;
-using Trident.Core.CPU.Decoding.ARM;
 using System.Runtime.CompilerServices;
+using Trident.CodeGeneration.Shared;
+using Trident.Core.Bus;
+using Trident.Core.CPU.Decoding;
+using Trident.Core.CPU.Decoding.ARM;
+using Trident.Core.CPU.Pipeline;
+using Trident.Core.CPU.Registers;
+using Trident.Core.Global;
 
 namespace Trident.Core.CPU
 {
@@ -20,7 +21,100 @@ namespace Trident.Core.CPU
         internal void ARM_BlockDataTransfer<TTraits>(uint opcode)
             where TTraits : struct, IARM_BlockDataTransfer_Traits
         {
+            uint regList = (ushort)opcode;
+            uint rb = (opcode >> 16) & 0x0F;
 
+            bool pcIncluded = regList.IsBitSet(15);
+            uint address = Registers[rb];
+
+            Registers.PC += 4;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
+
+            // We can use this trick to emulate all LDM/STM addressing modes.
+            bool preIndex = TTraits.AddOffset ? TTraits.PreIndexed : !TTraits.PreIndexed;
+
+            // Handle when the register list is empty
+            uint transferSize;
+            if (regList == 0)
+            {
+                transferSize = 64;
+                regList = 1u << 15;
+            }
+            else
+                transferSize = (uint)BitOperations.PopCount(regList) << 2;
+
+
+            PrivilegeMode mode = Registers.CurrentMode;
+            bool switchMode = TTraits.UserMode && (!TTraits.Load || !pcIncluded) && !Registers.IsUserOrSystem(mode);
+            if (switchMode) Registers.SwitchMode(PrivilegeMode.User);
+
+            uint finalAddress = address + (TTraits.AddOffset ? transferSize : (uint)-transferSize);
+            if (!TTraits.AddOffset) address -= transferSize;
+
+
+            bool firstTransfer = true;
+            PipelineAccess access = PipelineAccess.NonSequential;
+
+            ref uint regBase = ref Registers.GetRegisterRef(0);
+            while (regList != 0)
+            {
+                int index = BitOperations.TrailingZeroCount(regList);
+
+                if (preIndex)
+                    address += 4;
+
+                if (TTraits.Load)
+                {
+                    if (TTraits.Writeback && firstTransfer)
+                    {
+                        firstTransfer = false;
+                        Registers[rb] = finalAddress;
+                    }
+
+                    Unsafe.Add(ref regBase, index) = Bus.Read32(address, access);
+                }
+                else
+                {
+                    Bus.Write32(address, Unsafe.Add(ref regBase, index), access);
+
+                    if (TTraits.Writeback && firstTransfer)
+                    {
+                        firstTransfer = false;
+                        Registers[rb] = finalAddress;
+                    }
+                }
+
+                if (!preIndex)
+                    address += 4;
+
+                access = PipelineAccess.Sequential;
+                regList ^= 1u << index;
+            }
+
+
+            bool pipelineFlushed = false;
+            if (TTraits.Load && pcIncluded)
+            {
+                // GBATEK: "When S=1: If instruction is LDM and R15 is in the list: (Mode Changes)
+                //              While R15 loaded, additionally: CPSR = SPSR_<current mode>"
+                if (TTraits.UserMode)
+                {
+                    Flags spsr = Registers.SPSR;
+                    Registers.SwitchMode((PrivilegeMode)(spsr & (Flags)0x1F));
+                    Registers.CPSR = spsr;
+                }
+
+                pipelineFlushed = true;
+            }
+
+            if (switchMode)
+                Registers.SwitchMode(mode);
+
+            if ((TTraits.Writeback && rb == 15) || pipelineFlushed)
+            {
+                if (Registers.IsFlagSet(Flags.T)) ReloadPipelineThumb();
+                else ReloadPipelineARM();
+            }
         }
     }
 }

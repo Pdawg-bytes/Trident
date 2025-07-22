@@ -19,7 +19,7 @@ namespace Trident.Core.CPU
             uint operand = TTraits.UseImmediate ? TTraits.Param3 : Registers[TTraits.Param3];
 
             Registers.PC += 2;
-            Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
 
             uint rd = (uint)opcode & 0b111;
             uint src = Registers[(opcode >> 3) & 0b111];
@@ -40,7 +40,7 @@ namespace Trident.Core.CPU
             Registers.SP += TTraits.Subtract ? (uint)-immOffset : immOffset;
 
             Registers.PC += 2;
-            Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
         }
 
 
@@ -71,7 +71,7 @@ namespace Trident.Core.CPU
             }
 
             Registers.PC += 2;
-            Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
         }
 
 
@@ -89,7 +89,7 @@ namespace Trident.Core.CPU
             uint op2 = Registers[rd];
 
             Registers.PC += 2;
-            Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
+            Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
 
             switch (TTraits.Operation)
             {
