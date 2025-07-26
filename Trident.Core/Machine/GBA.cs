@@ -6,9 +6,10 @@ using Trident.Core.Memory.GamePak.GPIO;
 
 namespace Trident.Core.Machine
 {
-    public class GBA
+    public class GBA : IDisposable
     {
         internal ARM7TDMI<GBABus> CPU;
+        private GBABusView? _busView;
 
         private readonly BIOS _bios;
         private readonly UnusedSection _unused = new();
@@ -23,6 +24,7 @@ namespace Trident.Core.Machine
             _bios = new(() => CPU.Registers.GetRegisterRef(15));
 
             CPU.AttachBus(new GBABus());
+            _busView = new(ref CPU.Bus);
         }
 
         public T? GetGPIODevice<T>() where T : GPIODevice
@@ -62,6 +64,14 @@ namespace Trident.Core.Machine
 
             _bios.LoadBIOS(bios);
             CPU.Bus.RegisterHandler(0x00, _bios.GetAccessHandler());
+        }
+
+
+        public void Dispose()
+        {
+            _busView?.Dispose();
+            _busView = null;
+            CPU.Bus.DisposeMemory();
         }
     }
 }

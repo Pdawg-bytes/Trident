@@ -45,7 +45,7 @@ namespace Trident.Core.CPU
 
 
             PrivilegeMode mode = Registers.CurrentMode;
-            bool switchMode = TTraits.UserMode && (!TTraits.Load || !pcIncluded) && !Registers.IsUserOrSystem(mode);
+            bool switchMode = TTraits.UserMode && !Registers.IsUserOrSystem(mode) && (!TTraits.Load || !pcIncluded);
             if (switchMode) Registers.SwitchMode(PrivilegeMode.User);
 
             uint finalAddress = address + (TTraits.AddOffset ? transferSize : (uint)-transferSize);
@@ -66,10 +66,7 @@ namespace Trident.Core.CPU
                 if (TTraits.Load)
                 {
                     if (TTraits.Writeback && firstTransfer)
-                    {
-                        firstTransfer = false;
                         Registers[rb] = finalAddress;
-                    }
 
                     Unsafe.Add(ref regBase, index) = Bus.Read32(address, access);
                 }
@@ -78,16 +75,18 @@ namespace Trident.Core.CPU
                     Bus.Write32(address, Unsafe.Add(ref regBase, index), access);
 
                     if (TTraits.Writeback && firstTransfer)
-                    {
-                        firstTransfer = false;
                         Registers[rb] = finalAddress;
-                    }
                 }
 
                 if (!preIndex)
                     address += 4;
 
-                access = PipelineAccess.Sequential;
+                if (firstTransfer)
+                {
+                    firstTransfer = false;
+                    access = PipelineAccess.Sequential;
+                }
+
                 regList ^= 1u << index;
             }
 

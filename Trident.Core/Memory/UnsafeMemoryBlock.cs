@@ -41,8 +41,8 @@ namespace Trident.Core.Memory
             }
         }
 
-        internal void Clear(byte value = 0)
-            => NativeMemory.Fill(_ptr, Size, value);
+        internal void Clear(byte value = 0) => NativeMemory.Fill(_ptr, Size, value);
+
 
         public void Dispose()
         {

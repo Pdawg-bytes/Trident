@@ -3,9 +3,9 @@ using Trident.Core.CPU.Pipeline;
 
 namespace Trident.Core.Bus
 {
-    internal struct GBABus : IDataBus
+    public readonly struct GBABus : IDataBus
     {
-        private MemoryAccessHandler[] _accessHandlers;
+        private readonly MemoryAccessHandler[] _accessHandlers;
         private readonly MemoryAccessHandler _unusedSection;
 
         public GBABus()
