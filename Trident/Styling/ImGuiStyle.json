@@ -1,12 +1,18 @@
 ﻿{
-  "WindowRounding": 6,
-  "ItemSpacing": [ 8, 4 ],
+  "WindowRounding": 8,
+  "ChildRounding": 4,
   "FrameRounding": 4,
   "PopupRounding": 6,
+  "ScrollbarRounding": 10,
   "GrabRounding": 3,
+  "TabRounding":  4,
+
+  "ItemSpacing": [ 8, 4 ],
   "CellPadding": [ 4, 4 ],
   "FramePadding": [ 6, 3 ],
+
   "WindowTitleAlign": [ 0.5, 0.5 ],
+
   "SeparatorTextBorderSize": 1,
 
   "Colors": {

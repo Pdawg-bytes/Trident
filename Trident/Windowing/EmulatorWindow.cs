@@ -90,7 +90,6 @@ namespace Trident.Windowing
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             base.OnRenderFrame(e);
-            _controller.Update(this, (float)e.Time);
 
             _frameCounter++;
             if (_frameCounter == 5)
@@ -99,7 +98,9 @@ namespace Trident.Windowing
                 _frameCounter = 0;
             }
 
-            GL.ClearColor(new Color4(0, 0, 0, 255));
+            _controller.Update(this, (float)e.Time);
+
+            GL.ClearColor(new Color4(20, 20, 20, 255));
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
 
             ImGui.DockSpaceOverViewport();
