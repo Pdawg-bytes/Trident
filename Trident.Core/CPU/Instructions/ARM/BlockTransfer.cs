@@ -45,7 +45,7 @@ namespace Trident.Core.CPU
 
 
             PrivilegeMode mode = Registers.CurrentMode;
-            bool switchMode = TTraits.UserMode && !Registers.IsUserOrSystem(mode) && (!TTraits.Load || !pcIncluded);
+            bool switchMode = TTraits.UserMode && !RegisterSet.IsUserOrSystem(mode) && (!TTraits.Load || !pcIncluded);
             if (switchMode) Registers.SwitchMode(PrivilegeMode.User);
 
             uint finalAddress = address + (TTraits.AddOffset ? transferSize : (uint)-transferSize);

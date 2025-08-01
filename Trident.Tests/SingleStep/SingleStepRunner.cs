@@ -24,7 +24,15 @@ namespace Trident.Tests.SingleStep
             int failures = 0;
             var constraintProcessor = TestConstraintProcessor.CreateConstraintProcessor();
 
-            var tasks = TestManagement.CreateConsumers(channel, consumerCount, filePath, constraintProcessor, writeLock, () => Interlocked.Increment(ref failures));
+            var tasks = TestManagement.CreateConsumers
+            (
+                channel, 
+                consumerCount, 
+                filePath, 
+                constraintProcessor, 
+                writeLock, 
+                () => Interlocked.Increment(ref failures)
+            );
 
             await TestManagement.EnqueueTestCasesAsync(filePath, channel);
             channel.Writer.Complete();
@@ -38,7 +46,7 @@ namespace Trident.Tests.SingleStep
 
         public static IEnumerable<string[]> GetJsonFiles()
         {
-            string baseDir = @"G:\Source\Git\ARM7TDMI\v1";
+            string baseDir = @"D:\Source\Git\ARM7TDMI\v1";
             foreach (var file in Directory.GetFiles(baseDir, "*.json"))
                 yield return new string[] { file };
         }

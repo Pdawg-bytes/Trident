@@ -91,7 +91,7 @@ namespace Trident.Tests.SingleStep.Infrastructure
             };
 
             cpu.Registers.SetBankForMode(mode, CollectionsMarshal.AsSpan(bank));
-            cpu.Registers.SetSPSR(mode, spsr);
+            cpu.Registers.SetSPSRForMode(mode, spsr);
         }
 
         private static void CompareBank(ARM7TDMI<TransactionalMemory> cpu, PrivilegeMode mode, RegisterState expected, List<string> errors)
@@ -118,7 +118,7 @@ namespace Trident.Tests.SingleStep.Infrastructure
 
             if (mode != PrivilegeMode.User && mode != PrivilegeMode.System)
             {
-                var actualSpsr = (Flags)cpu.Registers.GetSPSR(mode);
+                var actualSpsr = (Flags)cpu.Registers.GetSPSRForMode(mode);
                 if (spsr != actualSpsr)
                     errors.Add($"    SPSR_{mode} mismatch: expected <0x{spsr}:X8>, actual <0x{actualSpsr}:X8>");
             }

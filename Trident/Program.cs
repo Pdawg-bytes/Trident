@@ -1,16 +1,17 @@
-﻿using Trident.Core.CPU;
-using Trident.Core.Bus;
-using Trident.Core.Machine;
+﻿using Trident.Core.Machine;
+using Trident.Windowing;
 
 namespace Trident
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             GBA gba = new();
             gba.AttachGamePak(@"D:\GBA_ROM\Metroid Fusion (USA)\Metroid Fusion (USA).gba");
-            Console.WriteLine(gba.GetGamePakInfo());
+
+            using var window = new EmulatorWindow(gba);
+            window.Run();
 
             gba.Dispose();
         }

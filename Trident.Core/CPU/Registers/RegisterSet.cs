@@ -15,42 +15,32 @@ namespace Trident.Core.CPU.Registers
             internal static int Length => 16;
         }
 
+
         // In reality, we have 6 distinct modes, but we are once again indexing based on the mode,
         // meaning we have 2^5 possible indices. Masking out the MSB could bring us down to 2^4,
         // but it's really not worth it to add more logic to the mode switch.
         private readonly BankParameters[] _bankParams = new BankParameters[32];
-        private static readonly BankParameters UsrSysPartialBank = new BankParameters(13, 5, 2, 0);
+        private static readonly BankParameters UsrSysPartialBank = new(13, 5, 2, 0);
 
         private uint[] _bankStore = new uint[22];   // USR/SYS (7 regs, default set), FIQ (7 regs), other 4 modes (2 regs ea.)
         private Flags[] _bankedSpsr = new Flags[6]; // 6 distinct modes, usr/sys don't use SPSR, but our bank switch relies on it anyways.
-        private RegisterArray _registers = new RegisterArray();
+        private RegisterArray _registers = new();
 
         public PrivilegeMode CurrentMode { get; private set; }
 
         /// <summary>The current program status register.</summary>
         public Flags CPSR;
 
-        /// <summary>The currently saved program status register.</summary>
-        public Flags SPSR
-        {
-            get => (CurrentMode is PrivilegeMode.User || CurrentMode is PrivilegeMode.System) ? CPSR : _bankedSpsr[_bankParams[(uint)CurrentMode].SPSRIndex];
-            set
-            {
-                if (CurrentMode is not PrivilegeMode.User && CurrentMode is not PrivilegeMode.System)
-                    _bankedSpsr[_bankParams[(uint)CurrentMode].SPSRIndex] = value;
-            }
-        }
-
 
         public RegisterSet()
         {
-            _bankParams[(uint)PrivilegeMode.User] = new BankParameters(8, 0, 7, 0);
-            _bankParams[(uint)PrivilegeMode.System] = new BankParameters(8, 0, 7, 0);
-            _bankParams[(uint)PrivilegeMode.FIQ] = new BankParameters(8, 7, 7, 1);
-            _bankParams[(uint)PrivilegeMode.IRQ] = new BankParameters(13, 14, 2, 2);
-            _bankParams[(uint)PrivilegeMode.Supervisor] = new BankParameters(13, 16, 2, 3);
-            _bankParams[(uint)PrivilegeMode.Abort] = new BankParameters(13, 18, 2, 4);
-            _bankParams[(uint)PrivilegeMode.Undefined] = new BankParameters(13, 20, 2, 5);
+            _bankParams[(uint)PrivilegeMode.User] =       new(8, 0, 7, 0);
+            _bankParams[(uint)PrivilegeMode.System] =     new(8, 0, 7, 0);
+            _bankParams[(uint)PrivilegeMode.FIQ] =        new(8, 7, 7, 1);
+            _bankParams[(uint)PrivilegeMode.IRQ] =        new(13, 14, 2, 2);
+            _bankParams[(uint)PrivilegeMode.Supervisor] = new(13, 16, 2, 3);
+            _bankParams[(uint)PrivilegeMode.Abort] =      new(13, 18, 2, 4);
+            _bankParams[(uint)PrivilegeMode.Undefined] =  new(13, 20, 2, 5);
 
             CurrentMode = PrivilegeMode.System;
             SwitchMode(PrivilegeMode.System);
@@ -148,7 +138,7 @@ namespace Trident.Core.CPU.Registers
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal bool IsUserOrSystem(PrivilegeMode mode) => mode is PrivilegeMode.User || mode is PrivilegeMode.System;
+        internal static bool IsUserOrSystem(PrivilegeMode mode) => mode is PrivilegeMode.User || mode is PrivilegeMode.System;
 
 
 
@@ -174,8 +164,8 @@ namespace Trident.Core.CPU.Registers
                 destination[i] = _bankStore[bank.BankIndex + i];
         }
 
-        public uint GetSPSR(PrivilegeMode mode) => (uint)_bankedSpsr[_bankParams[(uint)mode].SPSRIndex];
-        public void SetSPSR(PrivilegeMode mode, Flags value) => _bankedSpsr[_bankParams[(uint)mode].SPSRIndex] = value;
+        public uint GetSPSRForMode(PrivilegeMode mode) => (uint)_bankedSpsr[_bankParams[(uint)mode].SPSRIndex];
+        public void SetSPSRForMode(PrivilegeMode mode, Flags value) => _bankedSpsr[_bankParams[(uint)mode].SPSRIndex] = value;
 
 
         public void ResetRegisters()
@@ -188,12 +178,12 @@ namespace Trident.Core.CPU.Registers
         public void PrintRegisters()
         {
             Console.WriteLine($"Mode: {CurrentMode}");
+
             for (int i = 0; i < RegisterArray.Length; i++)
-            {
                 Console.WriteLine($"R{i}: 0x{_registers[i]:X8}");
-            }
+
             Console.WriteLine($"CPSR: 0x{CPSR:X8}");
-            if (CurrentMode is not PrivilegeMode.User && CurrentMode is not PrivilegeMode.System) Console.WriteLine($"SPSR: 0x{GetSPSR(CurrentMode):X8}");
+            if (!IsUserOrSystem(CurrentMode)) Console.WriteLine($"SPSR: 0x{(uint)SPSR:X8}");
             Console.WriteLine(new string('-', 30));
         }
 
@@ -229,6 +219,17 @@ namespace Trident.Core.CPU.Registers
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool IsFlagSet(Flags flag) => (CPSR & flag) != 0;
         #endregion
+
+        /// <summary>The currently saved program status register.</summary>
+        public Flags SPSR
+        {
+            get => IsUserOrSystem(CurrentMode) ? CPSR : _bankedSpsr[_bankParams[(uint)CurrentMode].SPSRIndex];
+            set
+            {
+                if (!IsUserOrSystem(CurrentMode))
+                    _bankedSpsr[_bankParams[(uint)CurrentMode].SPSRIndex] = value;
+            }
+        }
     }
 
 

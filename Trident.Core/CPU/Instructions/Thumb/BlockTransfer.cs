@@ -40,7 +40,8 @@ namespace Trident.Core.CPU
             }
 
 
-            PerformThumbBlockTransfer(
+            PerformThumbBlockTransfer
+            (
                 isLoad: TTraits.Load,
                 regList: regList,
                 address: ref address,
@@ -90,7 +91,8 @@ namespace Trident.Core.CPU
 
             if (TTraits.Pop)
             {
-                PerformThumbBlockTransfer(
+                PerformThumbBlockTransfer
+                (
                     isLoad: true,
                     regList: regList,
                     address: ref address
@@ -112,7 +114,8 @@ namespace Trident.Core.CPU
                 address -= ((uint)BitOperations.PopCount(regList) << 2) + (TTraits.R ? (uint)4 : 0);
                 Registers.SP = address;
 
-                PerformThumbBlockTransfer(
+                PerformThumbBlockTransfer
+                (
                     isLoad: false,
                     regList: regList,
                     address: ref address
