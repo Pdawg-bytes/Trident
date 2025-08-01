@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Trident.Core.CPU.Decoding.Thumb
 {
-    internal partial class ThumbDispatcher<TBus> where TBus : struct, IDataBus
+    internal partial struct ThumbDispatcher<TBus> where TBus : struct, IDataBus
     {
         private const int THUMB_DISPATCH_COUNT = 0x400;
         private ThumbInstruction[] _instructionHandlers = new ThumbInstruction[THUMB_DISPATCH_COUNT];

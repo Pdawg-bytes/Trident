@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace Trident.Core.CPU.Decoding.ARM
 {
-    internal partial class ARMDispatcher<TBus> where TBus : struct, IDataBus
+    internal partial struct ARMDispatcher<TBus> where TBus : struct, IDataBus
     {
         private const int ARM_DISPATCH_COUNT = 0x1000;
         private readonly ARMInstructionDelegate[] _instructionHandlers = new ARMInstructionDelegate[ARM_DISPATCH_COUNT];

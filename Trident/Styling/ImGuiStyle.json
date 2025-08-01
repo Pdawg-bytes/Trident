@@ -7,7 +7,7 @@
   "GrabRounding": 3,
   "TabRounding":  4,
 
-  "ItemSpacing": [ 8, 4 ],
+  "ItemSpacing": [ 6, 6 ],
   "CellPadding": [ 4, 4 ],
   "FramePadding": [ 6, 3 ],
 
@@ -57,7 +57,7 @@
     "TabDimmedSelected": [ 0.27, 0.14, 0.42, 1.0 ],
     "TabDimmedSelectedOverline": [ 0.5, 0.5, 0.5, 0.0 ],
     "DockingPreview": [ 0.6, 0.26, 0.98, 0.7 ],
-    "DockingEmptyBg": [ 0.2, 0.2, 0.2, 1.0 ],
+    "DockingEmptyBg": [ 0.0, 0.0, 0.0, 0.0 ],
     "PlotLines": [ 0.61, 0.61, 0.61, 1.0 ],
     "PlotLinesHovered": [ 1.0, 0.43, 0.35, 1.0 ],
     "PlotHistogram": [ 0.9, 0.7, 0.0, 1.0 ],
