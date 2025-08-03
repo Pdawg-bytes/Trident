@@ -2,6 +2,7 @@
 using Trident.Core.CPU;
 using Trident.Core.Memory;
 using Trident.Core.Memory.GamePak;
+using Trident.Core.Devices.Controller;
 using Trident.Core.Memory.GamePak.GPIO;
 
 namespace Trident.Core.Machine
@@ -29,6 +30,11 @@ namespace Trident.Core.Machine
 
         public T? GetGPIODevice<T>() where T : GPIODevice
             => _gamePak?.GetGPIODevice<T>();
+
+        public void Reset()
+        {
+
+        }
 
 
         public void AttachGamePak(string filePath)
@@ -65,6 +71,9 @@ namespace Trident.Core.Machine
             _bios.LoadBIOS(bios);
             CPU.Bus.RegisterHandler(0x00, _bios.GetAccessHandler());
         }
+
+
+        public void SetKeyState(GBAKey key, bool pressed) { }
 
 
         public void Dispose()

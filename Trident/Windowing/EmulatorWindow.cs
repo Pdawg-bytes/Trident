@@ -1,11 +1,14 @@
 ﻿using ImGuiNET;
 using Trident.Styling;
+using Trident.Widgets;
 using System.Text.Json;
+using Trident.Emulation;
 using System.Reflection;
-using OpenTK.Mathematics;
 using Trident.Core.Machine;
-using OpenTK.Graphics.OpenGL4;
+using OpenTK.Mathematics;
+using System.ComponentModel;
 using OpenTK.Windowing.Common;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Desktop;
 using System.Runtime.InteropServices;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -15,6 +18,10 @@ namespace Trident.Windowing
     internal class EmulatorWindow : GameWindow
     {
         private GBA _gba;
+        private EmulatorThread _emulatorThread;
+
+        private List<IWidget> _widgets = new();
+        private readonly PerformanceWidget _performanceWidget;
 
         private ImGuiController _controller;
         private readonly ImGuiStyleConfig _styleConfig;
@@ -22,13 +29,18 @@ namespace Trident.Windowing
         private readonly byte[] _fontData;
         private readonly int _fontDataSize = 0;
 
-        private int _frameCounter = 0;
-
         internal IntPtr WindowHandle;
+
 
         internal unsafe EmulatorWindow(GBA gba) : base(new GameWindowSettings(), new NativeWindowSettings())
         {
             _gba = gba;
+            _emulatorThread = new(gba);
+
+            _performanceWidget = new(() => _emulatorThread.CurrentSpeed);
+            _widgets.Add(_performanceWidget);
+
+
             var assembly = Assembly.GetExecutingAssembly();
 
             using (Stream stream = assembly.GetManifestResourceStream("Trident.Fonts.FiraCode-Medium.ttf")!)
@@ -84,7 +96,19 @@ namespace Trident.Windowing
 
             KeyDown += args => _controller.KeyEvent(args.Key, true);
             KeyUp += args => _controller.KeyEvent(args.Key, false);
+
+            _emulatorThread.Start();
         }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            base.OnClosing(e);
+
+            _emulatorThread?.Stop();
+            _controller.DestroyDeviceObjects();
+            _controller.Dispose();
+        }
+
 
         protected override void OnResize(ResizeEventArgs e)
         {
@@ -94,28 +118,30 @@ namespace Trident.Windowing
             _controller.WindowResized(ClientSize.X, ClientSize.Y);
         }
 
+
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             base.OnRenderFrame(e);
-
-            _frameCounter++;
-            if (_frameCounter == 5)
-            {
-                Title = $"Trident - UI FPS: {(1.0 / e.Time):F1}";
-                _frameCounter = 0;
-            }
-
             _controller.Update(this, (float)e.Time);
+
+            _performanceWidget.Update(e.Time * 1000.0);
 
             GL.ClearColor(new Color4(20, 20, 20, 255));
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
 
             ImGui.DockSpaceOverViewport();
-
-            ImGui.ShowDemoWindow();
+            RenderGUI(e);
 
             _controller.Render();
             SwapBuffers();
+        }
+
+        private void RenderGUI(FrameEventArgs e)
+        {
+            ImGui.ShowDemoWindow();
+
+            foreach (var widget in _widgets)
+                widget.Render();
         }
 
 

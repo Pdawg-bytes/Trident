@@ -1,0 +1,105 @@
+﻿using Trident.Commands;
+using System.Diagnostics;
+using Trident.Core.Machine;
+using System.Collections.Concurrent;
+using Trident.Core.Devices.Controller;
+
+namespace Trident.Emulation
+{
+    internal class EmulatorThread
+    {
+        private GBA _gba;
+        private Thread _thread;
+
+        private volatile bool _initialized;
+        private volatile bool _paused;
+        private volatile bool _speedCapped = true;
+
+        public const double Framerate = 59.73;
+        public const double TargetFrametime = 1.0 / Framerate;
+
+        private readonly Stopwatch _frameTimer = Stopwatch.StartNew();
+        private readonly FrameCounter _frameCounter = new(50);
+        private double _nextFrameTime = 0;
+
+        public double CurrentSpeed => _frameCounter.GetFPS() / Framerate * 100.0;
+
+        private readonly ConcurrentQueue<EmulatorCommand> _commandQueue = new();
+
+        internal EmulatorThread(GBA gba)
+        {
+            _gba = gba;
+            Thread.CurrentThread.Priority = ThreadPriority.Highest;
+        }
+
+        internal bool IsPaused() => _paused;
+        internal void SetPause(bool shouldPause)
+        {
+            _paused = shouldPause;
+
+            if (shouldPause)
+                _frameCounter.Reset();
+        }
+
+        internal bool IsSpeedCapped() => _speedCapped;
+        internal bool SetSpeedCap(bool shouldCapSpeed) => _speedCapped = shouldCapSpeed;
+
+
+        internal void Start()
+        {
+            if (_initialized)
+                throw new InvalidOperationException("Attempted to re-intialize EmulatorThread.");
+
+            _thread = new Thread(RunLoop);
+            _thread.Start();
+            _initialized = true;
+        }
+
+        internal void Stop()
+        {
+            if (_initialized)
+            {
+                _initialized = false;
+                _thread.Join();
+            }
+        }
+
+        private void RunLoop()
+        {
+            while (_initialized)
+            {
+                ProcessCommands();
+
+                if (!_paused)
+                {
+                    // _gba.RunFrame();
+                    _frameCounter.FrameRendered();
+                }
+
+                if (_speedCapped)
+                {
+                    double timeLeft = _nextFrameTime - _frameTimer.Elapsed.TotalSeconds;
+
+                    if (timeLeft > 0)
+                        OpenTK.Core.Utils.AccurateSleep(timeLeft, 8);
+
+                    _nextFrameTime += TargetFrametime;
+                }
+                else
+                    _nextFrameTime = _frameTimer.Elapsed.TotalSeconds + TargetFrametime;
+            }
+        }
+
+
+        internal void Reset() => EnqueueCommand(new ResetCommand());
+        internal void KeyEvent(GBAKey key, bool pressed) => EnqueueCommand(new KeyPressedCommand(key, pressed));
+
+        internal void EnqueueCommand(EmulatorCommand command) => _commandQueue.Enqueue(command);
+
+        private void ProcessCommands()
+        {
+            while (_commandQueue.TryDequeue(out var command))
+                command.Execute(_gba);
+        }
+    }
+}

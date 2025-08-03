@@ -38,13 +38,11 @@ namespace Trident.Windowing
 
         private readonly List<char> _pressedChars = new List<char>();
 
-        public ImGuiIOPtr IO => ImGui.GetIO();
-
 
         /// <summary>
         /// Constructs a new ImGuiController.
         /// </summary>
-        public ImGuiController(
+        internal ImGuiController(
             int width, int height, 
             nint fontData, int fontDataSize,
             ImGuiStyleConfig style)
