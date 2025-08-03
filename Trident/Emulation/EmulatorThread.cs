@@ -94,7 +94,13 @@ namespace Trident.Emulation
         internal void Reset() => EnqueueCommand(new ResetCommand());
         internal void KeyEvent(GBAKey key, bool pressed) => EnqueueCommand(new KeyPressedCommand(key, pressed));
 
-        internal void EnqueueCommand(EmulatorCommand command) => _commandQueue.Enqueue(command);
+        internal void EnqueueCommand(EmulatorCommand command)
+        {
+            if (Thread.CurrentThread.ManagedThreadId == _thread.ManagedThreadId)
+                command.Execute(_gba);
+            else
+                _commandQueue.Enqueue(command);
+        }
 
         private void ProcessCommands()
         {

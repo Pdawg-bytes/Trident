@@ -121,6 +121,8 @@ namespace Trident.Windowing
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
+            if (IsExiting) return;
+
             base.OnRenderFrame(e);
             _controller.Update(this, (float)e.Time);
 
