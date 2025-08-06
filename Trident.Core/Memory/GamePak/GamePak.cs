@@ -137,7 +137,7 @@ namespace Trident.Core.Memory.GamePak
         public void Dispose()
         {
             _romMemory.Dispose();
-            _backupDevice.Dispose();
+            _backupDevice?.Dispose();
         }
     }
 }

@@ -10,10 +10,9 @@ namespace Trident.CodeGeneration.CodeGen
     {
         internal static string Generate(string methodName, EquatableArray<TemplateTrait> traits)
         {
-            string interfaceName = $"I{methodName}_Traits";
             IEnumerable<string> members = traits.Select(t => $"static abstract {t.Type} {t.Name} {{ get; }}");
 
-            string source = $@"    internal interface {interfaceName}
+            string source = $@"    internal interface I{methodName}_Traits
     {{
         {string.Join("\n        ", members)}
     }}";

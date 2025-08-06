@@ -54,8 +54,8 @@ namespace Trident.CodeGeneration.Decoding
         {
             uint value = opcode.Extract(hi, lo);
 
-            if (size > 0 && size is int bits && bits < 32)
-                value &= (uint)((1 << bits) - 1);
+            if (size > 0 && size < 32)
+                value &= (uint)((1 << size) - 1);
 
             return value;
         }

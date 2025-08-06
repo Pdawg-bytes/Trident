@@ -14,7 +14,7 @@ namespace Trident.Core.Machine
                 throw new ArgumentException("ROM file is either too small or too large.");
 
             ROMHeader header = GetHeader(romData);
-            var stringData = GetGameInfoStrings(ref header);
+            var (title, code, maker) = GetGameInfoStrings(ref header);
 
             BackupType backupType = GetBackupType(romData);
             IBackupDevice backupDevice = null;
@@ -27,9 +27,9 @@ namespace Trident.Core.Machine
 
             GamePakInfo info = new()
             {
-                Title = stringData.title,
-                Code = stringData.code,
-                Maker = stringData.maker,
+                Title = title,
+                Code = code,
+                Maker = maker,
 
                 Size = (uint)romData.Length,
 

@@ -2,7 +2,7 @@
 
 namespace Trident.Core.Memory.GamePak
 {
-    public record class GamePakInfo
+    public readonly record struct GamePakInfo
     {
         public string Title { get; init; }
         public string Code { get; init; }

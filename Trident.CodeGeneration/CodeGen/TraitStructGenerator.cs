@@ -29,9 +29,9 @@ namespace Trident.CodeGeneration.CodeGen
         }
 
         internal static string GetPermutationKey(string methodName, Dictionary<string, object> traitValues) =>
-            $"{methodName}__{ComputeSafeHash(traitValues)}";
+            $"{methodName}__{ComputeStructHash(traitValues)}";
 
-        static string ComputeSafeHash(Dictionary<string, object> traits)
+        private static string ComputeStructHash(Dictionary<string, object> traits)
         {
             using SHA256 sha = SHA256.Create();
             string input = string.Join("_", traits.OrderBy(kv => kv.Key).Select(kv => $"{kv.Key}_{kv.Value}"));

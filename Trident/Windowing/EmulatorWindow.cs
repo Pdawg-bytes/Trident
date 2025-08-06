@@ -12,6 +12,8 @@ using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Desktop;
 using System.Runtime.InteropServices;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using System.Text;
+using Trident.Popups;
 
 namespace Trident.Windowing
 {
@@ -21,7 +23,7 @@ namespace Trident.Windowing
         private EmulatorThread _emulatorThread;
 
         private List<IWidget> _widgets = new();
-        private readonly PerformanceWidget _performanceWidget;
+        private readonly PerformancePopup _performanceWidget;
 
         private ImGuiController _controller;
         private readonly ImGuiStyleConfig _styleConfig;
@@ -38,8 +40,6 @@ namespace Trident.Windowing
             _emulatorThread = new(gba);
 
             _performanceWidget = new(() => _emulatorThread.CurrentSpeed);
-            _widgets.Add(_performanceWidget);
-
 
             var assembly = Assembly.GetExecutingAssembly();
 
@@ -132,15 +132,49 @@ namespace Trident.Windowing
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
 
             ImGui.DockSpaceOverViewport();
-            RenderGUI(e);
+            RenderGUI();
 
             _controller.Render();
             SwapBuffers();
         }
 
-        private void RenderGUI(FrameEventArgs e)
+        private void RenderGUI()
         {
-            ImGui.ShowDemoWindow();
+            if (ImGui.BeginMainMenuBar())
+            {
+                if (ImGui.BeginMenu("File"))
+                {
+                    if (ImGui.MenuItem("Load BIOS"))
+                        PopupManager.Show(new LoadBIOSPopup());
+
+                    if (ImGui.MenuItem("Load GamePak"))
+                        PopupManager.Show(new LoadGamePakPopup());
+
+                    ImGui.Separator();
+
+                    if (ImGui.MenuItem("Close"))
+                        Close();
+
+                    ImGui.EndMenu();
+                }
+
+                string value = $"{_emulatorThread.CurrentSpeed:F2}".PadLeft(6);
+                string speed = $"GBA Speed: {value}%";
+                var size = ImGui.CalcTextSize(speed);
+                float totalWidth = ImGui.GetWindowWidth();
+
+                ImGui.SameLine(totalWidth - size.X - 22);
+
+                if (ImGui.BeginMenu(speed))
+                {
+                    PopupManager.Show(_performanceWidget);
+                    ImGui.EndMenu();
+                }
+
+                ImGui.EndMainMenuBar();
+            }
+
+            PopupManager.Render();
 
             foreach (var widget in _widgets)
                 widget.Render();

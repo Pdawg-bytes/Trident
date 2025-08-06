@@ -1,6 +1,5 @@
-﻿using System.Diagnostics;
+﻿using Trident.Windowing;
 using Trident.Core.Machine;
-using Trident.Windowing;
 
 namespace Trident
 {

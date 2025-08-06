@@ -6,11 +6,12 @@ namespace Trident.Emulation
     {
         private int _frameCount = 0;
         private double _lastFps = 0;
-        private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
         private double _lastUpdateTime = 0;
+
+        private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
         private readonly double _updateIntervalSeconds;
 
-        internal FrameCounter(int updateIntervalMs = 250) => _updateIntervalSeconds = updateIntervalMs / 1000.0;
+        internal FrameCounter(int updateIntervalMs) => _updateIntervalSeconds = updateIntervalMs / 1000.0;
 
         public void FrameRendered()
         {

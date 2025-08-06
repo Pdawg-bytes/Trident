@@ -7,12 +7,12 @@ namespace Trident.CodeGeneration.CodeGen.Metadata
 {
     internal sealed record class TemplateMethodInfo
     {
-        public string Name { get; }
-        public EquatableArray<TemplateTrait> Traits { get; }
-        public int? Group { get; }
-        public bool IsARM { get; }
+        internal string Name { get; }
+        internal EquatableArray<TemplateTrait> Traits { get; }
+        internal int? Group { get; }
+        internal bool IsARM { get; }
 
-        public TemplateMethodInfo(IMethodSymbol method)
+        internal TemplateMethodInfo(IMethodSymbol method)
         {
             Name = method.Name;
             Traits = TemplateAttributeParser.Parse(method);
