@@ -1,13 +1,8 @@
 ﻿namespace Trident.Popups
 {
-    internal class LoadGamePakPopup : FileLoadPopup
+    internal class LoadGamePakPopup(Action<string> loadGamePak) : FileLoadPopup("Load GamePak")
     {
-        internal LoadGamePakPopup() : base("Load GamePak") { }
-
-        protected override void OnLoad(string path)
-        {
-            // same load the gamepak
-            Console.WriteLine($"Loaded GamePak from: {path}");
-        }
+        private readonly Action<string> _loadGamePak = loadGamePak;
+        protected override void OnLoad(string path) => _loadGamePak(path);
     }
 }

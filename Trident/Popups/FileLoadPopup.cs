@@ -1,4 +1,6 @@
 ﻿using ImGuiNET;
+using System.Numerics;
+using Trident.Utilities;
 
 namespace Trident.Popups
 {
@@ -6,6 +8,10 @@ namespace Trident.Popups
     {
         protected readonly string popupId = id;
         protected string selectedPath = "";
+
+        private string _errorMessage = string.Empty;
+        private static readonly Vector4 _errorColor = new(.98f, .165f, .33f, 1f);
+
         public bool IsOpen { get; private set; }
 
 
@@ -23,9 +29,16 @@ namespace Trident.Popups
 
                 if (ImGui.Button("Load"))
                 {
-                    OnLoad(selectedPath);
-                    ImGui.CloseCurrentPopup();
-                    IsOpen = false;
+                    selectedPath = PathSanitizer.SanitizePath(selectedPath);
+                    if (Path.Exists(selectedPath))
+                    {
+                        OnLoad(selectedPath);
+                        ImGui.CloseCurrentPopup();
+                        IsOpen = false;
+                        _errorMessage = string.Empty;
+                    }
+                    else
+                        _errorMessage = "The path is invalid or the file does not exist.";
                 }
 
                 ImGui.SameLine();
@@ -34,6 +47,15 @@ namespace Trident.Popups
                 {
                     ImGui.CloseCurrentPopup();
                     IsOpen = false;
+                    _errorMessage = string.Empty;
+                }
+
+                if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    ImGui.Spacing();
+                    ImGui.PushTextWrapPos(ImGui.GetContentRegionAvail().X);
+                    ImGui.TextColored(_errorColor, _errorMessage);
+                    ImGui.PopTextWrapPos();
                 }
 
                 ImGui.EndPopup();

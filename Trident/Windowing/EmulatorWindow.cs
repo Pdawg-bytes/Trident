@@ -15,6 +15,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using System.Text;
 using Trident.Popups;
 using Trident.Interaction;
+using Trident.Commands;
 
 namespace Trident.Windowing
 {
@@ -160,10 +161,10 @@ namespace Trident.Windowing
                 if (ImGui.BeginMenu("File"))
                 {
                     if (ImGui.MenuItem("Load BIOS"))
-                        PopupManager.Show(new LoadBIOSPopup());
+                        PopupManager.Show(new LoadBIOSPopup(path => _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, path))));
 
                     if (ImGui.MenuItem("Load GamePak"))
-                        PopupManager.Show(new LoadGamePakPopup());
+                        PopupManager.Show(new LoadGamePakPopup(path => _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, path))));
 
                     ImGui.Separator();
 
@@ -190,6 +191,11 @@ namespace Trident.Windowing
                     bool speedCapped = _emulatorThread.IsSpeedCapped();
                     if (ImGui.MenuItem(speedCapped ? "Fast forward" : "Cap speed", "Shift + P"))
                         _emulatorThread.SetSpeedCap(!speedCapped);
+
+                    if (ImGui.MenuItem("Accurate sleep", "", _emulatorThread.AccurateSleep))
+                        _emulatorThread.AccurateSleep = !_emulatorThread.AccurateSleep;
+
+                    Tooltips.HelpTooltip("Enforces more precise timing in the GBA's run loop at the cost of CPU time.", -88f);
 
                     ImGui.EndMenu();
                 }

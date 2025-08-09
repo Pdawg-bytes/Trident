@@ -22,7 +22,7 @@ namespace Trident.Emulation
         private readonly FrameCounter _frameCounter = new(50);
         private double _nextFrameTime = 0;
 
-        public double CurrentSpeed => _frameCounter.GetFPS() / Framerate * 100.0;
+        internal double CurrentSpeed => _frameCounter.GetFPS() / Framerate * 100.0;
 
         private readonly ConcurrentQueue<EmulatorCommand> _commandQueue = new();
 
@@ -91,10 +91,22 @@ namespace Trident.Emulation
                     double timeLeft = _nextFrameTime - _frameTimer.Elapsed.TotalSeconds;
 
                     if (timeLeft > 0)
-                        OpenTK.Core.Utils.AccurateSleep(timeLeft, 8);
+                        OpenTK.Core.Utils.AccurateSleep(timeLeft, _schedulerPeriod);
 
                     _nextFrameTime += TargetFrametime;
                 }
+            }
+        }
+
+        private int _schedulerPeriod = 8;
+        private bool _accurateSleep;
+        internal bool AccurateSleep
+        {
+            get => _accurateSleep;
+            set
+            {
+                _accurateSleep = value;
+                _schedulerPeriod = value ? 0 : 8;
             }
         }
 

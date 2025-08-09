@@ -1,13 +1,8 @@
 ﻿namespace Trident.Popups
 {
-    internal class LoadBIOSPopup : FileLoadPopup
+    internal class LoadBIOSPopup(Action<string> loadBios) : FileLoadPopup("Load GBA BIOS")
     {
-        internal LoadBIOSPopup() : base("Load GBA BIOS") { }
-
-        protected override void OnLoad(string path)
-        {
-            // actually load the bios
-            Console.WriteLine($"Loaded BIOS from: {path}");
-        }
+        private readonly Action<string> _loadBios = loadBios;
+        protected override void OnLoad(string path) => _loadBios(path);
     }
 }
