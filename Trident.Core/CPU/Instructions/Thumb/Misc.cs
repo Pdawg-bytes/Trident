@@ -13,8 +13,8 @@ namespace Trident.Core.CPU
         [TemplateGroup<ThumbGroup>(ThumbGroup.SoftwareInterrupt)]
         internal void Thumb_SWI(ushort opcode)
         {
-            Registers.SetSPSRForMode(PrivilegeMode.Supervisor, Registers.CPSR);
-            Registers.SwitchMode(PrivilegeMode.Supervisor);
+            Registers.SetSPSRForMode(PrivilegeMode.SVC, Registers.CPSR);
+            Registers.SwitchMode(PrivilegeMode.SVC);
             Registers.LR = Registers.PC - 2; // LR is now R14_svc because of mode switch.
 
             Registers.ClearFlag(Flags.T);

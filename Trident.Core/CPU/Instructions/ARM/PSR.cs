@@ -33,7 +33,7 @@ namespace Trident.Core.CPU
 
                 if (!TTraits.SPSR)
                 {
-                    if (Registers.CurrentMode is PrivilegeMode.User)
+                    if (Registers.CurrentMode is PrivilegeMode.USR)
                         statusMask &= 0xFF000000; // USR can only change conditions
 
                     // Bit 4 (MSB of mode) is always forced to 1

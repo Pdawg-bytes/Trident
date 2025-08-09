@@ -12,6 +12,8 @@ namespace Trident.Core.Machine
         internal ARM7TDMI<GBABus> CPU;
         private GBABusView? _busView;
 
+        public bool ShouldSkipBIOS = true;
+
         private readonly BIOS _bios;
         private readonly UnusedSection _unused = new();
         private readonly EWRAM _eWRAM = new();
@@ -33,7 +35,11 @@ namespace Trident.Core.Machine
 
         public void Reset()
         {
+            CPU.Reset();
+            // TOOD: reset other components
 
+            if (ShouldSkipBIOS)
+                SkipBIOS();
         }
 
 
@@ -70,6 +76,15 @@ namespace Trident.Core.Machine
 
             _bios.LoadBIOS(bios);
             CPU.Bus.RegisterHandler(0x00, _bios.GetAccessHandler());
+        }
+
+        public void SkipBIOS()
+        {
+            CPU.Registers.SwitchMode(PrivilegeMode.SYS);
+            CPU.Registers.SetBankForMode(PrivilegeMode.SVC, [0x03007FE0, 0]);
+            CPU.Registers.SetBankForMode(PrivilegeMode.IRQ, [0x03007FA0, 0]);
+            CPU.Registers.SP = 0x03007F00;
+            CPU.Registers.PC = 0x08000000;
         }
 
 

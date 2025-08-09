@@ -26,12 +26,14 @@ namespace Trident.Emulation
 
         private readonly ConcurrentQueue<EmulatorCommand> _commandQueue = new();
 
+
         internal EmulatorThread(GBA gba)
         {
             _gba = gba;
             Thread.CurrentThread.Priority = ThreadPriority.Highest;
         }
 
+        // Can't use a property since the backing field is volatile.
         internal bool IsPaused() => _paused;
         internal void SetPause(bool shouldPause)
         {
@@ -41,8 +43,15 @@ namespace Trident.Emulation
                 _frameCounter.Reset();
         }
 
+        // Can't use a property since the backing field is volatile.
         internal bool IsSpeedCapped() => _speedCapped;
         internal bool SetSpeedCap(bool shouldCapSpeed) => _speedCapped = shouldCapSpeed;
+
+        internal bool ShouldSkipBIOS
+        {
+            get => _gba.ShouldSkipBIOS;
+            set => _gba.ShouldSkipBIOS = value;
+        }
 
 
         internal void Start()
@@ -60,6 +69,7 @@ namespace Trident.Emulation
             if (_initialized)
             {
                 _initialized = false;
+                _frameCounter.Reset();
                 _thread.Join();
             }
         }
@@ -85,8 +95,6 @@ namespace Trident.Emulation
 
                     _nextFrameTime += TargetFrametime;
                 }
-                else
-                    _nextFrameTime = _frameTimer.Elapsed.TotalSeconds + TargetFrametime;
             }
         }
 

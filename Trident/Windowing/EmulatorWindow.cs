@@ -14,6 +14,7 @@ using System.Runtime.InteropServices;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using System.Text;
 using Trident.Popups;
+using Trident.Interaction;
 
 namespace Trident.Windowing
 {
@@ -22,7 +23,7 @@ namespace Trident.Windowing
         private GBA _gba;
         private EmulatorThread _emulatorThread;
 
-        private List<IWidget> _widgets = new();
+        private List<IWidget> _widgets = [];
         private readonly PerformancePopup _performanceWidget;
 
         private ImGuiController _controller;
@@ -30,6 +31,8 @@ namespace Trident.Windowing
 
         private readonly byte[] _fontData;
         private readonly int _fontDataSize = 0;
+
+        private readonly ShortcutManager _shortcutManager = new();
 
         internal IntPtr WindowHandle;
 
@@ -97,7 +100,19 @@ namespace Trident.Windowing
             KeyDown += args => _controller.KeyEvent(args.Key, true);
             KeyUp += args => _controller.KeyEvent(args.Key, false);
 
+            KeyDown += args =>
+            {
+                _shortcutManager.UpdateModifierState(args.Key, true);
+                _shortcutManager.HandleKeyDown(args.Key);
+            };
+
+            KeyUp += args => _shortcutManager.UpdateModifierState(args.Key, false);
+
             _emulatorThread.Start();
+
+            _shortcutManager.RegisterShortcut(new(Keys.R, Ctrl: true), _emulatorThread.Reset);
+            _shortcutManager.RegisterShortcut(new(Keys.P, Ctrl: true), () => _emulatorThread.SetPause(!_emulatorThread.IsPaused()));
+            _shortcutManager.RegisterShortcut(new(Keys.P, Shift: true), () => _emulatorThread.SetSpeedCap(!_emulatorThread.IsSpeedCapped()));
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -154,6 +169,40 @@ namespace Trident.Windowing
 
                     if (ImGui.MenuItem("Close"))
                         Close();
+
+                    ImGui.EndMenu();
+                }
+
+                if (ImGui.BeginMenu("Emulation"))
+                {
+                    if (ImGui.MenuItem("Reset", "Ctrl + R"))
+                        _emulatorThread.Reset();
+
+                    if (ImGui.MenuItem("Shutdown"))
+                        _emulatorThread.Stop();
+
+                    ImGui.Separator();
+
+                    bool paused = _emulatorThread.IsPaused();
+                    if (ImGui.MenuItem(paused ? "Play" : "Pause", "Ctrl + P"))
+                        _emulatorThread.SetPause(!paused);
+
+                    bool speedCapped = _emulatorThread.IsSpeedCapped();
+                    if (ImGui.MenuItem(speedCapped ? "Fast forward" : "Cap speed", "Shift + P"))
+                        _emulatorThread.SetSpeedCap(!speedCapped);
+
+                    ImGui.EndMenu();
+                }
+
+                if (ImGui.BeginMenu("Options"))
+                {
+                    if (ImGui.BeginMenu("System"))
+                    {
+                        if (ImGui.MenuItem("Skip BIOS", "", _emulatorThread.ShouldSkipBIOS))
+                            _emulatorThread.ShouldSkipBIOS = !_emulatorThread.ShouldSkipBIOS;
+
+                        ImGui.EndMenu();
+                    }
 
                     ImGui.EndMenu();
                 }

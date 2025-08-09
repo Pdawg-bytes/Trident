@@ -11,16 +11,16 @@ namespace Trident.Tests.SingleStep.Infrastructure
         internal static void ApplyInitialState(ARM7TDMI<TransactionalMemory> cpu, RegisterState state)
         {
             cpu.Registers.ResetRegisters();
-            cpu.Registers.SwitchMode(PrivilegeMode.User);
+            cpu.Registers.SwitchMode(PrivilegeMode.USR);
 
             for (uint i = 0; i < 16; i++)
                 cpu.Registers[i] = state.R[(int)i];
 
             SetBankAndSpsrForMode(cpu, PrivilegeMode.FIQ, state);
             SetBankAndSpsrForMode(cpu, PrivilegeMode.IRQ, state);
-            SetBankAndSpsrForMode(cpu, PrivilegeMode.Supervisor, state);
-            SetBankAndSpsrForMode(cpu, PrivilegeMode.Abort, state);
-            SetBankAndSpsrForMode(cpu, PrivilegeMode.Undefined, state);
+            SetBankAndSpsrForMode(cpu, PrivilegeMode.SVC, state);
+            SetBankAndSpsrForMode(cpu, PrivilegeMode.ABT, state);
+            SetBankAndSpsrForMode(cpu, PrivilegeMode.UND, state);
 
             cpu.Registers.CPSR = (Flags)state.Cpsr;
             cpu.Registers.SwitchMode((PrivilegeMode)(state.Cpsr & 0x1F));
@@ -47,7 +47,7 @@ namespace Trident.Tests.SingleStep.Infrastructure
                 errors.Add(string.Join("\n", flagDiff.Split('\n').Select(line => "        " + line)));
             }
 
-            cpu.Registers.SwitchMode(PrivilegeMode.User);
+            cpu.Registers.SwitchMode(PrivilegeMode.USR);
 
             for (int i = 0; i < 16; i++)
             {
@@ -57,9 +57,9 @@ namespace Trident.Tests.SingleStep.Infrastructure
 
             CompareBank(cpu, PrivilegeMode.FIQ, state, errors);
             CompareBank(cpu, PrivilegeMode.IRQ, state, errors);
-            CompareBank(cpu, PrivilegeMode.Supervisor, state, errors);
-            CompareBank(cpu, PrivilegeMode.Abort, state, errors);
-            CompareBank(cpu, PrivilegeMode.Undefined, state, errors);
+            CompareBank(cpu, PrivilegeMode.SVC, state, errors);
+            CompareBank(cpu, PrivilegeMode.ABT, state, errors);
+            CompareBank(cpu, PrivilegeMode.UND, state, errors);
 
             if (state.Pipeline[0] != cpu.Pipeline.Prefetch[0])
                 AddError("Pipeline[0]", $"0x{state.Pipeline[0]:X8}", $"0x{cpu.Pipeline.Prefetch[0]:X8}");
@@ -84,9 +84,9 @@ namespace Trident.Tests.SingleStep.Infrastructure
             {
                 PrivilegeMode.FIQ =>        (state.RFiq, (Flags)state.Spsr[0]),
                 PrivilegeMode.IRQ =>        (state.RIrq, (Flags)state.Spsr[3]),
-                PrivilegeMode.Supervisor => (state.RSvc, (Flags)state.Spsr[1]),
-                PrivilegeMode.Abort =>      (state.RAbt, (Flags)state.Spsr[2]),
-                PrivilegeMode.Undefined =>  (state.RUnd, (Flags)state.Spsr[4]),
+                PrivilegeMode.SVC => (state.RSvc, (Flags)state.Spsr[1]),
+                PrivilegeMode.ABT =>      (state.RAbt, (Flags)state.Spsr[2]),
+                PrivilegeMode.UND =>  (state.RUnd, (Flags)state.Spsr[4]),
                 _ => throw new InvalidOperationException($"Unsupported mode for bank/SPSR setting: {mode}")
             };
 
@@ -98,12 +98,12 @@ namespace Trident.Tests.SingleStep.Infrastructure
         {
             (List<uint> expectedBank, Flags spsr) = mode switch
             {
-                PrivilegeMode.User or PrivilegeMode.System => (expected.R, (Flags)0),
+                PrivilegeMode.USR or PrivilegeMode.SYS => (expected.R, (Flags)0),
                 PrivilegeMode.FIQ => (expected.RFiq, (Flags)expected.Spsr[0]),
                 PrivilegeMode.IRQ => (expected.RIrq, (Flags)expected.Spsr[3]),
-                PrivilegeMode.Supervisor => (expected.RSvc, (Flags)expected.Spsr[1]),
-                PrivilegeMode.Abort => (expected.RAbt, (Flags)expected.Spsr[2]),
-                PrivilegeMode.Undefined => (expected.RUnd, (Flags)expected.Spsr[4]),
+                PrivilegeMode.SVC => (expected.RSvc, (Flags)expected.Spsr[1]),
+                PrivilegeMode.ABT => (expected.RAbt, (Flags)expected.Spsr[2]),
+                PrivilegeMode.UND => (expected.RUnd, (Flags)expected.Spsr[4]),
                 _ => throw new InvalidOperationException($"Unexpected mode: {mode} for bank comparison")
             };
 
@@ -116,7 +116,7 @@ namespace Trident.Tests.SingleStep.Infrastructure
                     errors.Add($"    R_{mode}_{i} mismatch: expected <0x{expectedBank[i]:X8}>, actual <0x{bank[i]:X8}>");
             }
 
-            if (mode != PrivilegeMode.User && mode != PrivilegeMode.System)
+            if (mode != PrivilegeMode.USR && mode != PrivilegeMode.SYS)
             {
                 var actualSpsr = (Flags)cpu.Registers.GetSPSRForMode(mode);
                 if (spsr != actualSpsr)

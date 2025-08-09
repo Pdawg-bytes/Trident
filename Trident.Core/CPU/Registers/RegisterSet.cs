@@ -34,16 +34,16 @@ namespace Trident.Core.CPU.Registers
 
         public RegisterSet()
         {
-            _bankParams[(uint)PrivilegeMode.User] =       new(8, 0, 7, 0);
-            _bankParams[(uint)PrivilegeMode.System] =     new(8, 0, 7, 0);
+            _bankParams[(uint)PrivilegeMode.USR] =       new(8, 0, 7, 0);
+            _bankParams[(uint)PrivilegeMode.SYS] =     new(8, 0, 7, 0);
             _bankParams[(uint)PrivilegeMode.FIQ] =        new(8, 7, 7, 1);
             _bankParams[(uint)PrivilegeMode.IRQ] =        new(13, 14, 2, 2);
-            _bankParams[(uint)PrivilegeMode.Supervisor] = new(13, 16, 2, 3);
-            _bankParams[(uint)PrivilegeMode.Abort] =      new(13, 18, 2, 4);
-            _bankParams[(uint)PrivilegeMode.Undefined] =  new(13, 20, 2, 5);
+            _bankParams[(uint)PrivilegeMode.SVC] = new(13, 16, 2, 3);
+            _bankParams[(uint)PrivilegeMode.ABT] =      new(13, 18, 2, 4);
+            _bankParams[(uint)PrivilegeMode.UND] =  new(13, 20, 2, 5);
 
-            CurrentMode = PrivilegeMode.System;
-            SwitchMode(PrivilegeMode.System);
+            CurrentMode = PrivilegeMode.SYS;
+            SwitchMode(PrivilegeMode.SYS);
         }
 
         internal unsafe ref uint GetRegisterRef(int index)
@@ -138,7 +138,7 @@ namespace Trident.Core.CPU.Registers
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool IsUserOrSystem(PrivilegeMode mode) => mode is PrivilegeMode.User || mode is PrivilegeMode.System;
+        internal static bool IsUserOrSystem(PrivilegeMode mode) => mode is PrivilegeMode.USR || mode is PrivilegeMode.SYS;
 
 
 
@@ -173,6 +173,8 @@ namespace Trident.Core.CPU.Registers
             for (int i = 0; i < 16; i++) _registers[i] = 0;
             Array.Clear(_bankStore, 0, _bankStore.Length);
             Array.Clear(_bankedSpsr, 0, _bankedSpsr.Length);
+            CPSR = (Flags)((0b11 << 6) | (uint)PrivilegeMode.SVC);
+            // I and F set; mode SVC
         }
 
         public void PrintRegisters()

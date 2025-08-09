@@ -35,10 +35,12 @@ namespace Trident.Core.CPU
         public void Reset()
         {
             Registers.ResetRegisters();
-            Registers.SetFlag(Flags.F);
-            Registers.SwitchMode(PrivilegeMode.Supervisor);
-            ReloadPipelineARM();
+            Registers.SwitchMode(PrivilegeMode.SVC);
+
+            Pipeline.Prefetch[0] = Pipeline.Prefetch[1] = 0xF0000000;
+            Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
         }
+
 
         public void Run()
         {
@@ -86,7 +88,8 @@ namespace Trident.Core.CPU
             instr(opcode);
         }
 
-        private void ReloadPipelineThumb()
+
+        internal void ReloadPipelineThumb()
         {
             Pipeline.Prefetch[0] = Bus.Read16(Registers.PC, PipelineAccess.Code | PipelineAccess.NonSequential);
             Pipeline.Prefetch[1] = Bus.Read16(Registers.PC + 2, PipelineAccess.Code | PipelineAccess.Sequential);
@@ -94,7 +97,7 @@ namespace Trident.Core.CPU
             Registers.PC += 4;
         }
 
-        private void ReloadPipelineARM()
+        internal void ReloadPipelineARM()
         {
             Pipeline.Prefetch[0] = Bus.Read32(Registers.PC, PipelineAccess.Code | PipelineAccess.NonSequential);
             Pipeline.Prefetch[1] = Bus.Read32(Registers.PC + 4, PipelineAccess.Code | PipelineAccess.Sequential);
