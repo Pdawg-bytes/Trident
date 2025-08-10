@@ -1,4 +1,4 @@
-﻿namespace Trident.Popups
+﻿namespace Trident.Popups.File
 {
     internal class LoadBIOSPopup(Action<string> loadBios) : FileLoadPopup("Load GBA BIOS")
     {

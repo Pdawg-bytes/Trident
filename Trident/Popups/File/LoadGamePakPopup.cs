@@ -1,4 +1,4 @@
-﻿namespace Trident.Popups
+﻿namespace Trident.Popups.File
 {
     internal class LoadGamePakPopup(Action<string> loadGamePak) : FileLoadPopup("Load GamePak")
     {

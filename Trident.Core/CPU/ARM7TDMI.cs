@@ -55,19 +55,19 @@ namespace Trident.Core.CPU
             Registers.PC &= 0xFFFFFFFE;
 
             if (Registers.IsFlagSet(Flags.T))
-                StepThumb(opcode);
+                StepThumb((ushort)opcode);
             else
                 StepARM(opcode);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void StepThumb(uint opcode)
+        private void StepThumb(ushort opcode)
         {
             uint pc = Registers.PC;
             Pipeline.Prefetch[1] = Bus.Read16(pc, Pipeline.Access);
             
-            ThumbInstruction instr = _thumbDispatcher.GetInstruction((ushort)opcode);
-            instr((ushort)opcode);
+            ThumbInstruction instr = _thumbDispatcher.GetInstruction(opcode);
+            instr(opcode);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -2,7 +2,7 @@
 using System.Numerics;
 using Trident.Utilities;
 
-namespace Trident.Popups
+namespace Trident.Popups.File
 {
     internal abstract class FileLoadPopup(string id) : IPopup
     {
