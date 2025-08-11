@@ -14,15 +14,17 @@ namespace Trident.Core.CPU
         {
             uint address = Registers[opcode & 0b1111];
 
-            Registers.PC = address & 0xFFFFFFFE;
-
             if ((address & 1) != 0)
             {
+                Registers.PC = address & 0xFFFFFFFE;
                 Registers.SetFlag(Flags.T);
                 ReloadPipelineThumb();
             }
             else
+            {
+                Registers.PC = address;
                 ReloadPipelineARM();
+            }
         }
 
 

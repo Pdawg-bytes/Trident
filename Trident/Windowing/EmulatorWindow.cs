@@ -1,21 +1,21 @@
 ﻿using ImGuiNET;
+using Trident.Popups;
 using Trident.Styling;
 using Trident.Widgets;
+using Trident.Commands;
 using System.Text.Json;
 using Trident.Emulation;
 using System.Reflection;
-using Trident.Core.Machine;
 using OpenTK.Mathematics;
+using Trident.Interaction;
+using Trident.Popups.File;
+using Trident.Core.Machine;
 using System.ComponentModel;
 using OpenTK.Windowing.Common;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Desktop;
 using System.Runtime.InteropServices;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using System.Text;
-using Trident.Popups;
-using Trident.Interaction;
-using Trident.Commands;
 
 namespace Trident.Windowing
 {

@@ -16,11 +16,9 @@ namespace Trident.Core.CPU
             where TTraits : struct, IThumb_BranchExchange_Traits
         {
             uint rs = (((uint)opcode >> 3) & 0b111) | (TTraits.HighRegister ? (uint)8 : 0);
-
             uint target = Registers[rs];
 
             Registers.PC = target & 0xFFFFFFFE;
-            Pipeline.Access = PipelineAccess.Code | PipelineAccess.NonSequential;
 
             if ((target & 1) == 0)
             {

@@ -31,7 +31,7 @@ namespace Trident.Core.CPU
                 int shamt = ((int)(opcode >> 8) & 0x0F) << 1;
                 op2 = (opcode & 0xFF).RotateRight(shamt);
                 if (shamt != 0) 
-                    carry = (op2 >> 31) != 0;
+                    carry = op2.IsBitSet(31);
             }
             else
             {
@@ -58,6 +58,7 @@ namespace Trident.Core.CPU
             uint op1 = Registers[rn];
 
 
+            bool isTestOp = false;
             switch ((ALUOpARM)TTraits.Operation)
             {
                 case ALUOpARM.AND: SetResultAndFlags(op1 &  op2); break;
@@ -67,10 +68,10 @@ namespace Trident.Core.CPU
                 case ALUOpARM.MVN: SetResultAndFlags(      ~op2); break;
                 case ALUOpARM.MOV: SetResultAndFlags(       op2); break;
 
-                case ALUOpARM.TST: SetNZ(op1 & op2); Registers.ModifyFlag(Flags.C, carry); break;
-                case ALUOpARM.TEQ: SetNZ(op1 ^ op2); Registers.ModifyFlag(Flags.C, carry); break;
-                case ALUOpARM.CMP: Subtract(op1, op2, true); break;
-                case ALUOpARM.CMN: Add     (op1, op2, true); break;
+                case ALUOpARM.TST: SetNZ(op1 & op2); Registers.ModifyFlag(Flags.C, carry); isTestOp = true; break;
+                case ALUOpARM.TEQ: SetNZ(op1 ^ op2); Registers.ModifyFlag(Flags.C, carry); isTestOp = true; break;
+                case ALUOpARM.CMP: Subtract(op1, op2, true); isTestOp = true; break;
+                case ALUOpARM.CMN: Add     (op1, op2, true); isTestOp = true; break;
 
                 case ALUOpARM.ADD: Registers[rd] = Add          (op1, op2, TTraits.SetFlags); break;
                 case ALUOpARM.SUB: Registers[rd] = Subtract     (op1, op2, TTraits.SetFlags); break;
@@ -92,7 +93,8 @@ namespace Trident.Core.CPU
 
 
             bool shouldUpdatePC = TTraits.UseImmediate || !TTraits.ShiftByReg;
-            if (rd == 15)
+            bool isR15 = rd == 15;
+            if (isR15)
             {
                 if (TTraits.SetFlags)
                 {
@@ -102,16 +104,14 @@ namespace Trident.Core.CPU
                 }
 
                 // Test operations never set Rd, so we shouldn't flush the pipeline even if it's encoded as R15.
-                bool isTestOp = TTraits.Operation is (byte)ALUOpARM.TST or (byte)ALUOpARM.TEQ or (byte)ALUOpARM.CMP or (byte)ALUOpARM.CMN;
                 if (!isTestOp)
                 {
                     if (Registers.IsFlagSet(Flags.T)) ReloadPipelineThumb();
                     else ReloadPipelineARM();
                 }
-                else if (shouldUpdatePC)
-                    Registers.PC += 4;
             }
-            else if (shouldUpdatePC)
+
+            if (shouldUpdatePC && (!isR15 || isTestOp))
                 Registers.PC += 4;
         }
     }
