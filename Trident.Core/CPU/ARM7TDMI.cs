@@ -6,6 +6,7 @@ using Trident.Core.CPU.Registers;
 using Trident.Core.CPU.Decoding.ARM;
 using Trident.Core.CPU.Decoding.Thumb;
 using System.Runtime.CompilerServices;
+using Trident.Core.Hardware.Interrupts;
 
 using static Trident.Core.CPU.Conditions;
 
@@ -16,6 +17,9 @@ namespace Trident.Core.CPU
         public RegisterSet Registers;
         public InstructionPipeline Pipeline;
         public TBus Bus;
+
+        public bool Halted;
+        private InterruptController _interruptController = new(() => { });
 
         private readonly ARMDispatcher<TBus> _armDispatcher;
         private readonly ThumbDispatcher<TBus> _thumbDispatcher;
@@ -30,7 +34,7 @@ namespace Trident.Core.CPU
         }
 
         public void AttachBus(TBus bus) => Bus = bus;
-
+        internal void AttachIRQController(InterruptController controller) => _interruptController = controller;
 
         public void Reset()
         {
@@ -42,14 +46,11 @@ namespace Trident.Core.CPU
         }
 
 
-        public void Run()
-        {
-
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Step()
         {
+            if (_interruptController.IRQAvailable) RaiseIRQ();
+
             uint opcode = Pipeline.Prefetch[0];
             Pipeline.Prefetch[0] = Pipeline.Prefetch[1];
             Registers.PC &= 0xFFFFFFFE;
@@ -103,6 +104,36 @@ namespace Trident.Core.CPU
             Pipeline.Prefetch[1] = Bus.Read32(Registers.PC + 4, PipelineAccess.Code | PipelineAccess.Sequential);
             Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
             Registers.PC += 8;
+        }
+
+
+        internal void RaiseIRQ()
+        {
+            Flags cpsr = Registers.CPSR;
+
+            if (Registers.IsFlagSet(Flags.I))
+                return;
+
+            if (Registers.IsFlagSet(Flags.T))
+                Bus.Read16(Registers.PC.Align<ushort>(), Pipeline.Access);
+            else
+                Bus.Read32(Registers.PC.Align<uint>(), Pipeline.Access);
+
+
+            Registers.SetSPSRForMode(PrivilegeMode.IRQ, cpsr);
+            Registers.SwitchMode(PrivilegeMode.IRQ);
+            Registers.SetFlag(Flags.I);
+
+            if (Registers.IsFlagSet(Flags.T))
+            {
+                Registers.ClearFlag(Flags.T);
+                Registers.LR = Registers.PC;
+            }
+            else
+                Registers.LR = Registers.PC - 4;
+
+            Registers.PC = 0x00000018;
+            ReloadPipelineARM();
         }
 
 

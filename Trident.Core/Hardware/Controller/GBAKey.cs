@@ -1,4 +1,4 @@
-﻿namespace Trident.Core.Devices.Controller
+﻿namespace Trident.Core.Hardware.Controller
 {
     public enum GBAKey
     {

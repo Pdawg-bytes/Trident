@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using Trident.Core.Machine;
 using System.Collections.Concurrent;
-using Trident.Core.Devices.Controller;
+using Trident.Core.Hardware.Controller;
 
 namespace Trident.Emulation
 {
@@ -12,11 +12,13 @@ namespace Trident.Emulation
         private Thread _thread;
 
         private volatile bool _initialized;
-        private volatile bool _paused;
+        private volatile bool _paused = true;
         private volatile bool _speedCapped = true;
 
-        public const double Framerate = 59.73;
-        public const double TargetFrametime = 1.0 / Framerate;
+        internal const uint CyclesPerFrame = 280_896;
+        internal const uint CyclesPerScanline = 1232;
+        internal const double Framerate = 59.7374117;
+        internal const double TargetFrametime = 1.0 / Framerate;
 
         private readonly Stopwatch _frameTimer = Stopwatch.StartNew();
         private readonly FrameCounter _frameCounter = new(50);
@@ -26,12 +28,12 @@ namespace Trident.Emulation
 
         private readonly ConcurrentQueue<EmulatorCommand> _commandQueue = new();
 
-
         internal EmulatorThread(GBA gba)
         {
             _gba = gba;
             Thread.CurrentThread.Priority = ThreadPriority.Highest;
         }
+
 
         // Can't use a property since the backing field is volatile.
         internal bool IsPaused() => _paused;
@@ -82,7 +84,7 @@ namespace Trident.Emulation
 
                 if (!_paused)
                 {
-                    // _gba.RunFrame();
+                    _gba.RunFor(CyclesPerFrame);
                     _frameCounter.FrameRendered();
                 }
 

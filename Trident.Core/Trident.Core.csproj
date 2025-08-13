@@ -9,10 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Scheduler\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Trident.CodeGeneration\Trident.CodeGeneration.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <OutputItemType>Analyzer</OutputItemType>

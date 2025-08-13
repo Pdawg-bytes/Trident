@@ -1,6 +1,6 @@
 ﻿using Trident.Emulation;
 using Trident.Core.Machine;
-using Trident.Core.Devices.Controller;
+using Trident.Core.Hardware.Controller;
 
 namespace Trident.Commands
 {

@@ -1,16 +1,21 @@
 ﻿using Trident.Core.Bus;
 using Trident.Core.CPU;
 using Trident.Core.Memory;
+using Trident.Core.Scheduling;
 using Trident.Core.Memory.GamePak;
-using Trident.Core.Devices.Controller;
+using Trident.Core.Hardware.Controller;
 using Trident.Core.Memory.GamePak.GPIO;
+using Trident.Core.Hardware.Interrupts;
 
 namespace Trident.Core.Machine
 {
     public class GBA : IDisposable
     {
         internal ARM7TDMI<GBABus> CPU;
+        internal InterruptController InterruptController;
         private GBABusView? _busView;
+
+        internal Scheduler Scheduler = new();
 
         public bool ShouldSkipBIOS = true;
 
@@ -23,20 +28,46 @@ namespace Trident.Core.Machine
         public GBA()
         {
             CPU = new();
-
-            _bios = new(() => CPU.Registers.GetRegisterRef(15));
+            InterruptController = new(() => CPU.Halted = false);
+            CPU.AttachIRQController(InterruptController);
 
             CPU.AttachBus(new GBABus());
             _busView = new(ref CPU.Bus);
+
+            _bios = new(() => CPU.Registers.GetRegisterRef(15));
         }
 
         public T? GetGPIODevice<T>() where T : GPIODevice
             => _gamePak?.GetGPIODevice<T>();
 
+
+        public void RunFor(uint cycles)
+        {
+            ulong runTarget = Scheduler.CurrentTimestamp + cycles;
+
+            while (runTarget > Scheduler.CurrentTimestamp)
+            {
+                if (!CPU.Halted)
+                    CPU.Step();
+                else
+                {
+                    Scheduler.Step(Scheduler.RemainingCycles);
+
+                    if (InterruptController.IRQAvailable)
+                    {
+                        Scheduler.Step(1);
+                        CPU.Halted = false;
+                    }
+                }
+            }
+        }
+
+
         public void Reset()
         {
             CPU.Reset();
-            // TOOD: reset other components
+            InterruptController.Reset();
+            // TODO: reset other components
 
             if (ShouldSkipBIOS)
                 SkipBIOS();
