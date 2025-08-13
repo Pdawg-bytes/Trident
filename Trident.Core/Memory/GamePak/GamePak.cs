@@ -24,7 +24,7 @@ namespace Trident.Core.Memory.GamePak
 
         private readonly MemoryAccessHandler _upperAccessHandler;
         private readonly MemoryAccessHandler _lowerAccessHandler;
-        private readonly MemoryAccessHandler _backupAccessHandler;
+        private readonly MemoryAccessHandler _backupAccessHandler = new();
 
         internal GamePak(byte[] romData, uint addressMask, GamePakInfo info, IBackupDevice? backupDevice, GPIOBus? gpio)
         {

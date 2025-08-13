@@ -2,17 +2,17 @@
 
 namespace Trident.Core.Scheduling
 {
-    internal class Scheduler
+    public class Scheduler
     {
         private readonly SortedSet<SchedulerEvent> _events = [];
-        private readonly Dictionary<ulong, SchedulerEvent> _eventToUid = [];
+        private readonly Dictionary<ulong, SchedulerEvent> _uidEventMap = [];
         private readonly Dictionary<EventType, Action<ulong>> _callbacks = [];
 
         private ulong _nextId = 1;
 
         internal ulong CurrentTimestamp { get; set; }
         internal ulong NextTimestamp => _events.Count > 0 ? _events.Min!.Timestamp : ulong.MaxValue;
-        internal uint RemainingCycles => (uint)(NextTimestamp - CurrentTimestamp);
+        internal ulong RemainingCycles => NextTimestamp - CurrentTimestamp;
 
         internal Scheduler()
         {
@@ -22,23 +22,26 @@ namespace Trident.Core.Scheduling
                 _callbacks[type] = (data) => Debug.Assert(false, $"Scheduler: unhandled event type: {type}");
             }
 
+            Register(EventType.EndOfQueue, () => Debug.Assert(false, "Scheduler: reached end of event queue"));
             Reset();
         }
 
         internal void Reset()
         {
             _events.Clear();
-            _eventToUid.Clear();
+            _uidEventMap.Clear();
             CurrentTimestamp = 0;
             _nextId = 1;
+
+            Schedule(EventType.EndOfQueue, ulong.MaxValue);
         }
 
         internal void Register(EventType eventType, Action callback) => _callbacks[eventType] = _ => callback();
         internal void Register(EventType eventType, Action<ulong> callback) => _callbacks[eventType] = callback;
-        internal SchedulerEvent? EventByUID(ulong uid) => _eventToUid.GetValueOrDefault(uid);
+        internal SchedulerEvent? EventByUID(ulong uid) => _uidEventMap.GetValueOrDefault(uid);
 
 
-        internal void Step(uint cycles)
+        internal void Step(ulong cycles)
         {
             ulong timestampNext = CurrentTimestamp + cycles;
 
@@ -67,7 +70,7 @@ namespace Trident.Core.Scheduling
             );
 
             _events.Add(evt);
-            _eventToUid.Add(evt.UniqueID, evt);
+            _uidEventMap.Add(evt.UniqueID, evt);
 
             return evt;
         }
@@ -77,7 +80,7 @@ namespace Trident.Core.Scheduling
             if (evt is not null)
             {
                 _events.Remove(evt);
-                _eventToUid.Remove(evt.UniqueID);
+                _uidEventMap.Remove(evt.UniqueID);
             }
         }
 

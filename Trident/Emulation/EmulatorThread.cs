@@ -78,6 +78,8 @@ namespace Trident.Emulation
 
         private void RunLoop()
         {
+            _gba.Reset();
+
             while (_initialized)
             {
                 ProcessCommands();

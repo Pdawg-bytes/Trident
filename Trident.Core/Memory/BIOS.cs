@@ -7,7 +7,7 @@ namespace Trident.Core.Memory
     internal class BIOS
     {
         internal const uint MEMORY_SIZE = 16 * 1024;
-        private UnsafeMemoryBlock _memory;
+        private readonly UnsafeMemoryBlock _memory;
         private uint _busValue;
 
         private readonly Func<uint> _getPC;
@@ -55,10 +55,10 @@ namespace Trident.Core.Memory
         internal void LoadBIOS(byte[] bios) => _memory.WriteBytes(0, bios);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Write8(uint address, PipelineAccess access, byte value) => GBABus.InvalidAccess("BIOS", address, true, value);
+        private void Write8(uint address, PipelineAccess access, byte value) { /* TODO: Step sched */ }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Write16(uint address, PipelineAccess access, ushort value) => GBABus.InvalidAccess("BIOS", address, true, value);
+        private void Write16(uint address, PipelineAccess access, ushort value) { /* TODO: Step sched */ }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Write32(uint address, PipelineAccess access, uint value) => GBABus.InvalidAccess("BIOS", address, true, value);
+        private void Write32(uint address, PipelineAccess access, uint value) { /* TODO: Step sched */ }
     }
 }

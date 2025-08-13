@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Trident.Core.Bus;
 using Trident.Core.Global;
+using Trident.Core.Scheduling;
 using Trident.Core.CPU.Pipeline;
 using Trident.Core.CPU.Registers;
 using Trident.Core.CPU.Decoding.ARM;
@@ -19,13 +20,16 @@ namespace Trident.Core.CPU
         public TBus Bus;
 
         public bool Halted;
-        private InterruptController _interruptController = new(() => { });
+        private InterruptController _irqController = new(() => { });
+        private readonly Scheduler _scheduler;
 
         private readonly ARMDispatcher<TBus> _armDispatcher;
         private readonly ThumbDispatcher<TBus> _thumbDispatcher;
 
-        public ARM7TDMI()
+        public ARM7TDMI(Scheduler scheduler)
         {
+            _scheduler = scheduler;
+
             Registers = new();
             Pipeline = new();
 
@@ -34,7 +38,7 @@ namespace Trident.Core.CPU
         }
 
         public void AttachBus(TBus bus) => Bus = bus;
-        internal void AttachIRQController(InterruptController controller) => _interruptController = controller;
+        internal void AttachIRQController(InterruptController controller) => _irqController = controller;
 
         public void Reset()
         {
@@ -49,7 +53,7 @@ namespace Trident.Core.CPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Step()
         {
-            if (_interruptController.IRQAvailable) RaiseIRQ();
+            if (_irqController.IRQAvailable) RaiseIRQ();
 
             uint opcode = Pipeline.Prefetch[0];
             Pipeline.Prefetch[0] = Pipeline.Prefetch[1];

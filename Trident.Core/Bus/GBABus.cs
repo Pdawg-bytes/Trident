@@ -143,11 +143,6 @@ namespace Trident.Core.Bus
             return 0;
         }
 
-        internal static void InvalidAccess(string section, uint address, bool write, uint value = 0)
-        {
-            Console.WriteLine($"Invalid {(write ? "write" : "read")} in {section} at 0x{address:X2} {(write ? $"with value 0x{value:X2}" : "")}");
-        }
-
 
         internal void DisposeMemory()
         {

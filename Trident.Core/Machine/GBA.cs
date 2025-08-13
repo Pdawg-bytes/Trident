@@ -12,7 +12,7 @@ namespace Trident.Core.Machine
     public class GBA : IDisposable
     {
         internal ARM7TDMI<GBABus> CPU;
-        internal InterruptController InterruptController;
+        internal InterruptController IRQController;
         private GBABusView? _busView;
 
         internal Scheduler Scheduler = new();
@@ -27,12 +27,15 @@ namespace Trident.Core.Machine
 
         public GBA()
         {
-            CPU = new();
-            InterruptController = new(() => CPU.Halted = false);
-            CPU.AttachIRQController(InterruptController);
+            CPU = new(Scheduler);
+            IRQController = new(() => CPU.Halted = false);
+            CPU.AttachIRQController(IRQController);
 
             CPU.AttachBus(new GBABus());
             _busView = new(ref CPU.Bus);
+
+            MMIO mmio = new();
+            mmio.AttachToBus(ref CPU.Bus);
 
             _bios = new(() => CPU.Registers.GetRegisterRef(15));
         }
@@ -53,7 +56,7 @@ namespace Trident.Core.Machine
                 {
                     Scheduler.Step(Scheduler.RemainingCycles);
 
-                    if (InterruptController.IRQAvailable)
+                    if (IRQController.IRQAvailable)
                     {
                         Scheduler.Step(1);
                         CPU.Halted = false;
@@ -66,7 +69,7 @@ namespace Trident.Core.Machine
         public void Reset()
         {
             CPU.Reset();
-            InterruptController.Reset();
+            IRQController.Reset();
             // TODO: reset other components
 
             if (ShouldSkipBIOS)
