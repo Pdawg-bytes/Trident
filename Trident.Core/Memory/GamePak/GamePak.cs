@@ -66,7 +66,7 @@ namespace Trident.Core.Memory.GamePak
             if (TAccess.IsLower)
                 if (IsGPIOAddress(address) && _gpio.Readable) return _gpio.Read(address);
             else
-                // EEPROM does not use the address parameter; it is a purely serial device. Pass in 0xFFFFFFFF to signify that it doesn't matter.
+                // EEPROM does not use the address parameter; it is a serial device. Pass in 0xFFFFFFFF to signify that it doesn't matter.
                 if (IsEEPROMAddress(address)) return _backupDevice.Read(0xFFFF_FFFF);
 
             // Seqential accesses from one address will not overwrite the pointer! We should instead use the auto-incremented value.

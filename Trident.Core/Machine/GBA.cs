@@ -2,6 +2,7 @@
 using Trident.Core.CPU;
 using Trident.Core.Memory;
 using Trident.Core.Scheduling;
+using Trident.Core.Hardware.IO;
 using Trident.Core.Memory.GamePak;
 using Trident.Core.Hardware.Controller;
 using Trident.Core.Memory.GamePak.GPIO;
@@ -23,21 +24,31 @@ namespace Trident.Core.Machine
         private readonly UnusedSection _unused = new();
         private readonly EWRAM _eWRAM = new();
         private readonly IWRAM _iWRAM = new();
+        private readonly MMIO _mmio;
         private GamePak _gamePak = null;
+
+        private readonly HaltControl _haltControl;
 
         public GBA()
         {
             CPU = new(Scheduler);
             IRQController = new(() => CPU.Halted = false);
             CPU.AttachIRQController(IRQController);
+            _haltControl = new(() => CPU.Halted = true);
 
-            CPU.AttachBus(new GBABus());
-            _busView = new(ref CPU.Bus);
-
-            MMIO mmio = new();
-            mmio.AttachToBus(ref CPU.Bus);
+            BusBuilder builder = new();
 
             _bios = new(() => CPU.Registers.GetRegisterRef(15));
+            builder.Attach(MemoryRegion.BIOS, _bios.GetAccessHandler());
+
+            builder.Attach(MemoryRegion.EWRAM, _eWRAM.GetAccessHandler());
+            builder.Attach(MemoryRegion.IWRAM, _iWRAM.GetAccessHandler());
+
+            _mmio = new(_haltControl);
+            builder.Attach(MemoryRegion.MMIO, _mmio.GetAccessHandler());
+
+            CPU.AttachBus(builder.Build());
+            _busView = new(ref CPU.Bus);
         }
 
         public T? GetGPIODevice<T>() where T : GPIODevice
@@ -109,7 +120,6 @@ namespace Trident.Core.Machine
                 throw new Exception("BIOS image is not the correct size.");
 
             _bios.LoadBIOS(bios);
-            CPU.Bus.RegisterHandler(0x00, _bios.GetAccessHandler());
         }
 
         public void SkipBIOS()

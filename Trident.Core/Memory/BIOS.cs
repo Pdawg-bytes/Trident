@@ -1,4 +1,5 @@
 ﻿using Trident.Core.Bus;
+using Trident.Core.Global;
 using Trident.Core.CPU.Pipeline;
 using System.Runtime.CompilerServices;
 
@@ -47,7 +48,7 @@ namespace Trident.Core.Memory
 
             int shift = ((int)address & 3) << 3;
             if (_getPC() < 0x4000)
-                _busValue = _memory.Read32(address & 3);
+                _busValue = _memory.Read32(address.Align<uint>());
 
             return _busValue >> shift;
         }

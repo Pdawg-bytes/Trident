@@ -14,7 +14,7 @@ namespace Trident.Core.Scheduling
         internal ulong NextTimestamp => _events.Count > 0 ? _events.Min!.Timestamp : ulong.MaxValue;
         internal ulong RemainingCycles => NextTimestamp - CurrentTimestamp;
 
-        internal Scheduler()
+        public Scheduler()
         {
             foreach (EventType type in Enum.GetValues(typeof(EventType)))
             {

@@ -68,8 +68,7 @@ namespace Trident.Core.CPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void StepThumb(ushort opcode)
         {
-            uint pc = Registers.PC;
-            Pipeline.Prefetch[1] = Bus.Read16(pc, Pipeline.Access);
+            Pipeline.Prefetch[1] = Bus.Read16(Registers.PC, Pipeline.Access);
             
             ThumbInstruction instr = _thumbDispatcher.GetInstruction(opcode);
             instr(opcode);
@@ -78,8 +77,7 @@ namespace Trident.Core.CPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void StepARM(uint opcode)
         {
-            uint pc = Registers.PC;
-            Pipeline.Prefetch[1] = Bus.Read32(pc, Pipeline.Access);
+            Pipeline.Prefetch[1] = Bus.Read32(Registers.PC, Pipeline.Access);
 
             uint cond = opcode >> 28;
             if (cond != CondAL && !ConditionMet(cond, Registers.CPSR))

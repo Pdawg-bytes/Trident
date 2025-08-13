@@ -19,7 +19,7 @@ namespace Trident.Tests.SingleStep.Infrastructure
 
             return Enumerable.Range(0, consumerCount).Select(workerId => Task.Run(async () =>
             {
-                var cpu = new ARM7TDMI<TransactionalMemory>();
+                var cpu = new ARM7TDMI<TransactionalMemory>(new Core.Scheduling.Scheduler());
                 cpu.AttachBus(new TransactionalMemory());
                 cpu.Reset();
 

@@ -42,6 +42,7 @@ namespace Trident.Core.CPU.Registers
             _bankParams[(uint)PrivilegeMode.ABT] =      new(13, 18, 2, 4);
             _bankParams[(uint)PrivilegeMode.UND] =  new(13, 20, 2, 5);
 
+            ResetRegisters();
             CurrentMode = PrivilegeMode.SYS;
             SwitchMode(PrivilegeMode.SYS);
         }

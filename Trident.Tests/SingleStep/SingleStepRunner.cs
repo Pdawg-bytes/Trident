@@ -46,7 +46,7 @@ namespace Trident.Tests.SingleStep
 
         public static IEnumerable<string[]> GetJsonFiles()
         {
-            string baseDir = @"D:\Source\Git\ARM7TDMI\v1";
+            string baseDir = @"C:\Users\pgago\Source\Git\ARM7TDMI\v1";
             foreach (var file in Directory.GetFiles(baseDir, "*.json"))
                 yield return new string[] { file };
         }
