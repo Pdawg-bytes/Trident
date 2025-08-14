@@ -9,6 +9,6 @@ namespace Trident.Commands
         private readonly GBAKey _key = key;
         private readonly bool _pressed = pressed;
 
-        public override void Execute(GBA gba) => gba.SetKeyState(_key, _pressed);
+        public override void Execute(GBA gba, EmulatorThread thread) => gba.SetKeyState(_key, _pressed);
     }
 }

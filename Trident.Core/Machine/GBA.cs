@@ -21,7 +21,6 @@ namespace Trident.Core.Machine
         public bool ShouldSkipBIOS = true;
 
         private readonly BIOS _bios;
-        private readonly UnusedSection _unused = new();
         private readonly EWRAM _eWRAM = new();
         private readonly IWRAM _iWRAM = new();
         private readonly MMIO _mmio;
@@ -117,8 +116,10 @@ namespace Trident.Core.Machine
         public GamePakInfo GetGamePakInfo() => _gamePak.PakInfo;
 
 
-        public void AttachBIOS(byte[] bios)
+        public void AttachBIOS(string path)
         {
+            byte[] bios = File.ReadAllBytes(path);
+
             if (bios.Length != BIOS.MEMORY_SIZE)
                 throw new Exception("BIOS image is not the correct size.");
 

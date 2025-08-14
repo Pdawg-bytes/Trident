@@ -5,19 +5,14 @@ using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Memory
 {
-    internal class BIOS
+    internal class BIOS(Func<uint> getPC)
     {
         internal const uint MEMORY_SIZE = 16 * 1024;
-        private readonly UnsafeMemoryBlock _memory;
+        private readonly UnsafeMemoryBlock _memory = new(MEMORY_SIZE);
         private uint _busValue;
 
-        private readonly Func<uint> _getPC;
+        private readonly Func<uint> _getPC = getPC;
 
-        internal BIOS(Func<uint> getPC)
-        {
-            _memory = new(MEMORY_SIZE);
-            _getPC = getPC;
-        }
 
         internal void LoadBIOS(byte[] bios) => _memory.WriteBytes(0, bios);
 
@@ -27,7 +22,7 @@ namespace Trident.Core.Memory
             (
                 read8:  (address, _) => (byte)Read(address),
                 read16: (address, _) => (ushort)Read(address.Align<ushort>()),
-                read32: (address, _) => (uint)Read(address.Align<uint>()),
+                read32: (address, _) => Read(address.Align<uint>()),
 
                 null,
                 null,
@@ -47,6 +42,8 @@ namespace Trident.Core.Memory
 
             if (_getPC() < 0x4000)
                 _busValue = _memory.Read32(address);
+            else
+                Console.WriteLine($"Illegal BIOS read: 0x{address:X8}");
 
             return _busValue >> ((int)(address & 3) << 3);
         }

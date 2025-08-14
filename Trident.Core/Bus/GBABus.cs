@@ -147,7 +147,7 @@ namespace Trident.Core.Bus
         internal void DisposeMemory()
         {
             foreach (var handler in _accessHandlers)
-                handler.Dispose();
+                handler.Dispose?.Invoke();
         }
     }
 }

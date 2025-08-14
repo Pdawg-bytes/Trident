@@ -10,15 +10,20 @@ namespace Trident.Commands
         private readonly LoadType _loadType = loadType;
         private readonly string _path = path;
 
-        public override void Execute(GBA gba)
+        public override void Execute(GBA gba, EmulatorThread thread)
         {
+            thread.Stop();
+
             switch (_loadType)
             {
                 case LoadType.BIOS:
-                    gba.AttachBIOS(File.ReadAllBytes(_path)); break;
+                    gba.AttachBIOS(_path); break;
                 case LoadType.GamePak:
                     gba.AttachGamePak(_path); break;
             }
+
+            gba.Reset();
+            thread.Start();
         }
     }
 }

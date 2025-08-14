@@ -6,7 +6,7 @@ using Trident.Core.Hardware.Controller;
 
 namespace Trident.Emulation
 {
-    internal class EmulatorThread
+    public class EmulatorThread
     {
         private GBA _gba;
         private Thread _thread;
@@ -61,6 +61,7 @@ namespace Trident.Emulation
             if (_initialized)
                 throw new InvalidOperationException("Attempted to re-intialize EmulatorThread.");
 
+            _initialized = true;
             _thread = new Thread(RunLoop);
             _thread.Start();
             _initialized = true;
@@ -70,6 +71,7 @@ namespace Trident.Emulation
         {
             if (_initialized)
             {
+                _paused = _speedCapped = true;
                 _initialized = false;
                 _frameCounter.Reset();
                 _thread.Join();
@@ -84,7 +86,7 @@ namespace Trident.Emulation
 
                 if (!_paused)
                 {
-                    _gba.RunFor(CyclesPerFrame);
+                    //_gba.RunFor(CyclesPerFrame);
                     _frameCounter.FrameRendered();
                 }
 
@@ -119,7 +121,7 @@ namespace Trident.Emulation
         internal void EnqueueCommand(EmulatorCommand command)
         {
             if (Thread.CurrentThread.ManagedThreadId == _thread.ManagedThreadId)
-                command.Execute(_gba);
+                command.Execute(_gba, this);
             else
                 _commandQueue.Enqueue(command);
         }
@@ -127,7 +129,7 @@ namespace Trident.Emulation
         private void ProcessCommands()
         {
             while (_commandQueue.TryDequeue(out var command))
-                command.Execute(_gba);
+                command.Execute(_gba, this);
         }
     }
 }

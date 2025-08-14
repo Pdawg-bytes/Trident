@@ -5,6 +5,6 @@ namespace Trident.Commands
 {
     internal class ResetCommand : EmulatorCommand
     {
-        public override void Execute(GBA gba) => gba.Reset();
+        public override void Execute(GBA gba, EmulatorThread thread) => gba.Reset();
     }
 }
