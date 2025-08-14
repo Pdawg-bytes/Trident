@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using Trident.Core.Global;
 using Trident.Core.Hardware.IO;
 using static Trident.Core.Hardware.IO.IORegisters;
 
@@ -13,13 +14,13 @@ namespace Trident.Core.Memory
         {
             return new MemoryAccessHandler
             (
-                read8: (address, _) => Read8(address),
-                read16: (address, _) => Read16(address),
-                read32: (address, _) => Read32(address),
+                read8:  (address, _) => Read8(address),
+                read16: (address, _) => Read16(address.Align<ushort>()),
+                read32: (address, _) => Read32(address.Align<uint>()),
 
-                write8: (address, _, value) => Write8(address, value),
-                write16: (address, _, value) => Write16(address, value),
-                write32: (address, _, value) => Write32(address, value),
+                write8:  (address, _, value) => Write8(address, value),
+                write16: (address, _, value) => Write16(address.Align<ushort>(), value),
+                write32: (address, _, value) => Write32(address.Align<uint>(), value),
 
                 dispose: null
             );

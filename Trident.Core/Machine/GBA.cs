@@ -32,13 +32,16 @@ namespace Trident.Core.Machine
         public GBA()
         {
             CPU = new(Scheduler);
+            Func<uint> getPC = () => CPU.Registers.GetRegisterRef(15);
+
             IRQController = new(() => CPU.Halted = false);
             CPU.AttachIRQController(IRQController);
-            _haltControl = new(() => CPU.Halted = true);
+
+            _haltControl = new(() => CPU.Halted = true, getPC);
 
             BusBuilder builder = new();
 
-            _bios = new(() => CPU.Registers.GetRegisterRef(15));
+            _bios = new(getPC);
             builder.Attach(MemoryRegion.BIOS, _bios.GetAccessHandler());
 
             builder.Attach(MemoryRegion.EWRAM, _eWRAM.GetAccessHandler());

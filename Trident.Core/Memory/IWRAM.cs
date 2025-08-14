@@ -1,5 +1,4 @@
 ﻿using Trident.Core.Global;
-using Trident.Core.CPU.Pipeline;
 using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Memory
@@ -8,66 +7,38 @@ namespace Trident.Core.Memory
     {
         internal const uint MEMORY_SIZE = 32 * 1024;
         private const uint ADDR_MASK = MEMORY_SIZE - 1;
-        private UnsafeMemoryBlock _memory;
-
-        internal IWRAM() => _memory = new(MEMORY_SIZE);
-
+        private readonly UnsafeMemoryBlock _memory = new(MEMORY_SIZE);
 
         internal MemoryAccessHandler GetAccessHandler()
         {
             return new MemoryAccessHandler
             (
-                read8: this.Read8,
-                read16: this.Read16,
-                read32: this.Read32,
+                read8:  (address, _) => Read<byte>(address),
+                read16: (address, _) => Read<ushort>(address),
+                read32: (address, _) => Read<uint>(address),
 
-                write8: this.Write8,
-                write16: this.Write16,
-                write32: this.Write32,
+                write8:  (address, _, value) => Write<byte>(address, value),
+                write16: (address, _, value) => Write<ushort>(address, value),
+                write32: (address, _, value) => Write<uint>(address, value),
 
                 dispose: _memory.Dispose
             );
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte Read8(uint address, PipelineAccess access)
-        {
-            return _memory.Read8(address & ADDR_MASK);
-        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ushort Read16(uint address, PipelineAccess access)
+        private T Read<T>(uint address) where T : unmanaged
         {
-            address = address.Align<ushort>();
-            return _memory.Read16(address & ADDR_MASK);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private uint Read32(uint address, PipelineAccess access)
-        {
-            address = address.Align<uint>();
-            return _memory.Read32(address & ADDR_MASK);
+            // TODO: step sched 1
+            return _memory.Read<T>(address.Align<T>() & ADDR_MASK);
         }
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Write8(uint address, PipelineAccess access, byte value)
+        private void Write<T>(uint address, T value) where T : unmanaged
         {
-            _memory.Write8(address & ADDR_MASK, value);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Write16(uint address, PipelineAccess access, ushort value)
-        {
-            address = address.Align<ushort>();
-            _memory.Write16(address & ADDR_MASK, value);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Write32(uint address, PipelineAccess access, uint value)
-        {
-            address = address.Align<uint>();
-            _memory.Write32(address & ADDR_MASK, value);
+            // TODO: step sched 1
+            _memory.Write(address.Align<T>() & ADDR_MASK, value);
         }
     }
 }

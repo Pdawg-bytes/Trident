@@ -19,47 +19,36 @@ namespace Trident.Core.Memory
             _getPC = getPC;
         }
 
+        internal void LoadBIOS(byte[] bios) => _memory.WriteBytes(0, bios);
 
         internal MemoryAccessHandler GetAccessHandler()
         {
             return new MemoryAccessHandler
             (
-                read8: this.Read8,
-                read16: this.Read16,
-                read32: this.Read32,
+                read8:  (address, _) => (byte)Read(address),
+                read16: (address, _) => (ushort)Read(address.Align<ushort>()),
+                read32: (address, _) => (uint)Read(address.Align<uint>()),
 
-                write8: this.Write8,
-                write16: this.Write16,
-                write32: this.Write32,
+                null,
+                null,
+                null,
 
                 dispose: _memory.Dispose
             );
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte Read8(uint address, PipelineAccess access) => (byte)Read32(address, access);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ushort Read16(uint address, PipelineAccess access) => (ushort)Read32(address, access);
-
-        private unsafe uint Read32(uint address, PipelineAccess access)
+        private uint Read(uint address)
         {
+            // TODO: Step scheduler 1
+
             if (address >= 0x4000) return 0x0; // TODO: Return open bus; not implemented yet.
 
-            int shift = ((int)address & 3) << 3;
             if (_getPC() < 0x4000)
-                _busValue = _memory.Read32(address.Align<uint>());
+                _busValue = _memory.Read32(address);
 
-            return _busValue >> shift;
+            return _busValue >> ((int)(address & 3) << 3);
         }
-
-        internal void LoadBIOS(byte[] bios) => _memory.WriteBytes(0, bios);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Write8(uint address, PipelineAccess access, byte value) { /* TODO: Step sched */ }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Write16(uint address, PipelineAccess access, ushort value) { /* TODO: Step sched */ }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Write32(uint address, PipelineAccess access, uint value) { /* TODO: Step sched */ }
     }
 }
