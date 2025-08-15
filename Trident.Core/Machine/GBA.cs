@@ -27,6 +27,7 @@ namespace Trident.Core.Machine
         private GamePak _gamePak = null;
 
         private readonly HaltControl _haltControl;
+        private readonly PostFlag _postFlag;
 
         public GBA()
         {
@@ -37,6 +38,7 @@ namespace Trident.Core.Machine
             CPU.AttachIRQController(IRQController);
 
             _haltControl = new(() => CPU.Halted = true, getPC);
+            _postFlag = new(getPC);
 
             BusBuilder builder = new();
 
@@ -46,8 +48,16 @@ namespace Trident.Core.Machine
             builder.Attach(MemoryRegion.EWRAM, _eWRAM.GetAccessHandler());
             builder.Attach(MemoryRegion.IWRAM, _iWRAM.GetAccessHandler());
 
-            _mmio = new(_haltControl);
+
+            _mmio = new
+            (
+                IRQController,
+                _haltControl, 
+                _postFlag
+            );
+
             builder.Attach(MemoryRegion.MMIO, _mmio.GetAccessHandler());
+
 
             CPU.AttachBus(builder.Build());
             _busView = new(ref CPU.Bus);

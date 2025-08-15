@@ -12,7 +12,7 @@ namespace Trident.Commands
 
         public override void Execute(GBA gba, EmulatorThread thread)
         {
-            thread.Stop();
+            thread.SetPause(true);
 
             switch (_loadType)
             {
@@ -23,7 +23,6 @@ namespace Trident.Commands
             }
 
             gba.Reset();
-            thread.Start();
         }
     }
 }

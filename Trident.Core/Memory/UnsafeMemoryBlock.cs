@@ -32,12 +32,16 @@ namespace Trident.Core.Memory
 
         internal void WriteBytes(int address, byte[] data)
         {
-            if (data.Length > (int)Size)
+            ArgumentOutOfRangeException.ThrowIfNegative(address);
+            ArgumentNullException.ThrowIfNull(data);
+
+            long end = (long)address + data.Length;
+            if (end > (long)Size)
                 throw new ArgumentException("Data too large for copy.");
 
             fixed (byte* src = data)
             {
-                Buffer.MemoryCopy(src, _ptr + address, (long)(Size - (nuint)address), data.Length);
+                Buffer.MemoryCopy(src, _ptr + address, (long)Size - address, data.Length);
             }
         }
 

@@ -1,4 +1,6 @@
-﻿namespace Trident.Core.Hardware.Interrupts
+﻿using static Trident.Core.Hardware.IO.IORegisters;
+
+namespace Trident.Core.Hardware.Interrupts
 {
     internal class InterruptController
     {
@@ -33,19 +35,19 @@
 
         internal byte Read8(uint address) => address switch
         {
-            0 => (byte)(_interruptEnable & 0xFF),
-            1 => (byte)(_interruptEnable >> 8),
-            2 => (byte)(_interruptFlag & 0xFF),
-            3 => (byte)(_interruptFlag >> 8),
-            4 => _globalInterruptEnable ? (byte)1 : (byte)0,
+            IE     => (byte)(_interruptEnable & 0xFF),
+            IE + 1 => (byte)(_interruptEnable >> 8),
+            IF     => (byte)(_interruptFlag & 0xFF),
+            IF + 1 => (byte)(_interruptFlag >> 8),
+            IME    => _globalInterruptEnable ? (byte)1 : (byte)0,
             _ => 0
         };
 
         internal ushort Read16(uint address) => address switch
         {
-            0 => _interruptEnable,
-            2 => _interruptFlag,
-            4 => _globalInterruptEnable ? (ushort)1 : (ushort)0,
+            IE  => _interruptEnable,
+            IF  => _interruptFlag,
+            IME => _globalInterruptEnable ? (ushort)1 : (ushort)0,
             _ => 0
         };
 
@@ -53,24 +55,24 @@
         {
             switch (address)
             {
-                case 0:
+                case IE:
                     // Bits 14-15 are not used as interrupt sources, so mask out the top 2 bits.
                     _interruptEnable &= 0x3F00;
                     _interruptEnable |= value;
                     break;
-                case 1:
+                case IE + 1:
                     _interruptEnable &= 0x00FF;
                     _interruptFlag |= value;
                     break;
 
-                case 2:
+                case IF:
                     _interruptFlag &= (byte)~value;
                     break;
-                case 3:
+                case IF + 1:
                     _interruptFlag &= (byte)~(value << 8);
                     break;
 
-                case 4:
+                case IME:
                     _globalInterruptEnable = (value & 1) != 0;
                     break;
             }
@@ -82,15 +84,15 @@
         {
             switch (address)
             {
-                case 0:
+                case IE:
                     _interruptEnable = (ushort)(value & 0x3FFF);
                     break;
 
-                case 2:
+                case IF:
                     _interruptFlag &= (ushort)~value;
                     break;
 
-                case 4:
+                case IME:
                     _globalInterruptEnable = (value & 1) != 0;
                     break;
             }

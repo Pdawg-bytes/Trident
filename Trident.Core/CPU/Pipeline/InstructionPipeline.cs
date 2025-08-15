@@ -5,9 +5,6 @@
         public uint[] Prefetch;
         public PipelineAccess Access;
 
-        public InstructionPipeline()
-        {
-            Prefetch = new uint[2];
-        }
+        public InstructionPipeline() => Prefetch = new uint[2];
     }
 }
