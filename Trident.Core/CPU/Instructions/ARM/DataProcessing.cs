@@ -96,7 +96,7 @@ namespace Trident.Core.CPU
             bool isR15 = rd == 15;
             if (isR15)
             {
-                if (TTraits.SetFlags)
+                if (TTraits.SetFlags && !RegisterSet.IsUserOrSystem(Registers.CurrentMode))
                 {
                     uint spsr = (uint)Registers.SPSR;
                     Registers.SwitchMode((PrivilegeMode)(spsr & 0x1F));
@@ -107,7 +107,7 @@ namespace Trident.Core.CPU
                 if (!isTestOp)
                 {
                     if (Registers.IsFlagSet(Flags.T)) ReloadPipelineThumb();
-                    else ReloadPipelineARM();
+                    else                              ReloadPipelineARM();
                 }
             }
 
