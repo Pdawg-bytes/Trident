@@ -40,7 +40,7 @@ namespace Trident.Core.Scheduling
         internal void Register(EventType eventType, Action<ulong> callback) => _callbacks[eventType] = callback;
         internal SchedulerEvent? EventByUID(ulong uid) => _uidEventMap.GetValueOrDefault(uid);
 
-
+        internal void Step(uint cycles) => Step((ulong)cycles);
         internal void Step(ulong cycles)
         {
             ulong timestampNext = CurrentTimestamp + cycles;

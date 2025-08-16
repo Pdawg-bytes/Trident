@@ -80,13 +80,15 @@ namespace Trident.Emulation
 
         private void RunLoop()
         {
+            _gba.Reset();
+
             while (_initialized)
             {
                 ProcessCommands();
 
                 if (!_paused)
                 {
-                    //_gba.RunFor(CyclesPerFrame);
+                    _gba.RunFor(CyclesPerFrame);
                     _frameCounter.FrameRendered();
                 }
 

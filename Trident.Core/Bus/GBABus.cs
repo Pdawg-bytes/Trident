@@ -3,15 +3,22 @@ using Trident.Core.CPU.Pipeline;
 
 namespace Trident.Core.Bus
 {
-    public readonly struct GBABus : IDataBus
+    public struct GBABus : IDataBus
     {
+        private readonly Action<uint> _step;
+
         private readonly MemoryAccessHandler[] _accessHandlers;
         private readonly MemoryAccessHandler _unusedSection;
+        private readonly UnusedSection _unused;
 
-        public GBABus()
+        internal PipelineAccess LastAccess;
+
+        public GBABus(Action<uint> step)
         {
-            UnusedSection unused = new();
-            _unusedSection = unused.GetAccessHandler();
+            _step = step;
+
+            _unused = new(step);
+            _unusedSection = _unused.GetAccessHandler();
 
             _accessHandlers = 
             [
@@ -43,6 +50,8 @@ namespace Trident.Core.Bus
             if (page < 0 || page >= 16)
                 throw new ArgumentOutOfRangeException(nameof(page), $"Invalid page index {page}. Must be in 0..15.");
 
+            if (handler.IsNull()) return;
+
             _accessHandlers[page] = handler;
         }
 
@@ -55,7 +64,7 @@ namespace Trident.Core.Bus
             if (handlers.Any(handler => handler.page < 0 || handler.page >= 16))
                 throw new ArgumentOutOfRangeException(nameof(handlers), $"Invalid page index for one or more handlers.");
 
-            foreach (var handler in handlers)
+            foreach (var handler in handlers.Where(mapping => !mapping.handler.IsNull()))
                 _accessHandlers[handler.page] = handler.handler;
         }
 
@@ -77,25 +86,31 @@ namespace Trident.Core.Bus
         public byte Read8(uint address, PipelineAccess access)
         {
             uint section = address >> 24;
-            if (section > 15) return (byte)ReadOpenBus(address);
+            if (section > 0x0F) return (byte)ReadOpenBus(address);
 
-            return _accessHandlers[section].Read8(address, access);
+            byte value = _accessHandlers[section].Read8(address, access);
+            LastAccess = access;
+            return value;
         }
 
         public ushort Read16(uint address, PipelineAccess access)
         {
             uint section = address >> 24;
-            if (section > 15) return (ushort)ReadOpenBus(address);
+            if (section > 0x0F) return (ushort)ReadOpenBus(address);
 
-            return _accessHandlers[section].Read16(address, access);
+            ushort value = _accessHandlers[section].Read16(address, access);
+            LastAccess = access;
+            return value;
         }
 
         public uint Read32(uint address, PipelineAccess access)
         {
             uint section = address >> 24;
-            if (section > 15) return ReadOpenBus(address);
+            if (section > 0x0F) return ReadOpenBus(address);
 
-            return _accessHandlers[section].Read32(address, access);
+            uint value = _accessHandlers[section].Read32(address, access);
+            LastAccess = access;
+            return value;
         }
         #endregion
 
@@ -103,42 +118,46 @@ namespace Trident.Core.Bus
         public void Write8(uint address, byte value, PipelineAccess access)
         {
             uint section = address >> 24;
-            if (section < 2 || section > 15)
+            if (section < 2 || section > 0x0F)
             {
-                // Step scheduler 1 cycle for invalid access
+                _step(1);
                 return;
             }
 
             _accessHandlers[section].Write8(address, access, value);
+            LastAccess = access;
         }
 
         public void Write16(uint address, ushort value, PipelineAccess access)
         {
             uint section = address >> 24;
-            if (section < 2 || section > 15)
+            if (section < 2 || section > 0x0F)
             {
-                // Step scheduler 1 cycle for invalid access
+                _step(1);
                 return;
             }
 
             _accessHandlers[section].Write16(address, access, value);
+            LastAccess = access;
         }
 
         public void Write32(uint address, uint value, PipelineAccess access)
         {
             uint section = address >> 24;
-            if (section < 2 || section > 15)
+            if (section < 2 || section > 0x0F)
             {
-                // Step scheduler 1 cycle for invalid access
+                _step(1);
                 return;
             }
 
             _accessHandlers[section].Write32(address, access, value);
+            LastAccess = access;
         }
         #endregion
 
         private uint ReadOpenBus(uint address)
         {
+            _step(1);
             // TODO: Open bus behavior
             return 0;
         }

@@ -1,29 +1,43 @@
-﻿using System.Runtime.CompilerServices;
-using Trident.Core.Global;
-using Trident.Core.Hardware.Interrupts;
+﻿using Trident.Core.Global;
 using Trident.Core.Hardware.IO;
+using System.Runtime.CompilerServices;
+using Trident.Core.Hardware.Interrupts;
+
 using static Trident.Core.Hardware.IO.IORegisters;
 
 namespace Trident.Core.Memory
 {
-    internal class MMIO(InterruptController irqController, HaltControl haltControl, PostFlag postFlag)
+    internal class MMIO
+    (
+        Action<uint> step,
+
+        InterruptController irqController, 
+
+        WaitControl waitControl, 
+        PostFlag postFlag, 
+        HaltControl haltControl
+    )
     {
+        private readonly Action<uint> _step = step;
+
         private readonly InterruptController _irqController = irqController;
-        private readonly HaltControl _haltControl = haltControl;
+
+        private readonly WaitControl _waitControl = waitControl;
         private readonly PostFlag _postFlag = postFlag;
+        private readonly HaltControl _haltControl = haltControl;
 
 
         internal MemoryAccessHandler GetAccessHandler()
         {
             return new MemoryAccessHandler
             (
-                read8:  (address, _) => Read8(address),
-                read16: (address, _) => Read16(address.Align<ushort>()),
-                read32: (address, _) => Read32(address.Align<uint>()),
+                read8:  (address, _) => { _step(1); return Read8(address); },
+                read16: (address, _) => { _step(1); return Read16(address.Align<ushort>()); },
+                read32: (address, _) => { _step(1); return Read32(address.Align<uint>()); },
 
-                write8:  (address, _, value) => Write8(address, value),
-                write16: (address, _, value) => Write16(address.Align<ushort>(), value),
-                write32: (address, _, value) => Write32(address.Align<uint>(), value),
+                write8:  (address, _, value) => { _step(1); Write8(address, value); },
+                write16: (address, _, value) => { _step(1); Write16(address.Align<ushort>(), value); },
+                write32: (address, _, value) => { _step(1); Write32(address.Align<uint>(), value); },
 
                 dispose: null
             );
@@ -46,6 +60,12 @@ namespace Trident.Core.Memory
                 => 0,
 
             // System Control Registers
+            WAITCNT + 0 => _waitControl.ReadLower(),
+            WAITCNT + 1 => _waitControl.ReadUpper(),
+            WAITCNT + 2 or
+            WAITCNT + 3
+                => 0,
+
             POSTFLG => _postFlag.Read(),
             HALTCNT => 0,
 
@@ -91,6 +111,8 @@ namespace Trident.Core.Memory
                     _irqController.Write8(address, value); break;
 
                 // System Control Registers
+                case WAITCNT + 0: _waitControl.WriteLower(value); break;
+                case WAITCNT + 1: _waitControl.WriteUpper(value); break;
                 case POSTFLG: _postFlag.Write(value);    break;
                 case HALTCNT: _haltControl.Write(value); break;
             }

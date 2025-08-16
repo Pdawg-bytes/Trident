@@ -21,13 +21,15 @@ namespace Trident.Core.Machine
         public bool ShouldSkipBIOS = true;
 
         private readonly BIOS _bios;
-        private readonly EWRAM _eWRAM = new();
-        private readonly IWRAM _iWRAM = new();
+        private readonly EWRAM _eWRAM;
+        private readonly IWRAM _iWRAM;
         private readonly MMIO _mmio;
         private GamePak _gamePak = null;
 
-        private readonly HaltControl _haltControl;
+        private readonly WaitControl _waitControl = new();
         private readonly PostFlag _postFlag;
+        private readonly HaltControl _haltControl;
+
 
         public GBA()
         {
@@ -42,24 +44,31 @@ namespace Trident.Core.Machine
 
             BusBuilder builder = new();
 
-            _bios = new(getPC);
+            _bios = new(getPC, Scheduler.Step);
             builder.Attach(MemoryRegion.BIOS, _bios.GetAccessHandler());
 
+            _eWRAM = new(Scheduler.Step);
             builder.Attach(MemoryRegion.EWRAM, _eWRAM.GetAccessHandler());
+
+            _iWRAM = new(Scheduler.Step);
             builder.Attach(MemoryRegion.IWRAM, _iWRAM.GetAccessHandler());
 
 
             _mmio = new
             (
+                Scheduler.Step,
+
                 IRQController,
-                _haltControl, 
-                _postFlag
+
+                _waitControl,
+                _postFlag,
+                _haltControl
             );
 
             builder.Attach(MemoryRegion.MMIO, _mmio.GetAccessHandler());
 
 
-            CPU.AttachBus(builder.Build());
+            CPU.AttachBus(builder.Build(Scheduler.Step));
             _busView = new(ref CPU.Bus);
         }
 
@@ -103,7 +112,7 @@ namespace Trident.Core.Machine
         public void AttachGamePak(string filePath)
         {
             _gamePak?.Dispose();
-            _gamePak = GamePakLoader.Load(File.ReadAllBytes(filePath));
+            _gamePak = GamePakLoader.Load(File.ReadAllBytes(filePath), () => CPU.Bus.LastAccess, Scheduler.Step, _waitControl);
 
             MemoryAccessHandler gamePakUpper = _gamePak.GetUpperHandler();
             MemoryAccessHandler gamePakLower = _gamePak.GetLowerHandler();

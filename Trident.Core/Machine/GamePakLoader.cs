@@ -1,5 +1,8 @@
 ﻿using System.Text;
 using Trident.Core.Global;
+using Trident.Core.Scheduling;
+using Trident.Core.Hardware.IO;
+using Trident.Core.CPU.Pipeline;
 using Trident.Core.Memory.GamePak;
 using System.Runtime.InteropServices;
 using Trident.Core.Memory.GamePak.Backup;
@@ -8,7 +11,7 @@ namespace Trident.Core.Machine
 {
     internal static class GamePakLoader
     {
-        internal unsafe static GamePak Load(byte[] romData, byte[]? saveData = null)
+        internal unsafe static GamePak Load(byte[] romData, Func<PipelineAccess> getLastAccess, Action<uint> step, WaitControl waitControl, byte[]? saveData = null)
         {
             if (romData.Length < ROMHeader.Size || romData.Length > GamePak.MaxSize)
                 throw new ArgumentException("ROM file is either too small or too large.");
@@ -16,14 +19,21 @@ namespace Trident.Core.Machine
             ROMHeader header = GetHeader(romData);
             var (title, code, maker) = GetGameInfoStrings(ref header);
 
+            /*
             BackupType backupType = GetBackupType(romData);
-            IBackupDevice backupDevice = null;
-            if (backupType != BackupType.None)
-                backupDevice = CreateBackupDevice(saveData, backupType);
-            else
-                Console.WriteLine("Backup type was not able to be determined."); // TODO: replace with log
+            if (backupType == BackupType.None)
+            {
+                Console.WriteLine("Unable to determine backup type, defaulting to SRAM.");
+                backupType = BackupType.SRAM;
+            }
+            */
+            BackupType backupType = BackupType.None;
+            IBackupDevice? backupDevice = CreateBackupDevice(null, backupType);
 
             // TODO: Load GPIO data from cartridge
+
+            uint addressMask = GamePak.MaxSize - 1;
+            // TODO: when ROM is mirrored: ((uint)romData.Length).NearestPow2() - 1
 
             GamePakInfo info = new()
             {
@@ -35,12 +45,11 @@ namespace Trident.Core.Machine
 
                 BackupType = backupType,
                 BackupSize = backupDevice == null ? 0 : backupDevice.Size,
+
+                AddressMask = addressMask
             };
 
-            uint addressMask = ((uint)romData.Length).NearestPow2() - 1 /*GamePak.MaxSize - 1*/;
-            // TODO: when ROM is mirrored: ((uint)romData.Length).NearestPow2() - 1
-
-            return new GamePak(romData, addressMask, info, backupDevice, null);
+            return new GamePak(romData, info, getLastAccess, step, waitControl, backupDevice, null);
         }
 
         private static BackupType GetBackupType(byte[] romData)

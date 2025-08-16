@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+﻿using Trident.Core.CPU.Pipeline;
 using static Trident.Core.Hardware.IO.IORegisters;
 
 namespace Trident.Core.Hardware.IO
@@ -39,69 +39,64 @@ namespace Trident.Core.Hardware.IO
 
     internal class WaitControl
     {
-        private int _sramWait;
+        private ushort _waitcnt;
 
-        private int[] _ws0 = new int[2];
-        private int[] _ws1 = new int[2];
-        private int[] _ws2 = new int[2];
+        private readonly uint[] _nonSequentialTimings = [ 4, 3, 2, 8 ];
+        private readonly uint[] _sequentialWS0        = [ 2, 1 ];
+        private readonly uint[] _sequentialWS1        = [ 4, 1 ];
+        private readonly uint[] _sequentialWS2        = [ 8, 1 ];
 
-        private int _phiSpeed;
+        internal readonly uint[][] AccessTimings = new uint[2][];
 
-        private bool _prefetchEnabled;
-        private const bool _isCGB = false;
+        internal int PHITerminalSpeed;
+        internal bool PrefetchEnabled;
+        internal const bool IsCGB = false;
 
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte Read(bool upper)
+        internal WaitControl()
         {
-            // WAITCNT
-            if (!upper) return (byte)
-            (
-                _sramWait |
-                (_ws0[0] << 2) | (_ws0[1] << 4) |
-                (_ws1[0] << 5) | (_ws1[1] << 7)
-            );
-
-            // WAITCNT + 1
-            else return (byte)
-            (
-                _ws2[0] | (_ws2[1] << 2) |
-                (_phiSpeed << 3) |
-                (_prefetchEnabled ? 64 : 0) |
-                (_isCGB ? 128 : 0)
-            );
+            AccessTimings[(int)PipelineAccess.NonSequential] = [ 2, 4, 8, 4 ];
+            AccessTimings[(int)PipelineAccess.Sequential]    = [ 4, 4, 4, 4 ];
         }
-        internal byte ReadLower() => Read(false);
-        internal byte ReadUpper() => Read(true);
 
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Write(bool upper, byte value)
+        internal byte ReadLower() => (byte)_waitcnt;
+        internal byte ReadUpper() => (byte)((_waitcnt >> 8) & 0x7F); // Force GamePak type to 0
+
+        internal void WriteLower(byte value)
         {
-            // WAITCNT
-            if (!upper)
-            {
-                _sramWait = value & 0b11;
+            int ws0First =  (value >> 2) & 0b11;
+            int ws0Second = (value >> 4) & 0b01;
+            int ws1First =  (value >> 5) & 0b11;
+            int ws1Second = (value >> 7) & 0b01;
 
-                _ws0[0] = (value >> 2) & 0b11;
-                _ws0[1] = (value >> 4) & 0b01;
+            AccessTimings[(int)PipelineAccess.NonSequential][0] = _nonSequentialTimings[ws0First];
+            AccessTimings[(int)PipelineAccess.NonSequential][1] = _nonSequentialTimings[ws1First];
 
-                _ws1[0] = (value >> 5) & 0b11;
-                _ws1[0] = (value >> 7) & 0b01;
-            }
+            AccessTimings[(int)PipelineAccess.Sequential][0] = _sequentialWS0[ws0Second];
+            AccessTimings[(int)PipelineAccess.Sequential][1] = _sequentialWS1[ws1Second];
 
-            // WAITCNT + 1
-            else
-            {
-                _ws2[0] = value        & 0b11;
-                _ws2[1] = (value >> 2) & 0b01;
+            // Backup uses the same timing for both
+            int sramWait = value & 0b11;
+            AccessTimings[(int)PipelineAccess.NonSequential][3] = _nonSequentialTimings[sramWait];
+            AccessTimings[(int)PipelineAccess.Sequential][3]    = _nonSequentialTimings[sramWait];
 
-                _phiSpeed = (value >> 3) & 0b01;
-
-                _prefetchEnabled = ((value >> 6) & 1) != 0;
-            }
+            _waitcnt &= 0xFF00;
+            _waitcnt |= value;
         }
-        internal void WriteLower(byte value) => Write(false, value);
-        internal void WriteUpper(byte value) => Write(true, value);
+
+        internal void WriteUpper(byte value)
+        {
+            int ws2First =  (value >> 0) & 0b11;
+            int ws2Second = (value >> 2) & 0b01;
+
+            AccessTimings[(int)PipelineAccess.NonSequential][2] = _nonSequentialTimings[ws2First];
+            AccessTimings[(int)PipelineAccess.Sequential][2]    = _sequentialWS2[ws2Second];
+
+            PHITerminalSpeed = (value >> 3) & 0b11;
+            PrefetchEnabled = ((value >> 6) & 1) != 0;
+
+            _waitcnt &= 0x00FF;
+            _waitcnt |= (ushort)((value & 0x7F) << 8); // Force GamePak type to 0
+        }
     }
 }

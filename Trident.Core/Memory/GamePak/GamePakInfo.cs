@@ -12,5 +12,7 @@ namespace Trident.Core.Memory.GamePak
 
         public BackupType BackupType { get; init; }
         public uint BackupSize { get; init; }
+
+        public uint AddressMask { get; init; }
     }
 }

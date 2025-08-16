@@ -1,4 +1,7 @@
-﻿using System.Runtime.CompilerServices;
+﻿using Trident.Core.Scheduling;
+using Trident.Core.Hardware.IO;
+using Trident.Core.CPU.Pipeline;
+using System.Runtime.CompilerServices;
 using Trident.Core.Memory.GamePak.GPIO;
 using Trident.Core.Memory.GamePak.Backup;
 
@@ -22,13 +25,17 @@ namespace Trident.Core.Memory.GamePak
         private readonly GPIOBus _gpio;
         private readonly bool _isGPIO = false;
 
+        private readonly Action<uint> _step;
+        private readonly WaitControl _waitControl;
+
+        private readonly Func<PipelineAccess> _getLastAccess;
         private readonly MemoryAccessHandler _upperAccessHandler;
         private readonly MemoryAccessHandler _lowerAccessHandler;
         private readonly MemoryAccessHandler _backupAccessHandler = new();
 
-        internal GamePak(byte[] romData, uint addressMask, GamePakInfo info, IBackupDevice? backupDevice, GPIOBus? gpio)
+        internal GamePak(byte[] romData, GamePakInfo info, Func<PipelineAccess> getLastAccess, Action<uint> step, WaitControl waitControl, IBackupDevice? backupDevice, GPIOBus? gpio)
         {
-            _addressMask = addressMask;
+            _addressMask = info.AddressMask;
             PakInfo = info;
 
             if (backupDevice != null)
@@ -48,8 +55,13 @@ namespace Trident.Core.Memory.GamePak
             _romMemory = new((nuint)romData.Length);
             _romMemory.WriteBytes(0, romData);
 
+            _step = step;
+            _waitControl = waitControl;
+
             _upperAccessHandler = GetHandler<UpperAccess>();
             _lowerAccessHandler = GetHandler<LowerAccess>();
+
+            _getLastAccess = getLastAccess;
         }
 
         internal MemoryAccessHandler GetUpperHandler() => _upperAccessHandler;
@@ -62,7 +74,7 @@ namespace Trident.Core.Memory.GamePak
 
         private ushort ReadData16<TAccess>(uint address, bool seqAccess) where TAccess : struct, IAccess
         {
-            address &= 0x01FF_FFFE; // Force align to 16-bit boundary
+            address &= 0x01FFFFFE; // Force align to 16-bit boundary
             if (TAccess.IsLower)
                 if (IsGPIOAddress(address) && _gpio.Readable) return _gpio.Read(address);
             else
@@ -86,7 +98,7 @@ namespace Trident.Core.Memory.GamePak
 
         private uint ReadData32<TAccess>(uint address, bool seqAccess) where TAccess : struct, IAccess
         {
-            address &= 0x01FF_FFFC; // Force align to 32-bit boundary
+            address &= 0x01FFFFFC; // Force align to 32-bit boundary
             if (TAccess.IsLower)
             {
                 // Reading 4 bytes from a GPIO address will only incorporate two GPIO registers, due to them technically being 16 bits wide;
@@ -113,7 +125,7 @@ namespace Trident.Core.Memory.GamePak
 
             uint value;
             if (_romAddress < ActualSize)
-                value = _romMemory.Read16(_romAddress);
+                value = _romMemory.Read32(_romAddress);
             else
             {
                 ushort low = (ushort)(_romAddress >> 1);

@@ -8,9 +8,9 @@ namespace Trident.Core.Bus
 
         internal void Attach(MemoryRegion region, MemoryAccessHandler handler) => _handlers[(int)region] = handler;
 
-        internal GBABus Build()
+        internal GBABus Build(Action<uint> step)
         {
-            GBABus bus = new();
+            GBABus bus = new(step);
             
             for (int i = 0; i < _handlers.Length; i++)
                 bus.RegisterHandler(i, _handlers[i]);

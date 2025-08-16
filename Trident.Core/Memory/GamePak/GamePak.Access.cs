@@ -5,92 +5,93 @@ namespace Trident.Core.Memory.GamePak
 {
     internal partial class GamePak
     {
-        private MemoryAccessHandler GetHandler<TAccess>() where TAccess : struct, IAccess
+        private MemoryAccessHandler GetHandler<TAccess>() where TAccess : struct, IAccess => new
+        (
+            read8:  Read8<TAccess>,
+            read16: Read16<TAccess>,
+            read32: Read32<TAccess>,
+
+            null,
+            null,
+            null,
+
+            dispose: Dispose
+        );
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void WaitRead(uint address, bool seqAccess)
         {
-            return new MemoryAccessHandler
-            (
-                read8: Read8<TAccess>,
-                read16: Read16<TAccess>,
-                read32: Read32<TAccess>,
-
-                null, 
-                null, 
-                null,
-
-                dispose: Dispose
-            );
+            uint region = (address >> 25) & 0b11;
+            _step(_waitControl.AccessTimings[seqAccess ? 1 : 0][region]);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool IsSequential(uint address, PipelineAccess access)
+        {
+            bool markedSequential = (access & PipelineAccess.Sequential) != 0;
+            bool boundaryAligned = (address & 0x1FFFF) == 0;
+            bool dmaTransition = ((int)_getLastAccess() & (int)PipelineAccess.DMA) != 0 && ((int)access & (int)PipelineAccess.DMA) != 0;
+
+            // GBAtek: Non-sequential timing is used at each 128KB boundary of the ROM.
+            // Entering or exiting a DMA also means that the access is non-sequential.
+            return markedSequential && !boundaryAligned && !dmaTransition;
+        }
+
+
         private byte Read8<TAccess>(uint address, PipelineAccess access) where TAccess : struct, IAccess
         {
+            bool isSequential = IsSequential(address, access);
+
+            WaitRead(address, isSequential);
+
             int alignShift = (int)(address & 1) << 3;
-            return (byte)(ReadData16<TAccess>(address, IsSequential(access)) >> alignShift);
+            return (byte)(ReadData16<TAccess>(address, isSequential) >> alignShift);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ushort Read16<TAccess>(uint address, PipelineAccess access) where TAccess : struct, IAccess =>
-            ReadData16<TAccess>(address, IsSequential(access));
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private uint Read32<TAccess>(uint address, PipelineAccess access) where TAccess : struct, IAccess =>
-            ReadData32<TAccess>(address, IsSequential(access));
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool IsSequential(PipelineAccess access) => (access & PipelineAccess.Sequential) == PipelineAccess.Sequential;
-
-
-        private MemoryAccessHandler InitBackupHandler()
+        private ushort Read16<TAccess>(uint address, PipelineAccess access) where TAccess : struct, IAccess
         {
-            return new MemoryAccessHandler
-            (
-                read8: ReadBackup8,
-                read16: ReadBackup16,
-                read32: ReadBackup32,
+            bool isSequential = IsSequential(address, access);
 
-                write8: WriteBackup8,
-                write16: WriteBackup16,
-                write32: WriteBackup32,
-
-                dispose: _backupDevice.Dispose
-            );
+            WaitRead(address, isSequential);
+            return ReadData16<TAccess>(address, isSequential);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private byte ReadBackup8(uint address, PipelineAccess access)
+        private uint Read32<TAccess>(uint address, PipelineAccess access) where TAccess : struct, IAccess
         {
-            // TODO: step scheduler based on waitstate settings
+            bool isSequential = IsSequential(address, access);
+
+            WaitRead(address, isSequential);
+            return ReadData32<TAccess>(address, isSequential);
+        }
+
+
+
+        private MemoryAccessHandler InitBackupHandler() => new
+        (
+            read8:  (address, _) =>          ReadBackup(address),
+            read16: (address, _) => (ushort)(ReadBackup(address) * 0x0101),
+            read32: (address, _) => (uint)  (ReadBackup(address) * 0x01010101),
+
+            write8:  (address, _, value) => WriteBackup(address, value),
+            write16: (address, _, value) => WriteBackup(address, (byte)(value >> ((int)(address & 1) << 3))),
+            write32: (address, _, value) => WriteBackup(address, (byte)(value >> ((int)(address & 3) << 3))),
+
+            dispose: _backupDevice.Dispose
+        );
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private byte ReadBackup(uint address)
+        {
+            _step(_waitControl.AccessTimings[0][3]);
             return _backupDevice.Read(address);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private ushort ReadBackup16(uint address, PipelineAccess access)
+        private void WriteBackup(uint address, byte value)
         {
-            // TODO: step scheduler based on waitstate settings
-            return (ushort)(_backupDevice.Read(address) * 0x0101);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private uint ReadBackup32(uint address, PipelineAccess access)
-        {
-            // TODO: step scheduler based on waitstate settings
-            return (uint)(_backupDevice.Read(address) * 0x01010101);
-        }
-
-        private void WriteBackup8(uint address, PipelineAccess access, byte value)
-        {
-            // TODO: step scheduler based on waitstate settings
-            _backupDevice.Write(address, value);
-        }
-        private void WriteBackup16(uint address, PipelineAccess access, ushort value)
-        {
-            // TODO: step scheduler based on waitstate settings
-            _backupDevice.Write(address, (byte)(value >> ((ushort)(address & 1) << 3)));
-        }
-        private void WriteBackup32(uint address, PipelineAccess access, uint value)
-        {
-            // TODO: step scheduler based on waitstate settings
-            _backupDevice.Write(address, (byte)(value >> ((int)(address & 3) << 3)));
+            _step(_waitControl.AccessTimings[0][3]);
+            _backupDevice.Write(address & 0x0EFFFFFF, value);
         }
     }
 }

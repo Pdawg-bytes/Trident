@@ -2,7 +2,8 @@
 
 namespace Trident.Core.Memory
 {
-    public readonly struct MemoryAccessHandler(
+    public readonly struct MemoryAccessHandler
+    (
         Func<uint, PipelineAccess, byte> read8,
         Func<uint, PipelineAccess, ushort> read16,
         Func<uint, PipelineAccess, uint> read32,
@@ -12,7 +13,7 @@ namespace Trident.Core.Memory
         Action<uint, PipelineAccess, uint> write32,
 
         Action dispose
-        )
+    )
     {
         internal readonly Func<uint, PipelineAccess, byte> Read8 = read8;
         internal readonly Func<uint, PipelineAccess, ushort> Read16 = read16;
@@ -23,5 +24,14 @@ namespace Trident.Core.Memory
         internal readonly Action<uint, PipelineAccess, uint> Write32 = write32;
 
         internal readonly Action Dispose = dispose;
+
+
+        internal bool IsNull() =>
+            Read8   is null &&
+            Read16  is null &&
+            Read32  is null &&
+            Write8  is null &&
+            Write16 is null &&
+            Write32 is null;
     }
 }

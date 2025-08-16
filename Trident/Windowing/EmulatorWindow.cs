@@ -72,7 +72,7 @@ namespace Trident.Windowing
 
 
             VSync = VSyncMode.Off;
-            UpdateFrequency = Math.Clamp(Monitors.GetPrimaryMonitor().CurrentVideoMode.RefreshRate, 0, 90);
+            UpdateFrequency = Math.Min(Monitors.GetPrimaryMonitor().CurrentVideoMode.RefreshRate, 90);
 
             WindowHandle = GLFW.GetWin32Window(WindowPtr);
         }

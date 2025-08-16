@@ -35,8 +35,7 @@ namespace Trident.Core.Memory
             ArgumentOutOfRangeException.ThrowIfNegative(address);
             ArgumentNullException.ThrowIfNull(data);
 
-            long end = (long)address + data.Length;
-            if (end > (long)Size)
+            if ((long)address + data.Length > (long)Size)
                 throw new ArgumentException("Data too large for copy.");
 
             fixed (byte* src = data)

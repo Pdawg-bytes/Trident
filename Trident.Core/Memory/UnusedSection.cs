@@ -2,38 +2,49 @@
 
 namespace Trident.Core.Memory
 {
-    internal class UnusedSection
+    internal class UnusedSection(Action<uint> step)
     {
-        internal UnusedSection() { }
+        private Action<uint> _step = step;
+
 
         internal MemoryAccessHandler GetAccessHandler()
         {
             return new MemoryAccessHandler
             (
-                read8: this.Read8,
-                read16: this.Read16,
-                read32: this.Read32,
+                read8:  Read8,
+                read16: Read16,
+                read32: Read32,
 
-                write8: this.Write8,
-                write16: this.Write16,
-                write32: this.Write32,
+                write8:  (_, _, _) => _step(1),
+                write16: (_, _, _) => _step(1),
+                write32: (_, _, _) => _step(1),
 
-                dispose: Dispose
+                dispose: null
             );
         }
 
-        internal byte Read8(uint address, PipelineAccess access) => byte.MaxValue;
+        internal byte Read8(uint address, PipelineAccess access)
+        {
+            _step(1);
 
-        internal ushort Read16(uint address, PipelineAccess access) => ushort.MaxValue;
+            // TODO: open bus
+            return 0xFF;
+        }
 
-        internal uint Read32(uint address, PipelineAccess access) => uint.MaxValue;
+        internal ushort Read16(uint address, PipelineAccess access)
+        {
+            _step(1);
 
-        internal void Write8(uint address, PipelineAccess access, byte value) { }
+            // TODO: open bus
+            return 0xFFFF;
+        }
 
-        internal void Write16(uint address, PipelineAccess access, ushort value) { }
+        internal uint Read32(uint address, PipelineAccess access)
+        {
+            _step(1);
 
-        internal void Write32(uint address, PipelineAccess access, uint value) { }
-
-        private void Dispose() { }
+            // TODO: open bus
+            return 0xFFFFFFFF;
+        }
     }
 }
