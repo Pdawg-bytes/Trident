@@ -16,6 +16,7 @@ using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Desktop;
 using System.Runtime.InteropServices;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using Trident.Core.Hardware.Controller;
 
 namespace Trident.Windowing
 {
@@ -98,16 +99,30 @@ namespace Trident.Windowing
             );
             handle.Free();
 
-            KeyDown += args => _controller.KeyEvent(args.Key, true);
-            KeyUp += args => _controller.KeyEvent(args.Key, false);
 
             KeyDown += args =>
             {
+                _controller.KeyEvent(args.Key, true);
                 _shortcutManager.UpdateModifierState(args.Key, true);
                 _shortcutManager.HandleKeyDown(args.Key);
+
+                if (TryMapKeyToGBA(args.Key, out GBAKey gbaKey))
+                {
+                    _emulatorThread.EnqueueCommand(new KeyPressedCommand(gbaKey, true));
+                }
             };
 
-            KeyUp += args => _shortcutManager.UpdateModifierState(args.Key, false);
+            KeyUp += args =>
+            {
+                _controller.KeyEvent(args.Key, false);
+                _shortcutManager.UpdateModifierState(args.Key, false);
+
+                if (TryMapKeyToGBA(args.Key, out GBAKey gbaKey))
+                {
+                    _emulatorThread.EnqueueCommand(new KeyPressedCommand(gbaKey, false));
+                }
+            };
+
 
             _emulatorThread.Start();
 
@@ -246,6 +261,50 @@ namespace Trident.Windowing
         {
             base.OnMouseWheel(e);
             _controller!.MouseScroll(e.Offset);
+        }
+
+        private bool TryMapKeyToGBA(Keys key, out GBAKey gbaKey)
+        {
+            switch (key)
+            {
+                case Keys.Z:
+                    gbaKey = GBAKey.B;
+                    return true;
+                case Keys.X:
+                    gbaKey = GBAKey.A;
+                    return true;
+
+                case Keys.A:
+                    gbaKey = GBAKey.LB;
+                    return true;
+                case Keys.S:
+                    gbaKey = GBAKey.RB;
+                    return true;
+
+                case Keys.Up:
+                    gbaKey = GBAKey.Up;
+                    return true;
+                case Keys.Right:
+                    gbaKey = GBAKey.Right;
+                    return true;
+                case Keys.Down:
+                    gbaKey = GBAKey.Down;
+                    return true;
+                case Keys.Left:
+                    gbaKey = GBAKey.Left;
+                    return true;
+
+                case Keys.Backspace:
+                    gbaKey = GBAKey.Select;
+                    return true;
+                case Keys.Enter:
+                    gbaKey = GBAKey.Start;
+                    return true;
+
+                default:
+                    gbaKey = default;
+                    return false;
+            }
         }
 
 

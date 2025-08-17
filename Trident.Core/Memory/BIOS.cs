@@ -1,6 +1,4 @@
-﻿using Trident.Core.Bus;
-using Trident.Core.Global;
-using Trident.Core.CPU.Pipeline;
+﻿using Trident.Core.Global;
 using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Memory

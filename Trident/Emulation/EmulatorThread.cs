@@ -26,7 +26,9 @@ namespace Trident.Emulation
 
         internal double CurrentSpeed => _frameCounter.GetFPS() / Framerate * 100.0;
 
-        private readonly ConcurrentQueue<EmulatorCommand> _commandQueue = new();
+        // Handle keypresses in a standalone queue to decrease latency and avoid boxing command objects.
+        private readonly ConcurrentQueue<KeyPressedCommand> _keyQueue = new();
+        private readonly ConcurrentQueue<IEmulatorCommand> _generalQueue = new();
 
         internal EmulatorThread(GBA gba)
         {
@@ -47,7 +49,13 @@ namespace Trident.Emulation
 
         // Can't use a property since the backing field is volatile.
         internal bool IsSpeedCapped() => _speedCapped;
-        internal bool SetSpeedCap(bool shouldCapSpeed) => _speedCapped = shouldCapSpeed;
+        internal void SetSpeedCap(bool shouldCapSpeed)
+        {
+            _speedCapped = shouldCapSpeed;
+
+            if (shouldCapSpeed)
+                _nextFrameTime = _frameTimer.Elapsed.TotalSeconds;
+        }
 
         internal bool ShouldSkipBIOS
         {
@@ -120,17 +128,20 @@ namespace Trident.Emulation
         internal void Reset() => EnqueueCommand(new ResetCommand());
         internal void KeyEvent(GBAKey key, bool pressed) => EnqueueCommand(new KeyPressedCommand(key, pressed));
 
-        internal void EnqueueCommand(EmulatorCommand command)
+
+        internal void EnqueueCommand(IEmulatorCommand command) => _generalQueue.Enqueue(command);
+        internal void EnqueueCommand(KeyPressedCommand command)
         {
-            if (Thread.CurrentThread.ManagedThreadId == _thread.ManagedThreadId)
-                command.Execute(_gba, this);
-            else
-                _commandQueue.Enqueue(command);
+            if (_paused) return;
+            _keyQueue.Enqueue(command);
         }
 
         private void ProcessCommands()
         {
-            while (_commandQueue.TryDequeue(out var command))
+            while (_keyQueue.TryDequeue(out var keyCmd))
+                keyCmd.Execute(_gba, this);
+
+            while (_generalQueue.TryDequeue(out var command))
                 command.Execute(_gba, this);
         }
     }

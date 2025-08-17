@@ -28,7 +28,7 @@ namespace Trident.Emulation
             }
         }
 
-        public void Reset() => _lastFps = 0;
+        public void Reset() => Volatile.Write(ref _lastFps, 0);
 
         public double GetFPS() => Volatile.Read(ref _lastFps);
     }

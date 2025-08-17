@@ -3,8 +3,8 @@ using Trident.Core.Machine;
 
 namespace Trident.Commands
 {
-    internal class ResetCommand : EmulatorCommand
+    internal readonly struct ResetCommand : IEmulatorCommand
     {
-        public override void Execute(GBA gba, EmulatorThread thread) => gba.Reset();
+        public void Execute(GBA gba, EmulatorThread thread) => gba.Reset();
     }
 }

@@ -26,10 +26,11 @@ namespace Trident.Core.Machine
         private readonly MMIO _mmio;
         private GamePak _gamePak = null;
 
+        private readonly Keypad _keypad;
+
         private readonly WaitControl _waitControl = new();
         private readonly PostFlag _postFlag;
         private readonly HaltControl _haltControl;
-
 
         public GBA()
         {
@@ -38,6 +39,8 @@ namespace Trident.Core.Machine
 
             IRQController = new(() => CPU.Halted = false);
             CPU.AttachIRQController(IRQController);
+
+            _keypad = new(IRQController.Raise);
 
             _haltControl = new(() => CPU.Halted = true, getPC);
             _postFlag = new(getPC);
@@ -57,6 +60,8 @@ namespace Trident.Core.Machine
             _mmio = new
             (
                 Scheduler.Step,
+
+                _keypad,
 
                 IRQController,
 
@@ -155,7 +160,7 @@ namespace Trident.Core.Machine
         }
 
 
-        public void SetKeyState(GBAKey key, bool pressed) { }
+        public void SetKeyState(GBAKey key, bool pressed) => _keypad.SetKeyState(key, pressed);
 
 
         public void Dispose()

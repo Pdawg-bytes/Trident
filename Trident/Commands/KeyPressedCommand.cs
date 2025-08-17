@@ -4,11 +4,11 @@ using Trident.Core.Hardware.Controller;
 
 namespace Trident.Commands
 {
-    internal class KeyPressedCommand(GBAKey key, bool pressed) : EmulatorCommand
+    internal readonly struct KeyPressedCommand(GBAKey key, bool pressed)
     {
         private readonly GBAKey _key = key;
         private readonly bool _pressed = pressed;
 
-        public override void Execute(GBA gba, EmulatorThread thread) => gba.SetKeyState(_key, _pressed);
+        public void Execute(GBA gba, EmulatorThread thread) => gba.SetKeyState(_key, _pressed);
     }
 }

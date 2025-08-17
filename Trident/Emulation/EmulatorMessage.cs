@@ -2,8 +2,8 @@
 
 namespace Trident.Emulation
 {
-    public abstract class EmulatorCommand
+    public interface IEmulatorCommand
     {
-        public abstract void Execute(GBA gba, EmulatorThread thread);
+        void Execute(GBA gba, EmulatorThread thread);
     }
 }
