@@ -13,7 +13,6 @@ namespace Trident.Core.Memory.MappedIO
 
         private void InitializeRegisterMap()
         {
-
             RegisterAccessor openBusRegister = new 
             (
                 read: () => 0, // TODO: return open bus

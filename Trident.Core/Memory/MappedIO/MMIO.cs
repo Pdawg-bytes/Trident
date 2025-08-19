@@ -7,11 +7,11 @@ namespace Trident.Core.Memory.MappedIO
 {
     internal partial class MMIO
     {
-        // Since all but two MMIO registers are 2 or 4 bytes in length - meaning they are all accessed on half-word boundaries - 
+        // Since all but two MMIO registers are 2 or 4 bytes in size - meaning they are all accessed on half-word boundaries - 
         // we can normalize the addresses to those boundaries, halving the required space needed to cover the MMIO map.
         // ---
         // The last MMIO register on a regular GBA is POSTFLG, at 0x300. We combine POSTFLG and HALTCNT to include those two
-        // registers, therefore, our normalized address space can be exactly 0x181 wide.
+        // registers, therefore, our normalized address space can be exactly half that (+ 1 to include 0x300).
         private const int REGISTER_COUNT = 0x181;
         private readonly RegisterAccessor[] _registers = new RegisterAccessor[REGISTER_COUNT];
 
