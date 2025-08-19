@@ -61,6 +61,7 @@ namespace Trident.Core.Hardware.IO
 
         internal byte ReadLower() => (byte)_waitcnt;
         internal byte ReadUpper() => (byte)((_waitcnt >> 8) & 0x7F); // Force GamePak type to 0
+        internal ushort Read() => (ushort)(_waitcnt & 0x7FFF);
 
         internal void WriteLower(byte value)
         {

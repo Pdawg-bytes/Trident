@@ -6,47 +6,76 @@ using Trident.Core.Hardware.Controller;
 
 using static Trident.Core.Hardware.IO.IORegisters;
 
-namespace Trident.Core.Memory
+namespace Trident.Core.Memory.MappedIO
 {
-    internal class MMIO
-    (
-        Action<uint> step,
-
-        Keypad keypad,
-
-        InterruptController irqController, 
-
-        WaitControl waitControl, 
-        PostFlag postFlag, 
-        HaltControl haltControl
-    )
+    internal partial class MMIO
     {
-        private readonly Action<uint> _step = step;
+        // Since all but two MMIO registers are 2 or 4 bytes in length - meaning they are all accessed on half-word boundaries - 
+        // we can normalize the addresses to those boundaries, halving the required space needed to cover the MMIO map.
+        // ---
+        // The last MMIO register on a regular GBA is POSTFLG, at 0x300. We combine POSTFLG and HALTCNT to include those two
+        // registers, therefore, our normalized address space can be exactly 0x181 wide.
+        private const int REGISTER_COUNT = 0x181;
+        private readonly RegisterAccessor[] _registers = new RegisterAccessor[REGISTER_COUNT];
 
-        private readonly Keypad _keypad = keypad;
+        private readonly Action<uint> _step;
 
-        private readonly InterruptController _irqController = irqController;
+        private readonly Keypad _keypad;
 
-        private readonly WaitControl _waitControl = waitControl;
-        private readonly PostFlag _postFlag = postFlag;
-        private readonly HaltControl _haltControl = haltControl;
+        private readonly InterruptController _irqController;
 
+        private readonly WaitControl _waitControl;
+        private readonly PostFlag _postFlag;
+        private readonly HaltControl _haltControl;
 
-        // TODO: possibly service regs primarily via 16-bit accesses?
-        internal MemoryAccessHandler GetAccessHandler() => new
+        internal MMIO
         (
-            read8:  (address, _) => { _step(1); return Read8(address); },
-            read16: (address, _) => { _step(1); return Read16(address.Align<ushort>()); },
-            read32: (address, _) => { _step(1); return Read32(address.Align<uint>()); },
+            Action<uint> step,
 
-            write8:  (address, _, value) => { _step(1); Write8(address, value); },
-            write16: (address, _, value) => { _step(1); Write16(address.Align<ushort>(), value); },
-            write32: (address, _, value) => { _step(1); Write32(address.Align<uint>(), value); },
+            Keypad keypad,
 
-            dispose: null
-        );
+            InterruptController irqController,
 
+            WaitControl waitControl,
+            PostFlag postFlag,
+            HaltControl haltControl
+        )
+        {
+            _step = step;
 
+            _keypad = keypad;
+
+            _irqController = irqController;
+
+            _waitControl = waitControl;
+            _postFlag = postFlag;
+            _haltControl = haltControl;
+
+            InitializeRegisterMap();
+        }
+
+        private bool TryNormalize(uint address, out uint index)
+        {
+            if (address > 0x4000300)
+            {
+                index = uint.MaxValue;
+                return false;
+            }
+
+            index = (address & 0x03FF) >> 1;
+            return true;
+        }
+
+        private byte Read8(uint address)
+        {
+            // Align the address to a half-word boundary and normalize it
+            uint index = address.Align<ushort>() >> 1;
+
+            int shift = (int)(address & 1) << 3;
+            return (byte)(_registers[index].Read(address) >> shift);
+        }
+
+        /*
         private byte Read8(uint address) => address switch
         {
             // Keypad registers
@@ -96,7 +125,7 @@ namespace Trident.Core.Memory
             IME
                 => _irqController.Read16(address),
 
-            _ => (ushort)((Read8(address + 1) << 8) | Read8(address))
+            _ => (ushort)(Read8(address + 1) << 8 | Read8(address))
         };
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -104,10 +133,10 @@ namespace Trident.Core.Memory
         {
             _ => (uint)
             (
-                (Read8(address + 0) << 0) |
-                (Read8(address + 1) << 8) |
-                (Read8(address + 2) << 16) |
-                (Read8(address + 3) << 24)
+                Read8(address + 0) << 0  |
+                Read8(address + 1) << 8  |
+                Read8(address + 2) << 16 |
+                Read8(address + 3) << 24
             )
         };
 
@@ -170,6 +199,6 @@ namespace Trident.Core.Memory
                     Write8(address + 3, (byte)(value >> 24));
                     break;
             }
-        }
+        }*/
     }
 }

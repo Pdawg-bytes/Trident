@@ -1,5 +1,4 @@
-﻿using Trident.Core.Scheduling;
-using Trident.Core.Hardware.IO;
+﻿using Trident.Core.Hardware.IO;
 using Trident.Core.CPU.Pipeline;
 using System.Runtime.CompilerServices;
 using Trident.Core.Memory.GamePak.GPIO;

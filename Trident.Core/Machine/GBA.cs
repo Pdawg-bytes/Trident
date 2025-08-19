@@ -4,6 +4,7 @@ using Trident.Core.Memory;
 using Trident.Core.Scheduling;
 using Trident.Core.Hardware.IO;
 using Trident.Core.Memory.GamePak;
+using Trident.Core.Memory.MappedIO;
 using Trident.Core.Hardware.Controller;
 using Trident.Core.Memory.GamePak.GPIO;
 using Trident.Core.Hardware.Interrupts;

@@ -1,6 +1,5 @@
 ﻿using System.Text;
 using Trident.Core.Global;
-using Trident.Core.Scheduling;
 using Trident.Core.Hardware.IO;
 using Trident.Core.CPU.Pipeline;
 using Trident.Core.Memory.GamePak;

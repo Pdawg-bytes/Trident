@@ -1,12 +1,12 @@
 ﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using Trident.CodeGeneration.Shared;
 using Trident.Core.Bus;
+using Trident.Core.Global;
 using Trident.Core.CPU.Decoding;
-using Trident.Core.CPU.Decoding.ARM;
 using Trident.Core.CPU.Pipeline;
 using Trident.Core.CPU.Registers;
-using Trident.Core.Global;
+using Trident.CodeGeneration.Shared;
+using Trident.Core.CPU.Decoding.ARM;
+using System.Runtime.CompilerServices;
 
 namespace Trident.Core.CPU
 {
