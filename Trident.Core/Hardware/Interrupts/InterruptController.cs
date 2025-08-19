@@ -33,71 +33,40 @@ namespace Trident.Core.Hardware.Interrupts
         }
 
 
-        internal byte Read8(uint address) => address switch
+        internal ushort ReadIE() => _interruptEnable;
+        internal ushort ReadIF() => _interruptFlag;
+        internal ushort ReadIME() => _globalInterruptEnable ? (ushort)1 : (ushort)0;
+
+
+        internal void WriteIE(ushort value, bool upper, bool lower)
         {
-            IE     => (byte)(_interruptEnable & 0xFF),
-            IE + 1 => (byte)(_interruptEnable >> 8),
-            IF     => (byte)(_interruptFlag & 0xFF),
-            IF + 1 => (byte)(_interruptFlag >> 8),
-            IME    => _globalInterruptEnable ? (byte)1 : (byte)0,
-            _ => 0
-        };
+            if (lower)
+                _interruptEnable = (ushort)((_interruptEnable & 0xFF00) | (value & 0x00FF));
 
-        internal ushort Read16(uint address) => address switch
-        {
-            IE  => _interruptEnable,
-            IF  => _interruptFlag,
-            IME => _globalInterruptEnable ? (ushort)1 : (ushort)0,
-            _ => 0
-        };
-
-        internal void Write8(uint address, byte value)
-        {
-            switch (address)
-            {
-                case IE:
-                    // Bits 14-15 are not used as interrupt sources, so mask out the top 2 bits.
-                    _interruptEnable &= 0x3F00;
-                    _interruptEnable |= value;
-                    break;
-                case IE + 1:
-                    _interruptEnable &= 0x00FF;
-                    _interruptFlag |= value;
-                    break;
-
-                case IF:
-                    _interruptFlag &= (byte)~value;
-                    break;
-                case IF + 1:
-                    _interruptFlag &= (byte)~(value << 8);
-                    break;
-
-                case IME:
-                    _globalInterruptEnable = (value & 1) != 0;
-                    break;
-            }
+            if (upper)
+                _interruptEnable = (ushort)((_interruptEnable & 0x00FF) | (value & 0x3F00));
 
             UpdateIRQStatus();
         }
 
-        internal void Write16(uint address, ushort value)
+        internal void WriteIF(ushort value, bool upper, bool lower)
         {
-            switch (address)
-            {
-                case IE:
-                    _interruptEnable = (ushort)(value & 0x3FFF);
-                    break;
+            if (lower)
+                _interruptFlag &= (ushort)~(value & 0x00FF);
 
-                case IF:
-                    _interruptFlag &= (ushort)~value;
-                    break;
-
-                case IME:
-                    _globalInterruptEnable = (value & 1) != 0;
-                    break;
-            }
+            if (upper)
+                _interruptFlag &= (ushort)~(value & 0xFF00);
 
             UpdateIRQStatus();
+        }
+
+        internal void WriteIME(ushort value, bool upper, bool lower)
+        {
+            if (lower)
+            {
+                _globalInterruptEnable = (value & 1) != 0;
+                UpdateIRQStatus();
+            }
         }
 
 

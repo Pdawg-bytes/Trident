@@ -30,8 +30,7 @@ namespace Trident.Core.Machine
         private readonly Keypad _keypad;
 
         private readonly WaitControl _waitControl = new();
-        private readonly PostFlag _postFlag;
-        private readonly HaltControl _haltControl;
+        private readonly PostHalt _postHalt;
 
         public GBA()
         {
@@ -43,8 +42,7 @@ namespace Trident.Core.Machine
 
             _keypad = new(IRQController.Raise);
 
-            _haltControl = new(() => CPU.Halted = true, getPC);
-            _postFlag = new(getPC);
+            _postHalt = new(() => CPU.Halted = true, getPC);
 
             BusBuilder builder = new();
 
@@ -67,8 +65,7 @@ namespace Trident.Core.Machine
                 IRQController,
 
                 _waitControl,
-                _postFlag,
-                _haltControl
+                _postHalt
             );
 
             builder.Attach(MemoryRegion.MMIO, _mmio.GetAccessHandler());

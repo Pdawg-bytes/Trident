@@ -13,43 +13,31 @@ namespace Trident.Core.Hardware.Controller
         private bool _irqEnabled;
 
 
-        internal byte ReadKeyControl8(bool upper) => upper ?
-            (byte)((_keyCntMask >> 8)     |
-                   (_irqEnabled ? 64 : 0) |
-                   ((int)_irqMode << 7))  :
-            (byte)_keyCntMask;
+        internal ushort ReadKeyControl() => (ushort)(_keyCntMask | (_irqEnabled ? (1 << 14) : 0) | ((int)_irqMode << 15));
 
-        internal ushort ReadKeyControl16() => (ushort)(_keyCntMask | (_irqEnabled ? (1 << 14) : 0) | ((int)_irqMode << 15));
-
-        internal void WriteKeyControl8(bool upper, byte value)
+        internal void WriteKeyControl(ushort value, bool upper, bool lower)
         {
-            if (upper)
-            {
-                _keyCntMask &= 0x00FF;
-                _keyCntMask |= (ushort)(((value) & 0b11) << 8); // Only write in L & R
-
-                _irqEnabled = (value & 64) != 0;
-                _irqMode = (IRQCondition)(value >> 7);
-            }
-            else
+            if (lower)
             {
                 _keyCntMask &= 0xFF00;
-                _keyCntMask |= value;
+                _keyCntMask |= (ushort)(value & 0x00FF);
+            }
+
+            if (upper)
+            {
+                // Only L & R bits (bits 8-9) go in upper byte
+                _keyCntMask &= 0x00FF;
+                _keyCntMask |= (ushort)(value & 0x0300);
+
+                _irqEnabled = (value & 0x4000) != 0;
+                _irqMode = (IRQCondition)((value & 0x8000) >> 15);
             }
 
             if (ShouldRaiseIRQ()) _raiseIRQ(InterruptSource.Keypad, 0);
         }
 
-        internal void WriteKeyControl16(ushort value)
-        {
-            _keyCntMask = (ushort)(value & 0x03FF);
-            _irqEnabled = (value & (1 << 14)) != 0;
-            _irqMode    = (IRQCondition)(value >> 15);
-        }
 
-
-        internal byte ReadKeyInput8(bool upper) => upper ? (byte)(_keyInput >> 8) : (byte) _keyInput;
-        internal ushort ReadKeyInput16() => _keyInput;
+        internal ushort ReadKeyInput() => _keyInput;
 
         internal void SetKeyState(GBAKey key, bool pressed)
         {

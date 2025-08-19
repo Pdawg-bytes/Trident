@@ -45,8 +45,8 @@ namespace Trident.Core.Memory.GamePak
 
             WaitRead(address, isSequential);
 
-            int alignShift = (int)(address & 1) << 3;
-            return (byte)(ReadData16<TAccess>(address, isSequential) >> alignShift);
+            int shift = (int)(address & 1) << 3;
+            return (byte)(ReadData16<TAccess>(address, isSequential) >> shift);
         }
 
         private ushort Read16<TAccess>(uint address, PipelineAccess access) where TAccess : struct, IAccess
