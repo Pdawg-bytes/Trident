@@ -6,7 +6,7 @@
         LCD_HBlank          = 1 << 1,
         LCD_VCounterMatch   = 1 << 2,
 
-        Timer      = 1 << 3,
+        Timer               = 1 << 3,
 
         Serial_DataTransfer = 1 << 7,
 

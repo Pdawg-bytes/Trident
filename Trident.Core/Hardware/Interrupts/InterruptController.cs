@@ -1,6 +1,4 @@
-﻿using static Trident.Core.Hardware.IO.IORegisters;
-
-namespace Trident.Core.Hardware.Interrupts
+﻿namespace Trident.Core.Hardware.Interrupts
 {
     internal class InterruptController
     {
