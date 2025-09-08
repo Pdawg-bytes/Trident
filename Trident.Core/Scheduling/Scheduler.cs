@@ -45,13 +45,15 @@ namespace Trident.Core.Scheduling
         {
             ulong timestampNext = CurrentTimestamp + cycles;
 
-            while (_events.Count > 0 && _events.Min!.Timestamp <= timestampNext)
+            while (_events.Count > 0)
             {
-                var evt = _events.Min!;
+                var nextEvent = _events.Min!;
+                if (nextEvent.Timestamp > timestampNext)
+                    break;
 
-                CurrentTimestamp = evt.Timestamp;
-                _callbacks[evt.EventType](evt.Context);
-                Remove(evt);
+                CurrentTimestamp = nextEvent.Timestamp;
+                _callbacks[nextEvent.EventType](nextEvent.Context);
+                Remove(nextEvent);
             }
 
             CurrentTimestamp = timestampNext;
