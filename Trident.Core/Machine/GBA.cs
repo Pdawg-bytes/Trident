@@ -34,6 +34,8 @@ namespace Trident.Core.Machine
 
         public GBA()
         {
+            BusBuilder builder = new();
+
             CPU = new(Scheduler);
             Func<uint> getPC = () => CPU.Registers.GetRegisterRef(15);
 
@@ -44,7 +46,6 @@ namespace Trident.Core.Machine
 
             _postHalt = new(() => CPU.Halted = true, getPC);
 
-            BusBuilder builder = new();
 
             _bios = new(getPC, Scheduler.Step);
             builder.Attach(MemoryRegion.BIOS, _bios.GetAccessHandler());
@@ -79,7 +80,7 @@ namespace Trident.Core.Machine
             => _gamePak?.GetGPIODevice<T>();
 
 
-        public void RunFor(uint cycles)
+        public void RunFor(ulong cycles)
         {
             ulong runTarget = Scheduler.CurrentTimestamp + cycles;
 
@@ -89,7 +90,7 @@ namespace Trident.Core.Machine
                     CPU.Step();
                 else
                 {
-                    Scheduler.Step(Scheduler.RemainingCycles);
+                    Scheduler.SkipToNextEvent();
 
                     if (IRQController.IRQAvailable)
                     {

@@ -3,10 +3,12 @@
     internal enum EventType
     {
         // PPU Events
-        PPU_HDraw,
-        PPU_HBlank,
-        PPU_VBlankHDraw,
-        PPU_VBlankHBlank,
+        PPU_HBlankStart,
+        PPU_HBlankEnd,
+        PPU_SetHBlankFlag,
+        PPU_VBlankStart,
+        PPU_VBlankEnd,
+        PPU_VCounterMatch,
 
         // APU Events
         APU_PSG1Generate,

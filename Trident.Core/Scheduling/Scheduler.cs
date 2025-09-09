@@ -10,9 +10,9 @@ namespace Trident.Core.Scheduling
 
         private ulong _nextId = 1;
 
-        internal ulong CurrentTimestamp { get; set; }
+        internal ulong CurrentTimestamp { get; private set; }
         internal ulong NextTimestamp => _events.Count > 0 ? _events.Min!.Timestamp : ulong.MaxValue;
-        internal ulong RemainingCycles => NextTimestamp - CurrentTimestamp;
+        internal ulong CyclesToNextEvent => NextTimestamp - CurrentTimestamp;
 
         public Scheduler()
         {
@@ -59,6 +59,8 @@ namespace Trident.Core.Scheduling
             CurrentTimestamp = timestampNext;
         }
 
+        internal void SkipToNextEvent() => Step(NextTimestamp - CurrentTimestamp);
+
 
         internal SchedulerEvent Schedule(EventType eventType, ulong delay, uint priority = 0, ulong ctx = 0)
         {
@@ -86,6 +88,6 @@ namespace Trident.Core.Scheduling
             }
         }
 
-        internal void Remove(ulong uid) => Remove(_events.Where(evt => evt.UniqueID == uid).FirstOrDefault());
+        internal void Remove(ulong uid) => Remove(_uidEventMap.GetValueOrDefault(uid));
     }
 }
