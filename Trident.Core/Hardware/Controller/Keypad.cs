@@ -2,9 +2,9 @@
 
 namespace Trident.Core.Hardware.Controller
 {
-    internal class Keypad(Action<InterruptSource, int> raiseIRQ)
+    internal class Keypad(Action<InterruptSource> raiseIRQ)
     {
-        private readonly Action<InterruptSource, int> _raiseIRQ = raiseIRQ;
+        private readonly Action<InterruptSource> _raiseIRQ = raiseIRQ;
 
         private ushort _keyInput = 0x03FF; // All keys released
 
@@ -33,7 +33,7 @@ namespace Trident.Core.Hardware.Controller
                 _irqMode = (IRQCondition)((value & 0x8000) >> 15);
             }
 
-            if (ShouldRaiseIRQ()) _raiseIRQ(InterruptSource.Keypad, 0);
+            if (ShouldRaiseIRQ()) _raiseIRQ(InterruptSource.Keypad);
         }
 
 
@@ -46,7 +46,7 @@ namespace Trident.Core.Hardware.Controller
             else
                 _keyInput |= (ushort)  (1 << (int)key);
 
-            if (ShouldRaiseIRQ()) _raiseIRQ(InterruptSource.Keypad, 0);
+            if (ShouldRaiseIRQ()) _raiseIRQ(InterruptSource.Keypad);
         }
 
 

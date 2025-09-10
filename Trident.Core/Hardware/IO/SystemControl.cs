@@ -1,5 +1,4 @@
 ﻿using Trident.Core.CPU.Pipeline;
-using static Trident.Core.Hardware.IO.IORegisters;
 
 namespace Trident.Core.Hardware.IO
 {
