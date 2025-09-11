@@ -19,6 +19,7 @@ namespace Trident.Core.Machine
         internal InterruptController IRQController;
         private GBABusView? _busView;
 
+        public Framebuffer Framebuffer = new();
         internal PPU PPU;
         private PPURegisters _ppuRegisters = new();
 
@@ -80,7 +81,7 @@ namespace Trident.Core.Machine
             _busView = new(ref CPU.Bus);
 
 
-            PPU = new(_ppuRegisters, _pram, _vram, _oam, Scheduler, IRQController.Raise);
+            PPU = new(Framebuffer, _ppuRegisters, _pram, _vram, _oam, Scheduler, IRQController.Raise);
         }
 
         public T? GetGPIODevice<T>() where T : GPIODevice
@@ -123,6 +124,7 @@ namespace Trident.Core.Machine
             IRQController.Reset();
 
             PPU.Reset();
+            Framebuffer.Clear();
 
             // TODO: reset other components
 

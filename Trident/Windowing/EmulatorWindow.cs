@@ -5,6 +5,7 @@ using Trident.Widgets;
 using Trident.Commands;
 using System.Text.Json;
 using Trident.Emulation;
+using Trident.Utilities;
 using System.Reflection;
 using OpenTK.Mathematics;
 using Trident.Interaction;
@@ -15,8 +16,8 @@ using OpenTK.Windowing.Common;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Desktop;
 using System.Runtime.InteropServices;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 using Trident.Core.Hardware.Controller;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace Trident.Windowing
 {
@@ -24,6 +25,8 @@ namespace Trident.Windowing
     {
         private GBA _gba;
         private EmulatorThread _emulatorThread;
+
+        private int _framebufferTexture;
 
         private List<IWidget> _widgets = [];
         private readonly PerformancePopup _performanceWidget;
@@ -129,6 +132,8 @@ namespace Trident.Windowing
             _shortcutManager.RegisterShortcut(new(Keys.R, Ctrl: true), _emulatorThread.Reset);
             _shortcutManager.RegisterShortcut(new(Keys.P, Ctrl: true), () => _emulatorThread.SetPause(!_emulatorThread.IsPaused()));
             _shortcutManager.RegisterShortcut(new(Keys.P, Shift: true), () => _emulatorThread.SetSpeedCap(!_emulatorThread.IsSpeedCapped()));
+
+            InitFramebufferTexture();
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -138,6 +143,18 @@ namespace Trident.Windowing
             _emulatorThread?.Stop();
             _controller.DestroyDeviceObjects();
             _controller.Dispose();
+        }
+
+
+        private void InitFramebufferTexture()
+        {
+            _framebufferTexture = GL.GenTexture();
+            GL.BindTexture(TextureTarget.Texture2D, _framebufferTexture);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba,
+                          240, 160, 0, PixelFormat.Bgra, PixelType.UnsignedByte, IntPtr.Zero);
+
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
         }
 
 
@@ -248,6 +265,17 @@ namespace Trident.Windowing
 
             foreach (var widget in _widgets)
                 widget.Render();
+
+
+            ImGui.Begin("GBA Screen");
+
+            // This is not thread-safe and will have tearing issues. Fix later.
+            GL.BindTexture(TextureTarget.Texture2D, _framebufferTexture);
+            GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, 0, 240, 160,
+                             PixelFormat.Bgra, PixelType.UnsignedByte, _gba.Framebuffer.Pixels);
+
+            ImGui.Image(_framebufferTexture, new System.Numerics.Vector2(480, 320));
+            ImGui.End();
         }
 
 

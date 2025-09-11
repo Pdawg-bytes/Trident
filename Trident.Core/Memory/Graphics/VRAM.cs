@@ -33,11 +33,13 @@ namespace Trident.Core.Memory.Graphics
             bool isWord = Unsafe.SizeOf<T>() == 4;
             _step(isWord ? 2 : (uint)1);
 
-            address = address.Align<T>() & ADDR_MASK;
+            address = address.Align<T>() & 0x1FFFF;
             if (address >= 0x18000) address -= 0x8000;
 
             return _memory.Read<T>(address);
         }
+
+        internal T Fetch<T>(uint address) where T : unmanaged => _memory.Read<T>(address & 0xFFFFFFFE);
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -46,7 +48,7 @@ namespace Trident.Core.Memory.Graphics
             bool isWord = Unsafe.SizeOf<T>() == 4;
             _step(isWord ? 2 : (uint)1);
 
-            address = address.Align<T>() & ADDR_MASK;
+            address = address.Align<T>() & 0x1FFFF;
             if (address >= 0x18000) address -= 0x8000;
 
             if (isByte)
