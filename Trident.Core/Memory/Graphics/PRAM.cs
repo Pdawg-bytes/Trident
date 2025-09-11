@@ -1,11 +1,11 @@
 ﻿using Trident.Core.Global;
 using System.Runtime.CompilerServices;
 
-namespace Trident.Core.Memory
+namespace Trident.Core.Memory.Graphics
 {
-    internal class EWRAM(Action<uint> step)
+    internal class PRAM(Action<uint> step)
     {
-        internal const uint MEMORY_SIZE = 256 * 1024;
+        internal const uint MEMORY_SIZE = 1024;
         private const uint ADDR_MASK = MEMORY_SIZE - 1;
         private readonly UnsafeMemoryBlock _memory = new(MEMORY_SIZE);
 
@@ -18,7 +18,7 @@ namespace Trident.Core.Memory
             read16: (address, _) => Read<ushort>(address),
             read32: (address, _) => Read<uint>(address),
 
-            write8:  (address, _, value) => Write<byte>(address, value),
+            write8:  (address, _, value) => Write<ushort>(address, (ushort)(value * 0x0101)),
             write16: (address, _, value) => Write<ushort>(address, value),
             write32: (address, _, value) => Write<uint>(address, value),
 
@@ -30,7 +30,7 @@ namespace Trident.Core.Memory
         private T Read<T>(uint address) where T : unmanaged
         {
             bool isWord = Unsafe.SizeOf<T>() == 4;
-            _step(isWord ? 6 : (uint)3);
+            _step(isWord ? 2 : (uint)1);
 
             return _memory.Read<T>(address.Align<T>() & ADDR_MASK);
         }
@@ -40,7 +40,7 @@ namespace Trident.Core.Memory
         private void Write<T>(uint address, T value) where T : unmanaged
         {
             bool isWord = Unsafe.SizeOf<T>() == 4;
-            _step(isWord ? 6 : (uint)3);
+            _step(isWord ? 2 : (uint)1);
 
             _memory.Write(address.Align<T>() & ADDR_MASK, value);
         }

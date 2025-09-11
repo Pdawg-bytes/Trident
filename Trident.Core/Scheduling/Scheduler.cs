@@ -33,7 +33,10 @@ namespace Trident.Core.Scheduling
             CurrentTimestamp = 0;
             _nextId = 1;
 
-            Schedule(EventType.EndOfQueue, ulong.MaxValue);
+            #if DEBUG
+                // This is here for testing more than anything else.
+                Schedule(EventType.EndOfQueue, ulong.MaxValue);
+            #endif
         }
 
         internal void Register(EventType eventType, Action callback) => _callbacks[eventType] = _ => callback();

@@ -1,5 +1,6 @@
 ﻿using Trident.Core.Global;
 using Trident.Core.Hardware.IO;
+using Trident.Core.Hardware.Graphics.Registers;
 
 using static Trident.Core.Hardware.IO.IORegisters;
 
@@ -23,6 +24,22 @@ namespace Trident.Core.Memory.MappedIO
                 _registers[i] = openBusRegister;
 
 
+            // PPU registers
+            SetAccessor(DISPCNT, _ppuRegisters.DisplayControl.Read, _ppuRegisters.DisplayControl.Write);
+            SetAccessor(GREENSWAP, () => (ushort)_ppuRegisters.Greenswap, (value, upper, lower) => { if (lower) _ppuRegisters.Greenswap = value & 1u; });
+            SetAccessor(DISPSTAT, _ppuRegisters.DisplayStatus.Read, _ppuRegisters.DisplayStatus.Write);
+            SetAccessor(VCOUNT, () => (ushort)_ppuRegisters.VCount, _emptyWrite);
+
+            BackgroundControl bgxcnt = _ppuRegisters.BackgroundControls[0];
+            SetAccessor(BG0CNT, bgxcnt.Read, bgxcnt.Write);
+            bgxcnt = _ppuRegisters.BackgroundControls[1];
+            SetAccessor(BG1CNT, bgxcnt.Read, bgxcnt.Write);
+            bgxcnt = _ppuRegisters.BackgroundControls[2];
+            SetAccessor(BG2CNT, bgxcnt.Read, bgxcnt.Write);
+            bgxcnt = _ppuRegisters.BackgroundControls[3];
+            SetAccessor(BG3CNT, bgxcnt.Read, bgxcnt.Write);
+
+            
             // Keypad registers
             SetAccessor(KEYINPUT, _keypad.ReadKeyInput, _emptyWrite);
             SetAccessor(KEYCNT, _keypad.ReadKeyControl, _keypad.WriteKeyControl);

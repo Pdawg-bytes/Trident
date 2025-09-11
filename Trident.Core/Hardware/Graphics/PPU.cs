@@ -1,6 +1,8 @@
-﻿using Trident.Core.Scheduling;
+﻿using Trident.Core.Bus;
+using Trident.Core.Scheduling;
+using Trident.Core.Memory.Graphics;
 using Trident.Core.Hardware.Interrupts;
-using Trident.Core.Memory.MappedIO;
+using Trident.Core.Hardware.Graphics.Registers;
 
 namespace Trident.Core.Hardware.Graphics
 {
@@ -10,32 +12,40 @@ namespace Trident.Core.Hardware.Graphics
         private const int HBlankEndDelay = 68 * 4;    // 68px
         private const int HBlankFlagDelay = 46;       // HDraw + Delay (GBATek: "the H-Blank flag is "0" for a total of 1006 cycles.")
 
-        private int scanline = 0;
+        private readonly PPURegisters _registers;
+        private readonly PRAM _pram;
+        private readonly VRAM _vram;
+        private readonly OAM _oam;
 
         private readonly Scheduler _scheduler;
 
         private readonly Action<InterruptSource> _raiseIRQ;
 
-        internal PPU(Scheduler scheduler, Action<InterruptSource> raiseIRQ)
+        internal PPU(PPURegisters registers, PRAM pram, VRAM vram, OAM oam, Scheduler scheduler, Action<InterruptSource> raiseIRQ)
         {
+            _registers = registers;
+            _pram = pram;
+            _vram = vram;
+            _oam = oam;
             _scheduler = scheduler;
             _raiseIRQ = raiseIRQ;
 
             _scheduler.Register(EventType.PPU_HBlankStart,   OnHBlankStart);
             _scheduler.Register(EventType.PPU_HBlankEnd,     OnHBlankEnd);
-            _scheduler.Register(EventType.PPU_SetHBlankFlag, SetHBlankFlag);
+            _scheduler.Register(EventType.PPU_SetHBlankFlag, () => _registers.DisplayStatus.HBlankFlag = true);
             _scheduler.Register(EventType.PPU_VBlankStart,   OnVBlankStart);
             _scheduler.Register(EventType.PPU_VBlankEnd,     OnVBlankEnd);
+
+            Reset();
         }
 
 
         private void OnHBlankStart()
         {
-            // TODO
-            //if (DISPSTAT hbl irq)
-            //    _raiseIRQ(InterruptSource.LCD_HBlank);
+            if (_registers.DisplayStatus.HBlankIrq)
+                _raiseIRQ(InterruptSource.LCD_HBlank);
 
-            if (scanline >= 0 && scanline < 160)
+            if (_registers.VCount >= 0 && _registers.VCount < 160)
             {
                 // render stuff
             }
@@ -46,45 +56,49 @@ namespace Trident.Core.Hardware.Graphics
 
         private void OnHBlankEnd()
         {
-            // TODO: Clear DISPSTAT hbl
-            scanline++;
+            DisplayStatus dispstat = _registers.DisplayStatus;
 
-            if (scanline == 160)
+            dispstat.HBlankFlag = false;
+            _registers.VCount++;
+
+            if (_registers.VCount == 160)
             {
-                // TODO: Set DISPSTAT vbl
+                dispstat.VBlankFlag = true;
                 OnVBlankStart();
             }
 
-            if (scanline == 227)
+            if (_registers.VCount == 227)
             {
-                // TODO: Clear DISPSTAT vbl
+                dispstat.VBlankFlag = false;
                 OnVBlankEnd();
             }
 
-            if (scanline == 228) scanline = 0;
+            if (_registers.VCount == 228) _registers.VCount = 0;
 
-            // TODO
-            //if (DISPSTAT vcnt irq && scanline == MMIO vcount)
-            //    _raiseIRQ(InterruptSource.LCD_VCounterMatch);
+            if (dispstat.VCountIrq && _registers.VCount == dispstat.VCountSetting)
+                _raiseIRQ(InterruptSource.LCD_VCounterMatch);
 
             _scheduler.Schedule(EventType.PPU_HBlankStart, HBlankStartDelay);
         }
 
-        private void SetHBlankFlag()
-        {
-            // TOD: Set DISPSTAT hbl
-        }
 
         private void OnVBlankStart()
         {
-            // TODO
-            //if (DISPSTAT vbl irq)
-            //    _raiseIRQ(InterruptSource.LCD_VBlank);
+            if (_registers.DisplayStatus.VBlankIrq)
+                _raiseIRQ(InterruptSource.LCD_VBlank);
         }
 
         private void OnVBlankEnd()
         {
-            // TODO: Clear DISPSTAT vbl
+            _registers.DisplayStatus.VBlankFlag = false;
+        }
+
+
+        internal void Reset()
+        {
+            _registers.Reset();
+
+            _scheduler.Schedule(EventType.PPU_HBlankStart, 226);
         }
     }
 }

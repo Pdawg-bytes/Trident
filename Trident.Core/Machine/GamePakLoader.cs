@@ -10,7 +10,7 @@ namespace Trident.Core.Machine
 {
     internal static class GamePakLoader
     {
-        internal unsafe static GamePak Load(byte[] romData, Func<PipelineAccess> getLastAccess, Action<uint> step, WaitControl waitControl, byte[]? saveData = null)
+        internal unsafe static GamePak Load(byte[] romData, Action<uint> step, WaitControl waitControl, byte[]? saveData = null)
         {
             if (romData.Length < ROMHeader.Size || romData.Length > GamePak.MaxSize)
                 throw new ArgumentException("ROM file is either too small or too large.");
@@ -48,7 +48,7 @@ namespace Trident.Core.Machine
                 AddressMask = addressMask
             };
 
-            return new GamePak(romData, info, getLastAccess, step, waitControl, backupDevice, null);
+            return new GamePak(romData, info, step, waitControl, backupDevice, null);
         }
 
         private static BackupType GetBackupType(byte[] romData)

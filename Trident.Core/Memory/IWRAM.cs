@@ -40,5 +40,8 @@ namespace Trident.Core.Memory
             _step(1);
             _memory.Write(address.Align<T>() & ADDR_MASK, value);
         }
+
+
+        internal void Reset() => _memory.Clear();
     }
 }

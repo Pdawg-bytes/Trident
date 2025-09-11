@@ -1,12 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Trident.Core.Hardware.Graphics.Registers;
 
 namespace Trident.Core.Hardware.Graphics
 {
     internal class PPURegisters
     {
+        internal DisplayControl DisplayControl = new();
+        internal DisplayStatus DisplayStatus = new();
+
+        internal uint Greenswap;
+
+        internal uint VCount;
+
+        internal BackgroundControl[] BackgroundControls =
+        [
+            new(0),
+            new(1),
+            new(2),
+            new(3)
+        ];
+
+
+        internal void Reset()
+        {
+            DisplayControl.Write(0, true, true);
+            DisplayStatus.Write(0, true, true);
+
+            Greenswap = 0;
+            VCount = 0;
+
+            for (int i = 0; i < 4; i++)
+                BackgroundControls[i].Write(0, true, true);
+        }
     }
 }

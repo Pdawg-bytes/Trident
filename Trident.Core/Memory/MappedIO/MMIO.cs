@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using Trident.Core.Hardware.Interrupts;
 using Trident.Core.Hardware.Controller;
+using Trident.Core.Hardware.Graphics;
 
 namespace Trident.Core.Memory.MappedIO
 {
@@ -17,6 +18,8 @@ namespace Trident.Core.Memory.MappedIO
 
         private readonly Action<uint> _step;
 
+        private readonly PPURegisters _ppuRegisters;
+
         private readonly Keypad _keypad;
 
         private readonly InterruptController _irqController;
@@ -28,6 +31,8 @@ namespace Trident.Core.Memory.MappedIO
         (
             Action<uint> step,
 
+            PPURegisters ppuRegisters,
+
             Keypad keypad,
 
             InterruptController irqController,
@@ -37,6 +42,8 @@ namespace Trident.Core.Memory.MappedIO
         )
         {
             _step = step;
+
+            _ppuRegisters = ppuRegisters;
 
             _keypad = keypad;
 

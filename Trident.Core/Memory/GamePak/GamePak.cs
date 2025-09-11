@@ -27,12 +27,11 @@ namespace Trident.Core.Memory.GamePak
         private readonly Action<uint> _step;
         private readonly WaitControl _waitControl;
 
-        private readonly Func<PipelineAccess> _getLastAccess;
         private readonly MemoryAccessHandler _upperAccessHandler;
         private readonly MemoryAccessHandler _lowerAccessHandler;
         private readonly MemoryAccessHandler _backupAccessHandler = new();
 
-        internal GamePak(byte[] romData, GamePakInfo info, Func<PipelineAccess> getLastAccess, Action<uint> step, WaitControl waitControl, IBackupDevice? backupDevice, GPIOBus? gpio)
+        internal GamePak(byte[] romData, GamePakInfo info, Action<uint> step, WaitControl waitControl, IBackupDevice? backupDevice, GPIOBus? gpio)
         {
             _addressMask = info.AddressMask;
             PakInfo = info;
@@ -59,8 +58,6 @@ namespace Trident.Core.Memory.GamePak
 
             _upperAccessHandler = GetHandler<UpperAccess>();
             _lowerAccessHandler = GetHandler<LowerAccess>();
-
-            _getLastAccess = getLastAccess;
         }
 
         internal MemoryAccessHandler GetUpperHandler() => _upperAccessHandler;

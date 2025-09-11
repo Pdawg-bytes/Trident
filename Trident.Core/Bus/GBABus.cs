@@ -11,8 +11,6 @@ namespace Trident.Core.Bus
         private readonly MemoryAccessHandler _unusedSection;
         private readonly UnusedSection _unused;
 
-        internal PipelineAccess LastAccess;
-
         public GBABus(Action<uint> step)
         {
             _step = step;
@@ -22,22 +20,22 @@ namespace Trident.Core.Bus
 
             _accessHandlers = 
             [
-                _unusedSection,
-                _unusedSection,
-                _unusedSection,
-                _unusedSection,
-                _unusedSection,
-                _unusedSection,
-                _unusedSection,
-                _unusedSection,
-                _unusedSection,
-                _unusedSection,
-                _unusedSection,
-                _unusedSection,
-                _unusedSection,
-                _unusedSection,
-                _unusedSection,
-                _unusedSection,
+                _unusedSection, // BIOS
+                _unusedSection, // Unused
+                _unusedSection, // EWRAM
+                _unusedSection, // IWRAM
+                _unusedSection, // MMIO
+                _unusedSection, // PRAM
+                _unusedSection, // VRAM
+                _unusedSection, // OAM
+                _unusedSection, // GamePak L WS0
+                _unusedSection, // GamePak H WS0
+                _unusedSection, // GamePak L WS1
+                _unusedSection, // GamePak H WS1
+                _unusedSection, // GamePak L WS2
+                _unusedSection, // GamePak H WS2
+                _unusedSection, // GamePak Backup
+                _unusedSection, // GamePak Backup
             ];
         }
 
@@ -88,9 +86,7 @@ namespace Trident.Core.Bus
             uint section = address >> 24;
             if (section > 0x0F) return (byte)ReadOpenBus(address);
 
-            byte value = _accessHandlers[section].Read8(address, access);
-            LastAccess = access;
-            return value;
+            return _accessHandlers[section].Read8(address, access);
         }
 
         public ushort Read16(uint address, PipelineAccess access)
@@ -98,9 +94,7 @@ namespace Trident.Core.Bus
             uint section = address >> 24;
             if (section > 0x0F) return (ushort)ReadOpenBus(address);
 
-            ushort value = _accessHandlers[section].Read16(address, access);
-            LastAccess = access;
-            return value;
+            return _accessHandlers[section].Read16(address, access);
         }
 
         public uint Read32(uint address, PipelineAccess access)
@@ -108,9 +102,7 @@ namespace Trident.Core.Bus
             uint section = address >> 24;
             if (section > 0x0F) return ReadOpenBus(address);
 
-            uint value = _accessHandlers[section].Read32(address, access);
-            LastAccess = access;
-            return value;
+            return _accessHandlers[section].Read32(address, access);
         }
         #endregion
 
@@ -125,7 +117,6 @@ namespace Trident.Core.Bus
             }
 
             _accessHandlers[section].Write8(address, access, value);
-            LastAccess = access;
         }
 
         public void Write16(uint address, ushort value, PipelineAccess access)
@@ -138,7 +129,6 @@ namespace Trident.Core.Bus
             }
 
             _accessHandlers[section].Write16(address, access, value);
-            LastAccess = access;
         }
 
         public void Write32(uint address, uint value, PipelineAccess access)
@@ -151,7 +141,6 @@ namespace Trident.Core.Bus
             }
 
             _accessHandlers[section].Write32(address, access, value);
-            LastAccess = access;
         }
         #endregion
 

@@ -31,10 +31,11 @@ namespace Trident.Core.Memory.GamePak
         {
             bool markedSequential = (access & PipelineAccess.Sequential) != 0;
             bool boundaryAligned = (address & 0x1FFFF) == 0;
-            bool dmaTransition = ((int)_getLastAccess() & (int)PipelineAccess.DMA) != 0 && ((int)access & (int)PipelineAccess.DMA) != 0;
+            bool dmaTransition = ((int)access & (int)PipelineAccess.DMA) != 0;
 
             // GBAtek: Non-sequential timing is used at each 128KB boundary of the ROM.
             // Entering or exiting a DMA also means that the access is non-sequential.
+            //             ^ TODO
             return markedSequential && !boundaryAligned && !dmaTransition;
         }
 

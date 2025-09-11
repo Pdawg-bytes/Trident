@@ -2,17 +2,11 @@
 
 namespace Trident.Core.Hardware.IO
 {
-    internal class PostHalt
+    internal class PostHalt(Action haltCPU, Func<uint> getPC)
     {
-        private readonly Action _haltCPU;
-        private readonly Func<uint> _getPC;
+        private readonly Action _haltCPU = haltCPU;
+        private readonly Func<uint> _getPC = getPC;
         private byte _postFlag;
-
-        internal PostHalt(Action haltCPU, Func<uint> getPC)
-        {
-            _haltCPU = haltCPU;
-            _getPC = getPC;
-        }
 
 
         // HALTCNT is not readable - only POSTFLG is. Therefore, we can just return POSTFLG as it's the low byte.

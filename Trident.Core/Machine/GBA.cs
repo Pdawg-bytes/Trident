@@ -5,6 +5,8 @@ using Trident.Core.Scheduling;
 using Trident.Core.Hardware.IO;
 using Trident.Core.Memory.GamePak;
 using Trident.Core.Memory.MappedIO;
+using Trident.Core.Memory.Graphics;
+using Trident.Core.Hardware.Graphics;
 using Trident.Core.Hardware.Controller;
 using Trident.Core.Memory.GamePak.GPIO;
 using Trident.Core.Hardware.Interrupts;
@@ -17,14 +19,24 @@ namespace Trident.Core.Machine
         internal InterruptController IRQController;
         private GBABusView? _busView;
 
+        internal PPU PPU;
+        private PPURegisters _ppuRegisters = new();
+
         internal Scheduler Scheduler = new();
 
         public bool ShouldSkipBIOS = true;
 
         private readonly BIOS _bios;
+
         private readonly EWRAM _eWRAM;
         private readonly IWRAM _iWRAM;
+
         private readonly MMIO _mmio;
+
+        private readonly PRAM _pram;
+        private readonly VRAM _vram;
+        private readonly OAM _oam;
+
         private GamePak _gamePak = null;
 
         private readonly Keypad _keypad;
@@ -34,8 +46,6 @@ namespace Trident.Core.Machine
 
         public GBA()
         {
-            BusBuilder builder = new();
-
             CPU = new(Scheduler);
             Func<uint> getPC = () => CPU.Registers.GetRegisterRef(15);
 
@@ -43,37 +53,34 @@ namespace Trident.Core.Machine
             CPU.AttachIRQController(IRQController);
 
             _keypad = new(IRQController.Raise);
-
             _postHalt = new(() => CPU.Halted = true, getPC);
 
 
             _bios = new(getPC, Scheduler.Step);
-            builder.Attach(MemoryRegion.BIOS, _bios.GetAccessHandler());
-
             _eWRAM = new(Scheduler.Step);
-            builder.Attach(MemoryRegion.EWRAM, _eWRAM.GetAccessHandler());
-
             _iWRAM = new(Scheduler.Step);
+            _pram = new(Scheduler.Step);
+            _vram = new(Scheduler.Step, () => _ppuRegisters.DisplayControl.BackgroundMode);
+            _oam = new(Scheduler.Step);
+
+
+            BusBuilder builder = new();
+
+            builder.Attach(MemoryRegion.BIOS,  _bios.GetAccessHandler());
+            builder.Attach(MemoryRegion.EWRAM, _eWRAM.GetAccessHandler());
             builder.Attach(MemoryRegion.IWRAM, _iWRAM.GetAccessHandler());
+            builder.Attach(MemoryRegion.PRAM,  _pram.GetAccessHandler());
+            builder.Attach(MemoryRegion.VRAM,  _vram.GetAccessHandler());
+            builder.Attach(MemoryRegion.OAM,   _oam.GetAccessHandler());
 
-
-            _mmio = new
-            (
-                Scheduler.Step,
-
-                _keypad,
-
-                IRQController,
-
-                _waitControl,
-                _postHalt
-            );
-
+            _mmio = new(Scheduler.Step, _ppuRegisters, _keypad, IRQController, _waitControl, _postHalt);
             builder.Attach(MemoryRegion.MMIO, _mmio.GetAccessHandler());
-
 
             CPU.AttachBus(builder.Build(Scheduler.Step));
             _busView = new(ref CPU.Bus);
+
+
+            PPU = new(_ppuRegisters, _pram, _vram, _oam, Scheduler, IRQController.Raise);
         }
 
         public T? GetGPIODevice<T>() where T : GPIODevice
@@ -104,8 +111,19 @@ namespace Trident.Core.Machine
 
         public void Reset()
         {
+            Scheduler.Reset();
+
+            _eWRAM.Reset();
+            _iWRAM.Reset();
+            _pram.Reset();
+            _vram.Reset();
+            _oam.Reset();
+
             CPU.Reset();
             IRQController.Reset();
+
+            PPU.Reset();
+
             // TODO: reset other components
 
             if (ShouldSkipBIOS)
@@ -116,7 +134,7 @@ namespace Trident.Core.Machine
         public void AttachGamePak(string filePath)
         {
             _gamePak?.Dispose();
-            _gamePak = GamePakLoader.Load(File.ReadAllBytes(filePath), () => CPU.Bus.LastAccess, Scheduler.Step, _waitControl);
+            _gamePak = GamePakLoader.Load(File.ReadAllBytes(filePath), Scheduler.Step, _waitControl);
 
             MemoryAccessHandler gamePakUpper = _gamePak.GetUpperHandler();
             MemoryAccessHandler gamePakLower = _gamePak.GetLowerHandler();

@@ -1,0 +1,82 @@
+﻿namespace Trident.Core.Hardware.Graphics.Registers
+{
+    internal class DisplayControl()
+    {
+        private ushort _dispcnt;
+
+        internal byte BackgroundMode;
+        internal bool CGBMode;
+        internal bool FrameSelect;
+        internal bool HBlankIntervalFree;
+        internal bool ObjVramMapping;
+        internal bool ForcedBlank;
+
+        // Display flags: BG0–BG3, OBJ, WIN0, WIN1, OBJWIN
+        internal bool[] Enable = new bool[8];
+
+
+        internal ushort Read() => _dispcnt;
+
+        internal void Write(ushort value, bool upper, bool lower)
+        {
+            if (lower)
+            {
+                _dispcnt = (ushort)((_dispcnt & 0xFF00) | (byte)value);
+
+                BackgroundMode     = (byte)(_dispcnt & 0b111);
+                CGBMode            = (_dispcnt & (1 << 3)) != 0;
+                FrameSelect        = (_dispcnt & (1 << 4)) != 0;
+                HBlankIntervalFree = (_dispcnt & (1 << 5)) != 0;
+                ObjVramMapping     = (_dispcnt & (1 << 6)) != 0;
+                ForcedBlank        = (_dispcnt & (1 << 7)) != 0;
+            }
+
+            if (upper)
+            {
+                _dispcnt = (ushort)((_dispcnt & 0x00FF) | (value & 0xFF00));
+
+                for (int i = 0; i < 8; i++)
+                    Enable[i] = (_dispcnt & (1 << (8 + i))) != 0;
+            }
+        }
+    }
+
+
+    internal class DisplayStatus
+    {
+        internal bool VBlankFlag;
+        internal bool HBlankFlag;
+        internal bool VCountFlag;
+
+        internal bool VBlankIrq;
+        internal bool HBlankIrq;
+        internal bool VCountIrq;
+
+        internal byte VCountSetting;
+
+
+        internal ushort Read() => (ushort)
+        (
+            (VBlankFlag ? 1 : 0) << 0 |
+            (HBlankFlag ? 1 : 0) << 1 |
+            (VCountFlag ? 1 : 0) << 2 |
+            (VBlankIrq  ? 1 : 0) << 3 |
+            (HBlankIrq  ? 1 : 0) << 4 |
+            (VCountIrq  ? 1 : 0) << 5 |
+            VCountSetting << 8
+        );
+
+        internal void Write(ushort value, bool upper, bool lower)
+        {
+            if (lower)
+            {
+                VBlankIrq = ((value >> 3) & 1) != 0;
+                HBlankIrq = ((value >> 4) & 1) != 0;
+                VCountIrq = ((value >> 5) & 1) != 0;
+            }
+
+            if (upper)
+                VCountSetting = (byte)(value >> 8);
+        }
+    }
+}
