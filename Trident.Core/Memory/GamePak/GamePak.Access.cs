@@ -11,19 +11,26 @@ namespace Trident.Core.Memory.GamePak
             read16: Read16<TAccess>,
             read32: Read32<TAccess>,
 
-            null,
-            null,
-            null,
+            write8:  Write8<TAccess>,
+            write16: Write16<TAccess>,
+            write32: Write32<TAccess>,
 
             dispose: Dispose
         );
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WaitRead(uint address, bool seqAccess)
+        private void WaitAccess16(uint address, bool seqAccess)
         {
             uint region = (address >> 25) & 0b11;
-            _step(_waitControl.AccessTimings[seqAccess ? 1 : 0][region]);
+            _step(_waitControl.AccessTimings16[seqAccess ? 1 : 0][region]);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void WaitAccess32(uint address, bool seqAccess)
+        {
+            uint region = (address >> 25) & 0b11;
+            _step(_waitControl.AccessTimings32[seqAccess ? 1 : 0][region]);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -44,7 +51,7 @@ namespace Trident.Core.Memory.GamePak
         {
             bool isSequential = IsSequential(address, access);
 
-            WaitRead(address, isSequential);
+            WaitAccess16(address, isSequential);
 
             int shift = (int)(address & 1) << 3;
             return (byte)(ReadData16<TAccess>(address, isSequential) >> shift);
@@ -54,7 +61,7 @@ namespace Trident.Core.Memory.GamePak
         {
             bool isSequential = IsSequential(address, access);
 
-            WaitRead(address, isSequential);
+            WaitAccess16(address, isSequential);
             return ReadData16<TAccess>(address, isSequential);
         }
 
@@ -62,8 +69,29 @@ namespace Trident.Core.Memory.GamePak
         {
             bool isSequential = IsSequential(address, access);
 
-            WaitRead(address, isSequential);
+            WaitAccess32(address, isSequential);
             return ReadData32<TAccess>(address, isSequential);
+        }
+
+
+        private void Write8<TAccess>(uint address, PipelineAccess access, byte value) where TAccess : struct, IAccess =>
+            Write16<TAccess>(address, access, (ushort)(value * 0x0101));
+
+        private void Write16<TAccess>(uint address, PipelineAccess access, ushort value) where TAccess : struct, IAccess
+        {
+            bool isSequential = IsSequential(address, access);
+
+            WaitAccess16(address, isSequential);
+            WriteData16<TAccess>(address, isSequential, value);
+        }
+
+        private void Write32<TAccess>(uint address, PipelineAccess access, uint value) where TAccess : struct, IAccess
+        {
+            bool isSequential = IsSequential(address, access);
+
+            WaitAccess32(address, isSequential);
+            WriteData16<TAccess>(address | 0, isSequential, (ushort)value);
+            WriteData16<TAccess>(address | 2, isSequential, (ushort)(value >> 16));
         }
 
 
@@ -84,14 +112,14 @@ namespace Trident.Core.Memory.GamePak
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private byte ReadBackup(uint address)
         {
-            _step(_waitControl.AccessTimings[0][3]);
+            _step(_waitControl.AccessTimings16[0][3]);
             return _backupDevice.Read(address);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void WriteBackup(uint address, byte value)
         {
-            _step(_waitControl.AccessTimings[0][3]);
+            _step(_waitControl.AccessTimings16[0][3]);
             _backupDevice.Write(address & 0x0EFFFFFF, value);
         }
     }

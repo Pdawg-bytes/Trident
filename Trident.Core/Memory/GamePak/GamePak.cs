@@ -135,6 +135,24 @@ namespace Trident.Core.Memory.GamePak
         }
 
 
+        private void WriteData16<TAccess>(uint address, bool seqAccess, ushort value) where TAccess : struct, IAccess
+        {
+            address &= 0x01FFFFFE; // Force align to 16-bit boundary
+
+            if (TAccess.IsLower)
+            {
+                if (IsGPIOAddress(address)) _gpio.Write(address, (byte)value);
+
+                if (!seqAccess)
+                    _romAddress = address & _addressMask;
+            }
+
+            else
+                // EEPROM does not use the address parameter; it is a serial device. Pass in 0xFFFFFFFF to signify that it doesn't matter.
+                if (IsEEPROMAddress(address)) _backupDevice.Write(0xFFFF_FFFF, (byte)value);
+        }
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool IsEEPROMAddress(uint address) => _isEEPROM && (address & _eepromMask) == _eepromMask;
 

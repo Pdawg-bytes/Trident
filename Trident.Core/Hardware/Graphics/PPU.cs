@@ -53,10 +53,24 @@ namespace Trident.Core.Hardware.Graphics
             if (_registers.VCount >= 0 && _registers.VCount < 160)
             {
                 // render stuff
-                for (int i = 0; i < 240; i++)
+                for (int x = 0; x < 240; x++)
                 {
-                    ushort color = _vram.Fetch<ushort>((uint)(i + _registers.VCount * 240) * 2);
-                    _framebuffer.SetPixel(i, (int)_registers.VCount, Framebuffer.ToArgb(color));
+                    ushort color = 0;
+
+                    if (_registers.DisplayControl.BackgroundMode == 3)
+                    {
+                        color = _vram.Fetch<ushort>(((uint)x + _registers.VCount * 240) << 1);
+                        _framebuffer.SetPixel(x, (int)_registers.VCount, Framebuffer.ToArgb(color));
+                    }
+                    else if (_registers.DisplayControl.BackgroundMode == 4)
+                    {
+                        uint baseFrame = _registers.DisplayControl.FrameSelect ? 0xA000 : 0x0000u;
+                        uint addr = baseFrame + (uint)(x + _registers.VCount * 240);
+                        byte index = (byte)(_vram.Fetch<byte>(addr) << 1);
+                        color = _pram.Fetch<ushort>(index);
+                    }
+
+                    _framebuffer.SetPixel(x, (int)_registers.VCount, Framebuffer.ToArgb(color));
                 }
             }
 

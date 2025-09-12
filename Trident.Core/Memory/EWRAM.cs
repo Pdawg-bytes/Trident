@@ -30,7 +30,7 @@ namespace Trident.Core.Memory
         private T Read<T>(uint address) where T : unmanaged
         {
             bool isWord = Unsafe.SizeOf<T>() == 4;
-            _step(isWord ? 6 : (uint)3);
+            _step(isWord ? 6 : 3u);
 
             return _memory.Read<T>(address.Align<T>() & ADDR_MASK);
         }
@@ -40,7 +40,7 @@ namespace Trident.Core.Memory
         private void Write<T>(uint address, T value) where T : unmanaged
         {
             bool isWord = Unsafe.SizeOf<T>() == 4;
-            _step(isWord ? 6 : (uint)3);
+            _step(isWord ? 6 : 3u);
 
             _memory.Write(address.Align<T>() & ADDR_MASK, value);
         }
