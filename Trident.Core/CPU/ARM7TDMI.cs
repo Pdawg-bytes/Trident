@@ -5,8 +5,9 @@ using Trident.Core.Scheduling;
 using Trident.Core.CPU.Pipeline;
 using Trident.Core.CPU.Registers;
 using Trident.Core.CPU.Decoding.ARM;
-using Trident.Core.CPU.Decoding.Thumb;
 using System.Runtime.CompilerServices;
+using Trident.Core.CPU.Decoding.Thumb;
+using Trident.Core.Debugging.Snapshots;
 using Trident.Core.Hardware.Interrupts;
 
 using static Trident.Core.CPU.Conditions;
@@ -175,5 +176,14 @@ namespace Trident.Core.CPU
 
         internal void NonImplementedARMInstr(uint opcode) => throw new NotImplementedException("This ARM instruction group is not implemented.");
         internal void NonImplementedThumbInstr(ushort opcode) => throw new NotImplementedException("This Thumb instruction group is not implemented.");
+
+
+        internal CPUSnapshot GetSnapshot() => new
+        (
+            Registers.CopyRegisters(),
+            (uint)Registers.CPSR,
+            (uint)Registers.SPSR,
+            Registers.CurrentMode
+        );
     }
 }

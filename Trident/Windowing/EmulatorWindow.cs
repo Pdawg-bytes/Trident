@@ -2,18 +2,18 @@
 using Trident.Popups;
 using Trident.Styling;
 using Trident.Widgets;
-using Trident.Commands;
 using System.Text.Json;
-using Trident.Emulation;
-using Trident.Utilities;
+using Trident.Commands;
 using System.Reflection;
-using OpenTK.Mathematics;
-using Trident.Interaction;
+using Trident.Emulation;
 using Trident.Popups.File;
+using Trident.Interaction;
+using OpenTK.Mathematics;
 using Trident.Core.Machine;
 using System.ComponentModel;
 using OpenTK.Windowing.Common;
 using OpenTK.Graphics.OpenGL4;
+using Trident.Widgets.Debugger;
 using OpenTK.Windowing.Desktop;
 using System.Runtime.InteropServices;
 using Trident.Core.Hardware.Controller;
@@ -29,7 +29,9 @@ namespace Trident.Windowing
         private int _framebufferTexture;
 
         private List<IWidget> _widgets = [];
-        private readonly PerformancePopup _performanceWidget;
+        private Dictionary<string, List<IWidget>> _widgetGroups = [];
+
+        private readonly PerformancePopup _performancePopup;
 
         private ImGuiController _controller;
         private readonly ImGuiStyleConfig _styleConfig;
@@ -47,7 +49,7 @@ namespace Trident.Windowing
             _gba = gba;
             _emulatorThread = new(gba);
 
-            _performanceWidget = new(() => _emulatorThread.CurrentSpeed);
+            _performancePopup = new(() => _emulatorThread.CurrentSpeed);
 
             var assembly = Assembly.GetExecutingAssembly();
 
@@ -132,8 +134,10 @@ namespace Trident.Windowing
             _shortcutManager.RegisterShortcut(new(Keys.R, Ctrl: true), _emulatorThread.Reset);
             _shortcutManager.RegisterShortcut(new(Keys.P, Ctrl: true), () => _emulatorThread.SetPause(!_emulatorThread.IsPaused()));
             _shortcutManager.RegisterShortcut(new(Keys.P, Shift: true), () => _emulatorThread.SetSpeedCap(!_emulatorThread.IsSpeedCapped()));
+            _shortcutManager.RegisterShortcut(new(Keys.F10), () => StepGBA(1));
 
             InitFramebufferTexture();
+            InitWidgets();
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -157,6 +161,20 @@ namespace Trident.Windowing
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
         }
 
+        private void AddWidget(IWidget widget)
+        {
+            _widgets.Add(widget);
+
+            _widgetGroups = _widgets
+                .GroupBy(w => w.Group)
+                .ToDictionary(g => g.Key, g => g.ToList());
+        }
+
+        private void InitWidgets()
+        {
+            AddWidget(new CPUStateWidget(() => _gba.CPUSnapshot));
+        }
+
 
         protected override void OnResize(ResizeEventArgs e)
         {
@@ -174,7 +192,7 @@ namespace Trident.Windowing
             base.OnRenderFrame(e);
             _controller.Update(this, (float)e.Time);
 
-            _performanceWidget.Update(e.Time * 1000.0);
+            _performancePopup.Update(e.Time * 1000.0);
 
             GL.ClearColor(new Color4(20, 20, 20, 255));
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
@@ -218,7 +236,21 @@ namespace Trident.Windowing
 
                     bool paused = _emulatorThread.IsPaused();
                     if (ImGui.MenuItem(paused ? "Play" : "Pause", "Ctrl + P"))
-                        _emulatorThread.SetPause(!paused);
+                        _emulatorThread.SetPause(paused = !paused);
+
+                    if (paused)
+                    {
+                        if (ImGui.MenuItem("Step", "F10"))
+                            StepGBA(1);
+                    }
+                    else
+                    {
+                        ImGui.BeginDisabled();
+                        ImGui.MenuItem("Step", "F10");
+                        ImGui.EndDisabled();
+                    }
+
+                    ImGui.Separator();
 
                     bool speedCapped = _emulatorThread.IsSpeedCapped();
                     if (ImGui.MenuItem(speedCapped ? "Fast forward" : "Cap speed", "Shift + P"))
@@ -245,6 +277,24 @@ namespace Trident.Windowing
                     ImGui.EndMenu();
                 }
 
+                if (ImGui.BeginMenu("Debugger"))
+                {
+                    foreach (var group in _widgetGroups)
+                    {
+                        if (ImGui.BeginMenu(group.Key))
+                        {
+                            foreach (var widget in group.Value)
+                            {
+                                bool visible = widget.IsVisible;
+                                if (ImGui.MenuItem(widget.Name, null, ref visible))
+                                    widget.IsVisible = visible;
+                            }
+                            ImGui.EndMenu();
+                        }
+                    }
+                    ImGui.EndMenu();
+                }
+
                 string value = $"{_emulatorThread.CurrentSpeed:F2}".PadLeft(6);
                 string speed = $"GBA Speed: {value}%";
                 var size = ImGui.CalcTextSize(speed);
@@ -254,7 +304,7 @@ namespace Trident.Windowing
 
                 if (ImGui.BeginMenu(speed))
                 {
-                    PopupManager.Show(_performanceWidget);
+                    PopupManager.Show(_performancePopup);
                     ImGui.EndMenu();
                 }
 
@@ -333,6 +383,12 @@ namespace Trident.Windowing
                     gbaKey = default;
                     return false;
             }
+        }
+
+        private void StepGBA(ulong cycles)
+        {
+            if (_emulatorThread.IsPaused())
+                _emulatorThread.EnqueueCommand(new StepCommand(cycles));
         }
 
 

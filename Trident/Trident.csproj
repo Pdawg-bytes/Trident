@@ -26,10 +26,6 @@
     <EmbeddedResource Include="Styling\ImGuiStyle.json" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Menus\" />
-  </ItemGroup>
-
   <PropertyGroup>
     <PublishReadyToRun>false</PublishReadyToRun>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

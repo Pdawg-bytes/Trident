@@ -1,10 +1,12 @@
 ﻿namespace Trident.Widgets
 {
-    public interface IWidget
+    internal interface IWidget
     {
         public void Render();
 
         public bool IsVisible { get; set; }
+
         public string Name { get; }
+        public string Group { get; }
     }
 }

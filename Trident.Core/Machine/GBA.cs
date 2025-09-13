@@ -1,15 +1,17 @@
 ﻿using Trident.Core.Bus;
 using Trident.Core.CPU;
-using Trident.Core.Memory;
-using Trident.Core.Scheduling;
-using Trident.Core.Hardware.IO;
-using Trident.Core.Memory.GamePak;
-using Trident.Core.Memory.MappedIO;
-using Trident.Core.Memory.Graphics;
-using Trident.Core.Hardware.Graphics;
+using Trident.Core.Debugging;
+using Trident.Core.Debugging.Snapshots;
 using Trident.Core.Hardware.Controller;
-using Trident.Core.Memory.GamePak.GPIO;
+using Trident.Core.Hardware.Graphics;
 using Trident.Core.Hardware.Interrupts;
+using Trident.Core.Hardware.IO;
+using Trident.Core.Memory;
+using Trident.Core.Memory.GamePak;
+using Trident.Core.Memory.GamePak.GPIO;
+using Trident.Core.Memory.Graphics;
+using Trident.Core.Memory.MappedIO;
+using Trident.Core.Scheduling;
 
 namespace Trident.Core.Machine
 {
@@ -86,6 +88,8 @@ namespace Trident.Core.Machine
 
         public T? GetGPIODevice<T>() where T : GPIODevice
             => _gamePak?.GetGPIODevice<T>();
+
+        public CPUSnapshot CPUSnapshot => CPU.GetSnapshot();
 
 
         public void RunFor(ulong cycles)

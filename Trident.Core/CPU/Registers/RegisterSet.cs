@@ -139,7 +139,7 @@ namespace Trident.Core.CPU.Registers
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool IsUserOrSystem(PrivilegeMode mode) => mode is PrivilegeMode.USR || mode is PrivilegeMode.SYS;
+        public static bool IsUserOrSystem(PrivilegeMode mode) => mode is PrivilegeMode.USR || mode is PrivilegeMode.SYS;
 
 
 
@@ -188,6 +188,20 @@ namespace Trident.Core.CPU.Registers
             Console.WriteLine($"CPSR: 0x{CPSR:X8}");
             if (!IsUserOrSystem(CurrentMode)) Console.WriteLine($"SPSR: 0x{(uint)SPSR:X8}");
             Console.WriteLine(new string('-', 30));
+        }
+
+        public uint[] CopyRegisters()
+        {
+            uint[] result = new uint[RegisterArray.Length];
+
+            Unsafe.CopyBlockUnaligned
+            (
+                ref Unsafe.As<uint, byte>(ref result[0]),
+                ref Unsafe.As<RegisterArray, byte>(ref _registers),
+                (uint)(RegisterArray.Length * sizeof(uint))
+            );
+
+            return result;
         }
 
 
