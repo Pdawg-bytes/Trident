@@ -26,7 +26,7 @@ namespace Trident.Core.CPU.Registers
         private Flags[] _bankedSpsr = new Flags[6]; // 6 distinct modes, usr/sys don't use SPSR, but our bank switch relies on it anyways.
         private RegisterArray _registers = new();
 
-        public PrivilegeMode CurrentMode { get; private set; }
+        public ProcessorMode CurrentMode { get; private set; }
 
         /// <summary>The current program status register.</summary>
         public Flags CPSR;
@@ -34,17 +34,17 @@ namespace Trident.Core.CPU.Registers
 
         public RegisterSet()
         {
-            _bankParams[(uint)PrivilegeMode.USR] =       new(8, 0, 7, 0);
-            _bankParams[(uint)PrivilegeMode.SYS] =     new(8, 0, 7, 0);
-            _bankParams[(uint)PrivilegeMode.FIQ] =        new(8, 7, 7, 1);
-            _bankParams[(uint)PrivilegeMode.IRQ] =        new(13, 14, 2, 2);
-            _bankParams[(uint)PrivilegeMode.SVC] = new(13, 16, 2, 3);
-            _bankParams[(uint)PrivilegeMode.ABT] =      new(13, 18, 2, 4);
-            _bankParams[(uint)PrivilegeMode.UND] =  new(13, 20, 2, 5);
+            _bankParams[(uint)ProcessorMode.USR] =       new(8, 0, 7, 0);
+            _bankParams[(uint)ProcessorMode.SYS] =     new(8, 0, 7, 0);
+            _bankParams[(uint)ProcessorMode.FIQ] =        new(8, 7, 7, 1);
+            _bankParams[(uint)ProcessorMode.IRQ] =        new(13, 14, 2, 2);
+            _bankParams[(uint)ProcessorMode.SVC] = new(13, 16, 2, 3);
+            _bankParams[(uint)ProcessorMode.ABT] =      new(13, 18, 2, 4);
+            _bankParams[(uint)ProcessorMode.UND] =  new(13, 20, 2, 5);
 
             ResetRegisters();
-            CurrentMode = PrivilegeMode.SYS;
-            SwitchMode(PrivilegeMode.SYS);
+            CurrentMode = ProcessorMode.SYS;
+            SwitchMode(ProcessorMode.SYS);
         }
 
         internal unsafe ref uint GetRegisterRef(int index)
@@ -90,15 +90,15 @@ namespace Trident.Core.CPU.Registers
 
 
         /// <summary>
-        /// Switches the register bank that the processor is using based on the requested <see cref="PrivilegeMode"/>.
+        /// Switches the register bank that the processor is using based on the requested <see cref="ProcessorMode"/>.
         /// </summary>
         /// <param name="newMode">The mode to set the processor to.</param>
-        public void SwitchMode(PrivilegeMode newMode)
+        public void SwitchMode(ProcessorMode newMode)
         {
             if (newMode == CurrentMode) return;
 
-            bool fromFIQ    = CurrentMode is PrivilegeMode.FIQ;
-            bool toFIQ      = newMode is PrivilegeMode.FIQ;
+            bool fromFIQ    = CurrentMode is ProcessorMode.FIQ;
+            bool toFIQ      = newMode is ProcessorMode.FIQ;
             bool fromUsrSys = IsUserOrSystem(CurrentMode);
             bool toUsrSys   = IsUserOrSystem(newMode);
 
@@ -139,11 +139,11 @@ namespace Trident.Core.CPU.Registers
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsUserOrSystem(PrivilegeMode mode) => mode is PrivilegeMode.USR || mode is PrivilegeMode.SYS;
+        public static bool IsUserOrSystem(ProcessorMode mode) => mode is ProcessorMode.USR || mode is ProcessorMode.SYS;
 
 
 
-        public void SetBankForMode(PrivilegeMode mode, Span<uint> values)
+        public void SetBankForMode(ProcessorMode mode, Span<uint> values)
         {
             BankParameters bank = _bankParams[(uint)mode];
 
@@ -154,7 +154,7 @@ namespace Trident.Core.CPU.Registers
                 _bankStore[bank.BankIndex + i] = values[i];
         }
 
-        public void GetBankForMode(PrivilegeMode mode, Span<uint> destination)
+        public void GetBankForMode(ProcessorMode mode, Span<uint> destination)
         {
             BankParameters bank = _bankParams[(uint)mode];
 
@@ -165,8 +165,8 @@ namespace Trident.Core.CPU.Registers
                 destination[i] = _bankStore[bank.BankIndex + i];
         }
 
-        public uint GetSPSRForMode(PrivilegeMode mode) => (uint)_bankedSpsr[_bankParams[(uint)mode].SPSRIndex];
-        public void SetSPSRForMode(PrivilegeMode mode, Flags value) => _bankedSpsr[_bankParams[(uint)mode].SPSRIndex] = value;
+        public uint GetSPSRForMode(ProcessorMode mode) => (uint)_bankedSpsr[_bankParams[(uint)mode].SPSRIndex];
+        public void SetSPSRForMode(ProcessorMode mode, Flags value) => _bankedSpsr[_bankParams[(uint)mode].SPSRIndex] = value;
 
 
         public void ResetRegisters()
@@ -174,7 +174,7 @@ namespace Trident.Core.CPU.Registers
             for (int i = 0; i < 16; i++) _registers[i] = 0;
             Array.Clear(_bankStore, 0, _bankStore.Length);
             Array.Clear(_bankedSpsr, 0, _bankedSpsr.Length);
-            CPSR = (Flags)((0b11 << 6) | (uint)PrivilegeMode.SVC);
+            CPSR = (Flags)((0b11 << 6) | (uint)ProcessorMode.SVC);
             // I and F set; mode SVC
         }
 

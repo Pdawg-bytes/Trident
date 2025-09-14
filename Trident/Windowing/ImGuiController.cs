@@ -6,6 +6,7 @@ using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Desktop;
 using System.Runtime.CompilerServices;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+
 using ErrorCode = OpenTK.Graphics.OpenGL4.ErrorCode;
 
 namespace Trident.Windowing
@@ -43,8 +44,9 @@ namespace Trident.Windowing
         /// Constructs a new ImGuiController.
         /// </summary>
         internal ImGuiController(
-            int width, int height, 
-            nint fontData, int fontDataSize,
+            int width, int height,
+            List<(string name, nint ptr, int size, float sizePixels)> fonts,
+            out Dictionary<string, ImFontPtr> fontPtrs,
             ImGuiStyleConfig style)
         {
             _windowWidth = width;
@@ -62,7 +64,10 @@ namespace Trident.Windowing
             nint context = ImGui.CreateContext();
             ImGui.SetCurrentContext(context);
             var io = ImGui.GetIO();
-            io.Fonts.AddFontFromMemoryTTF(fontData, fontDataSize, 17f);
+
+            fontPtrs = [];
+            foreach (var (name, ptr, size, sizePixels) in fonts)
+                fontPtrs.Add(name, io.Fonts.AddFontFromMemoryTTF(ptr, size, sizePixels));
 
             ApplyStyle(style);
 

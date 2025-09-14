@@ -44,9 +44,9 @@ namespace Trident.Core.CPU
                 transferSize = (uint)BitOperations.PopCount(regList) << 2;
 
 
-            PrivilegeMode mode = Registers.CurrentMode;
+            ProcessorMode mode = Registers.CurrentMode;
             bool switchMode = TTraits.UserMode && !RegisterSet.IsUserOrSystem(mode) && (!TTraits.Load || !pcIncluded);
-            if (switchMode) Registers.SwitchMode(PrivilegeMode.USR);
+            if (switchMode) Registers.SwitchMode(ProcessorMode.USR);
 
             uint finalAddress = address + (TTraits.AddOffset ? transferSize : (uint)-transferSize);
             if (!TTraits.AddOffset) address -= transferSize;
@@ -99,7 +99,7 @@ namespace Trident.Core.CPU
                 if (TTraits.UserMode)
                 {
                     Flags spsr = Registers.SPSR;
-                    Registers.SwitchMode((PrivilegeMode)(spsr & (Flags)0x1F));
+                    Registers.SwitchMode((ProcessorMode)(spsr & (Flags)0x1F));
                     Registers.CPSR = spsr;
                 }
 

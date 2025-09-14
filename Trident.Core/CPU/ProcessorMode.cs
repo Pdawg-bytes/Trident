@@ -3,7 +3,7 @@
     /// <summary>
     /// The current operating mode of the processor.
     /// </summary>
-    public enum PrivilegeMode : uint
+    public enum ProcessorMode : uint
     {
         /// <summary>User mode: PC, R14 to R0, CPSR</summary>
         USR = 0b10000,

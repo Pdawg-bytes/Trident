@@ -1,5 +1,6 @@
 ﻿using ImGuiNET;
 using System.Numerics;
+using Trident.Core.CPU;
 using Trident.Utilities;
 using Trident.Core.CPU.Registers;
 using Trident.Core.Debugging.Snapshots;
@@ -11,9 +12,15 @@ namespace Trident.Widgets.Debugger
         private readonly Func<CPUSnapshot> _getSnapshot;
         private CPUSnapshot? _previousSnapshot;
 
-        internal CPUStateWidget(Func<CPUSnapshot> getSnapshot)
+        private readonly ImFontPtr _monoFont;
+
+        private readonly Vector4 _lavender = new(0.87f, 0.82f, 0.97f, 1f);
+        private readonly uint _tableHighlight = ImGui.ColorConvertFloat4ToU32(new(0.16f, 0.14f, 0.20f, 0.85f));
+
+        internal CPUStateWidget(Func<CPUSnapshot> getSnapshot, ImFontPtr monoFont)
         {
             _getSnapshot = getSnapshot;
+            _monoFont = monoFont;
         }
 
         public bool IsVisible { get; set; } = true;
@@ -29,18 +36,31 @@ namespace Trident.Widgets.Debugger
             {
                 CPUSnapshot snapshot = _getSnapshot();
 
-                ImGui.Columns(2, "reg_columns");
-                for (int reg = 0; reg < 8; reg++)
+                ImGui.PushFont(_monoFont);
+
+                if (ImGui.BeginTable("RegisterTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
                 {
-                    HighlightChange($"R{reg}", snapshot.Registers[reg], _previousSnapshot?.Registers[reg]);
-                    ImGui.NextColumn();
-                    HighlightChange($"R{reg + 8}", snapshot.Registers[reg + 8], _previousSnapshot?.Registers[reg + 8]);
-                    ImGui.NextColumn();
+                    for (int row = 0; row < 8; row++)
+                    {
+                        ImGui.TableNextRow();
+
+                        int regLow = row;
+                        ImGui.TableSetColumnIndex(0);
+                        HighlightChange($"R{regLow}:", snapshot.Registers[regLow], _previousSnapshot?.Registers[regLow], 4);
+
+
+                        int regHigh = row + 8;
+                        ImGui.TableSetColumnIndex(1);
+                        if (IsBanked(regHigh, snapshot.Mode))
+                            ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, _tableHighlight);
+
+                        HighlightChange($"R{regHigh}:", snapshot.Registers[regHigh], _previousSnapshot?.Registers[regHigh], 5);
+                    }
+                    ImGui.EndTable();
                 }
-                ImGui.Columns(1);
 
                 ImGui.Separator();
-                HighlightChange("CPSR", snapshot.CPSR, _previousSnapshot?.CPSR);
+                HighlightChange("CPSR:", snapshot.CPSR, _previousSnapshot?.CPSR, 6);
 
                 bool n = snapshot.CPSR.IsBitSet(31);
                 bool z = snapshot.CPSR.IsBitSet(30);
@@ -67,6 +87,7 @@ namespace Trident.Widgets.Debugger
                     ImGui.Separator();
                     ImGui.Text($"SPSR: 0x{snapshot.SPSR:X8}");
                 }
+                ImGui.PopFont();
 
                 _previousSnapshot = snapshot;
             }
@@ -74,16 +95,34 @@ namespace Trident.Widgets.Debugger
             ImGui.End();
         }
 
-        private void HighlightChange(string label, uint current, uint? previous)
+
+        private void HighlightChange(string label, uint current, uint? previous, int totalLabelWidth = 0)
         {
+            string paddedLabel = label.PadRight(totalLabelWidth);
+
             if (previous.HasValue && current != previous.Value)
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.85f, 0.80f, 0.95f, 1f));
-                ImGui.Text($"{label}: 0x{current:X8}");
+                ImGui.PushStyleColor(ImGuiCol.Text, _lavender);
+                ImGui.Text($"{paddedLabel}0x{current:X8}");
                 ImGui.PopStyleColor();
             }
             else
-                ImGui.Text($"{label}: 0x{current:X8}");
+            {
+                ImGui.Text($"{paddedLabel}0x{current:X8}");
+            }
         }
+
+        private bool IsBanked(int reg, ProcessorMode mode) => mode switch
+        {
+            ProcessorMode.FIQ => reg >= 8 && reg <= 14,
+
+            ProcessorMode.IRQ or
+            ProcessorMode.SVC or
+            ProcessorMode.ABT or
+            ProcessorMode.UND =>
+                reg == 13 || reg == 14,
+
+            _ => false
+        };
     }
 }

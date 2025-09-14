@@ -44,7 +44,7 @@ namespace Trident.Core.CPU
         public void Reset()
         {
             Registers.ResetRegisters();
-            Registers.SwitchMode(PrivilegeMode.SVC);
+            Registers.SwitchMode(ProcessorMode.SVC);
 
             Pipeline.Prefetch[0] = Pipeline.Prefetch[1] = 0xF0000000;
             Pipeline.Access = PipelineAccess.Sequential | PipelineAccess.Code;
@@ -123,8 +123,8 @@ namespace Trident.Core.CPU
                 Bus.Read32(Registers.PC.Align<uint>(), Pipeline.Access);
 
 
-            Registers.SetSPSRForMode(PrivilegeMode.IRQ, cpsr);
-            Registers.SwitchMode(PrivilegeMode.IRQ);
+            Registers.SetSPSRForMode(ProcessorMode.IRQ, cpsr);
+            Registers.SwitchMode(ProcessorMode.IRQ);
             Registers.SetFlag(Flags.I);
 
             if (Registers.IsFlagSet(Flags.T))

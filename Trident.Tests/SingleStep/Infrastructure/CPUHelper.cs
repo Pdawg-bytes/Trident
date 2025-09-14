@@ -11,19 +11,19 @@ namespace Trident.Tests.SingleStep.Infrastructure
         internal static void ApplyInitialState(ARM7TDMI<TransactionalMemory> cpu, RegisterState state)
         {
             cpu.Registers.ResetRegisters();
-            cpu.Registers.SwitchMode(PrivilegeMode.USR);
+            cpu.Registers.SwitchMode(ProcessorMode.USR);
 
             for (uint i = 0; i < 16; i++)
                 cpu.Registers[i] = state.R[(int)i];
 
-            SetBankAndSpsrForMode(cpu, PrivilegeMode.FIQ, state);
-            SetBankAndSpsrForMode(cpu, PrivilegeMode.IRQ, state);
-            SetBankAndSpsrForMode(cpu, PrivilegeMode.SVC, state);
-            SetBankAndSpsrForMode(cpu, PrivilegeMode.ABT, state);
-            SetBankAndSpsrForMode(cpu, PrivilegeMode.UND, state);
+            SetBankAndSpsrForMode(cpu, ProcessorMode.FIQ, state);
+            SetBankAndSpsrForMode(cpu, ProcessorMode.IRQ, state);
+            SetBankAndSpsrForMode(cpu, ProcessorMode.SVC, state);
+            SetBankAndSpsrForMode(cpu, ProcessorMode.ABT, state);
+            SetBankAndSpsrForMode(cpu, ProcessorMode.UND, state);
 
             cpu.Registers.CPSR = (Flags)state.Cpsr;
-            cpu.Registers.SwitchMode((PrivilegeMode)(state.Cpsr & 0x1F));
+            cpu.Registers.SwitchMode((ProcessorMode)(state.Cpsr & 0x1F));
 
             cpu.Pipeline.Prefetch[0] = state.Pipeline[0];
             cpu.Pipeline.Prefetch[1] = state.Pipeline[1];
@@ -47,7 +47,7 @@ namespace Trident.Tests.SingleStep.Infrastructure
                 errors.Add(string.Join("\n", flagDiff.Split('\n').Select(line => "        " + line)));
             }
 
-            cpu.Registers.SwitchMode(PrivilegeMode.USR);
+            cpu.Registers.SwitchMode(ProcessorMode.USR);
 
             for (int i = 0; i < 16; i++)
             {
@@ -55,11 +55,11 @@ namespace Trident.Tests.SingleStep.Infrastructure
                     AddError($"R{i}", $"0x{state.R[i]:X8}", $"0x{cpu.Registers[i]:X8}");
             }
 
-            CompareBank(cpu, PrivilegeMode.FIQ, state, errors);
-            CompareBank(cpu, PrivilegeMode.IRQ, state, errors);
-            CompareBank(cpu, PrivilegeMode.SVC, state, errors);
-            CompareBank(cpu, PrivilegeMode.ABT, state, errors);
-            CompareBank(cpu, PrivilegeMode.UND, state, errors);
+            CompareBank(cpu, ProcessorMode.FIQ, state, errors);
+            CompareBank(cpu, ProcessorMode.IRQ, state, errors);
+            CompareBank(cpu, ProcessorMode.SVC, state, errors);
+            CompareBank(cpu, ProcessorMode.ABT, state, errors);
+            CompareBank(cpu, ProcessorMode.UND, state, errors);
 
             if (state.Pipeline[0] != cpu.Pipeline.Prefetch[0])
                 AddError("Pipeline[0]", $"0x{state.Pipeline[0]:X8}", $"0x{cpu.Pipeline.Prefetch[0]:X8}");
@@ -78,15 +78,15 @@ namespace Trident.Tests.SingleStep.Infrastructure
         }
 
 
-        private static void SetBankAndSpsrForMode(ARM7TDMI<TransactionalMemory> cpu, PrivilegeMode mode, RegisterState state)
+        private static void SetBankAndSpsrForMode(ARM7TDMI<TransactionalMemory> cpu, ProcessorMode mode, RegisterState state)
         {
             (List<uint> bank, Flags spsr) = mode switch
             {
-                PrivilegeMode.FIQ =>        (state.RFiq, (Flags)state.Spsr[0]),
-                PrivilegeMode.IRQ =>        (state.RIrq, (Flags)state.Spsr[3]),
-                PrivilegeMode.SVC => (state.RSvc, (Flags)state.Spsr[1]),
-                PrivilegeMode.ABT =>      (state.RAbt, (Flags)state.Spsr[2]),
-                PrivilegeMode.UND =>  (state.RUnd, (Flags)state.Spsr[4]),
+                ProcessorMode.FIQ =>        (state.RFiq, (Flags)state.Spsr[0]),
+                ProcessorMode.IRQ =>        (state.RIrq, (Flags)state.Spsr[3]),
+                ProcessorMode.SVC => (state.RSvc, (Flags)state.Spsr[1]),
+                ProcessorMode.ABT =>      (state.RAbt, (Flags)state.Spsr[2]),
+                ProcessorMode.UND =>  (state.RUnd, (Flags)state.Spsr[4]),
                 _ => throw new InvalidOperationException($"Unsupported mode for bank/SPSR setting: {mode}")
             };
 
@@ -94,16 +94,16 @@ namespace Trident.Tests.SingleStep.Infrastructure
             cpu.Registers.SetSPSRForMode(mode, spsr);
         }
 
-        private static void CompareBank(ARM7TDMI<TransactionalMemory> cpu, PrivilegeMode mode, RegisterState expected, List<string> errors)
+        private static void CompareBank(ARM7TDMI<TransactionalMemory> cpu, ProcessorMode mode, RegisterState expected, List<string> errors)
         {
             (List<uint> expectedBank, Flags spsr) = mode switch
             {
-                PrivilegeMode.USR or PrivilegeMode.SYS => (expected.R, (Flags)0),
-                PrivilegeMode.FIQ => (expected.RFiq, (Flags)expected.Spsr[0]),
-                PrivilegeMode.IRQ => (expected.RIrq, (Flags)expected.Spsr[3]),
-                PrivilegeMode.SVC => (expected.RSvc, (Flags)expected.Spsr[1]),
-                PrivilegeMode.ABT => (expected.RAbt, (Flags)expected.Spsr[2]),
-                PrivilegeMode.UND => (expected.RUnd, (Flags)expected.Spsr[4]),
+                ProcessorMode.USR or ProcessorMode.SYS => (expected.R, (Flags)0),
+                ProcessorMode.FIQ => (expected.RFiq, (Flags)expected.Spsr[0]),
+                ProcessorMode.IRQ => (expected.RIrq, (Flags)expected.Spsr[3]),
+                ProcessorMode.SVC => (expected.RSvc, (Flags)expected.Spsr[1]),
+                ProcessorMode.ABT => (expected.RAbt, (Flags)expected.Spsr[2]),
+                ProcessorMode.UND => (expected.RUnd, (Flags)expected.Spsr[4]),
                 _ => throw new InvalidOperationException($"Unexpected mode: {mode} for bank comparison")
             };
 
@@ -116,7 +116,7 @@ namespace Trident.Tests.SingleStep.Infrastructure
                     errors.Add($"    R_{mode}_{i} mismatch: expected <0x{expectedBank[i]:X8}>, actual <0x{bank[i]:X8}>");
             }
 
-            if (mode != PrivilegeMode.USR && mode != PrivilegeMode.SYS)
+            if (mode != ProcessorMode.USR && mode != ProcessorMode.SYS)
             {
                 var actualSpsr = (Flags)cpu.Registers.GetSPSRForMode(mode);
                 if (spsr != actualSpsr)

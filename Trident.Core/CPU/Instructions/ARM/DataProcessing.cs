@@ -99,7 +99,7 @@ namespace Trident.Core.CPU
                 if (TTraits.SetFlags && !RegisterSet.IsUserOrSystem(Registers.CurrentMode))
                 {
                     uint spsr = (uint)Registers.SPSR;
-                    Registers.SwitchMode((PrivilegeMode)(spsr & 0x1F));
+                    Registers.SwitchMode((ProcessorMode)(spsr & 0x1F));
                     Registers.CPSR = (Flags)spsr;
                 }
 

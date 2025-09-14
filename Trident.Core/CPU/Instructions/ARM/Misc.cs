@@ -10,8 +10,8 @@ namespace Trident.Core.CPU
         [TemplateGroup<ARMGroup>(ARMGroup.Undefined)]
         internal void ARM_Undefined(uint opcode)
         {
-            Registers.SetSPSRForMode(PrivilegeMode.UND, Registers.CPSR);
-            Registers.SwitchMode(PrivilegeMode.UND);
+            Registers.SetSPSRForMode(ProcessorMode.UND, Registers.CPSR);
+            Registers.SwitchMode(ProcessorMode.UND);
             Registers.SetFlag(Flags.I);
 
             Registers.LR = Registers.PC - 4;
@@ -23,8 +23,8 @@ namespace Trident.Core.CPU
         [TemplateGroup<ARMGroup>(ARMGroup.SoftwareInterrupt)]
         internal void ARM_SoftwareInterrupt(uint opcode)
         {
-            Registers.SetSPSRForMode(PrivilegeMode.SVC, Registers.CPSR);
-            Registers.SwitchMode(PrivilegeMode.SVC);
+            Registers.SetSPSRForMode(ProcessorMode.SVC, Registers.CPSR);
+            Registers.SwitchMode(ProcessorMode.SVC);
             Registers.SetFlag(Flags.I);
 
             Registers.LR = Registers.PC - 4;

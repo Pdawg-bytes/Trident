@@ -175,9 +175,9 @@ namespace Trident.Core.Machine
 
         public void SkipBIOS()
         {
-            CPU.Registers.SwitchMode(PrivilegeMode.SYS);
-            CPU.Registers.SetBankForMode(PrivilegeMode.SVC, [0x03007FE0, 0]);
-            CPU.Registers.SetBankForMode(PrivilegeMode.IRQ, [0x03007FA0, 0]);
+            CPU.Registers.SwitchMode(ProcessorMode.SYS);
+            CPU.Registers.SetBankForMode(ProcessorMode.SVC, [0x03007FE0, 0]);
+            CPU.Registers.SetBankForMode(ProcessorMode.IRQ, [0x03007FA0, 0]);
             CPU.Registers.SP = 0x03007F00;
             CPU.Registers.PC = 0x08000000;
         }

@@ -4,20 +4,22 @@ using Trident.Styling;
 using Trident.Widgets;
 using System.Text.Json;
 using Trident.Commands;
-using System.Reflection;
 using Trident.Emulation;
+using System.Reflection;
+using OpenTK.Mathematics;
 using Trident.Popups.File;
 using Trident.Interaction;
-using OpenTK.Mathematics;
 using Trident.Core.Machine;
 using System.ComponentModel;
-using OpenTK.Windowing.Common;
 using OpenTK.Graphics.OpenGL4;
-using Trident.Widgets.Debugger;
+using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
+using Trident.Widgets.Debugger;
 using System.Runtime.InteropServices;
 using Trident.Core.Hardware.Controller;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+
+using FontData = (nint ptr, int size, float sizePixels, System.Runtime.InteropServices.GCHandle handle);
 
 namespace Trident.Windowing
 {
@@ -33,11 +35,9 @@ namespace Trident.Windowing
 
         private readonly PerformancePopup _performancePopup;
 
+        private Dictionary<string, ImFontPtr> _fontPtrs = [];
         private ImGuiController _controller;
         private readonly ImGuiStyleConfig _styleConfig;
-
-        private readonly byte[] _fontData;
-        private readonly int _fontDataSize = 0;
 
         private readonly ShortcutManager _shortcutManager = new();
 
@@ -52,17 +52,6 @@ namespace Trident.Windowing
             _performancePopup = new(() => _emulatorThread.CurrentSpeed);
 
             var assembly = Assembly.GetExecutingAssembly();
-
-            using (Stream stream = assembly.GetManifestResourceStream("Trident.Fonts.FiraCode-Medium.ttf")!)
-            {
-                if (stream == null)
-                    throw new FileNotFoundException("Font resource not found.");
-
-                using MemoryStream ms = new();
-                stream.CopyTo(ms);
-                _fontData = ms.ToArray();
-                _fontDataSize = _fontData.Length;
-            }
 
             using (Stream stream = assembly.GetManifestResourceStream("Trident.Styling.ImGuiStyle.json")!)
             {
@@ -93,16 +82,30 @@ namespace Trident.Windowing
             {
                 int useDarkMode = 1;
                 DwmSetWindowAttribute(WindowHandle, 20 /*DWMWA_USE_IMMERSIVE_DARK_MODE */, ref useDarkMode, sizeof(int));
-            }    
+            }
 
-            GCHandle handle = GCHandle.Alloc(_fontData, GCHandleType.Pinned);
+
+            var fonts = new List<(string name, nint ptr, int size, float sizePixels)>();
+            List<GCHandle> handles = [];
+
+            FontData firaSans = LoadFont("Trident.Fonts.FiraSans-Regular.ttf", 17f);
+            fonts.Add(("Fira Sans", firaSans.ptr, firaSans.size, firaSans.sizePixels));
+            handles.Add(firaSans.handle);
+
+            FontData firaCode = LoadFont("Trident.Fonts.FiraCode-Medium.ttf", 17f);
+            fonts.Add(("Fira Code", firaCode.ptr, firaCode.size, firaCode.sizePixels));
+            handles.Add(firaCode.handle);
+
             _controller = new ImGuiController
             (
-                ClientSize.X, ClientSize.Y, 
-                handle.AddrOfPinnedObject(), _fontDataSize,
+                ClientSize.X, ClientSize.Y,
+                fonts,
+                out _fontPtrs,
                 _styleConfig
             );
-            handle.Free();
+
+            foreach (var gcHandle in handles)
+                gcHandle.Free();
 
 
             KeyDown += args =>
@@ -170,9 +173,14 @@ namespace Trident.Windowing
                 .ToDictionary(g => g.Key, g => g.ToList());
         }
 
-        private void InitWidgets()
+        private unsafe void InitWidgets()
         {
-            AddWidget(new CPUStateWidget(() => _gba.CPUSnapshot));
+            ImFontPtr monoFont = _fontPtrs.GetValueOrDefault("Fira Code");
+            if (monoFont.NativePtr == null)
+                throw new InvalidOperationException("Fira Code was not loaded correctly.");
+
+            AddWidget(new CPUStateWidget(() => _gba.CPUSnapshot, monoFont));
+            AddWidget(new DisassemblyWidget(monoFont));
         }
 
 
@@ -392,7 +400,21 @@ namespace Trident.Windowing
         }
 
 
+        private static FontData LoadFont(string resourceName, float sizePixels)
+        {
+            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName)
+                ?? throw new FileNotFoundException($"Font resource '{resourceName}' not found.");
+
+            using var ms = new MemoryStream();
+            stream.CopyTo(ms);
+            byte[] fontData = ms.ToArray();
+
+            GCHandle handle = GCHandle.Alloc(fontData, GCHandleType.Pinned);
+            return (handle.AddrOfPinnedObject(), fontData.Length, sizePixels, handle);
+        }
+
+
         [DllImport("dwmapi.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
-        public static extern void DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, uint cbAttribute);
+        private static extern void DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, uint cbAttribute);
     }
 }
