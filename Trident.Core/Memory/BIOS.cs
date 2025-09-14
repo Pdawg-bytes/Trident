@@ -37,11 +37,21 @@ namespace Trident.Core.Memory
             if (address >= 0x4000) return 0x0; // TODO: Return open bus; not implemented yet.
 
             if (_getPC() < 0x4000)
-                _busValue = _memory.Read32(address);
+                _busValue = _memory.Read32(address.Align<uint>());
             else
                 Console.WriteLine($"Illegal BIOS read: 0x{address:X8}");
 
             return _busValue >> ((int)(address & 3) << 3);
+        }
+
+        internal T DebugRead<T>(uint address) where T : unmanaged
+        {
+            address = address.Align<T>();
+
+            if (address < MEMORY_SIZE)
+                return _memory.Read<T>(address);
+            else 
+                return default!;
         }
     }
 }

@@ -1,17 +1,18 @@
 ﻿using Trident.Core.Bus;
 using Trident.Core.CPU;
-using Trident.Core.Debugging;
-using Trident.Core.Debugging.Snapshots;
-using Trident.Core.Hardware.Controller;
-using Trident.Core.Hardware.Graphics;
-using Trident.Core.Hardware.Interrupts;
-using Trident.Core.Hardware.IO;
+using Trident.Core.Global;
 using Trident.Core.Memory;
+using Trident.Core.Scheduling;
+using Trident.Core.Hardware.IO;
 using Trident.Core.Memory.GamePak;
-using Trident.Core.Memory.GamePak.GPIO;
 using Trident.Core.Memory.Graphics;
 using Trident.Core.Memory.MappedIO;
-using Trident.Core.Scheduling;
+using Trident.Core.Hardware.Graphics;
+using System.Runtime.CompilerServices;
+using Trident.Core.Debugging.Snapshots;
+using Trident.Core.Memory.GamePak.GPIO;
+using Trident.Core.Hardware.Controller;
+using Trident.Core.Hardware.Interrupts;
 
 namespace Trident.Core.Machine
 {
@@ -90,6 +91,44 @@ namespace Trident.Core.Machine
             => _gamePak?.GetGPIODevice<T>();
 
         public CPUSnapshot CPUSnapshot => CPU.GetSnapshot();
+
+        public T DebugRead<T>(uint address) where T : unmanaged
+        {
+            uint region = address >> 24;
+            address &= 0x00FFFFFF;
+
+            switch (region)
+            {
+                case 0x00:
+                    if (address < BIOS.MEMORY_SIZE)
+                        return _bios.DebugRead<T>(address);
+                    break;
+
+                case 0x02: return _eWRAM.DebugRead<T>(address);
+                case 0x03: return _iWRAM.DebugRead<T>(address);
+
+                //case 0x04: /* mmio */
+
+                case 0x05: return _pram.DebugRead<T>(address);
+                //case 0x06: /* vram */
+                case 0x07: return _oam.DebugRead<T>(address);
+
+                case 0x08: case 0x09:
+                case 0x0A: case 0x0B:
+                case 0x0C: case 0x0D:
+                {
+                    uint romAddress = (((region & 0x01) << 24) | address).Align<T>();
+                    if (romAddress + Unsafe.SizeOf<T>() < _gamePak.ActualSize)
+                       return _gamePak.DebugRead<T>(romAddress);
+
+                    break;
+                }
+
+                //case 0x0E: case 0x0F: /* backup */
+            }
+
+            return default!;
+        }
 
 
         public void RunFor(ulong cycles)

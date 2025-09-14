@@ -83,64 +83,64 @@ namespace Trident.Core.Bus
         #region Read
         public byte Read8(uint address, PipelineAccess access)
         {
-            uint section = address >> 24;
-            if (section > 0x0F) return (byte)ReadOpenBus(address);
+            uint region = address >> 24;
+            if (region > 0x0F) return (byte)ReadOpenBus(address);
 
-            return _accessHandlers[section].Read8(address, access);
+            return _accessHandlers[region].Read8(address, access);
         }
 
         public ushort Read16(uint address, PipelineAccess access)
         {
-            uint section = address >> 24;
-            if (section > 0x0F) return (ushort)ReadOpenBus(address);
+            uint region = address >> 24;
+            if (region > 0x0F) return (ushort)ReadOpenBus(address);
 
-            return _accessHandlers[section].Read16(address, access);
+            return _accessHandlers[region].Read16(address, access);
         }
 
         public uint Read32(uint address, PipelineAccess access)
         {
-            uint section = address >> 24;
-            if (section > 0x0F) return ReadOpenBus(address);
+            uint region = address >> 24;
+            if (region > 0x0F) return ReadOpenBus(address);
 
-            return _accessHandlers[section].Read32(address, access);
+            return _accessHandlers[region].Read32(address, access);
         }
         #endregion
 
         #region Write
         public void Write8(uint address, byte value, PipelineAccess access)
         {
-            uint section = address >> 24;
-            if (section < 2 || section > 0x0F)
+            uint region = address >> 24;
+            if (region < 2 || region > 0x0F)
             {
                 _step(1);
                 return;
             }
 
-            _accessHandlers[section].Write8(address, access, value);
+            _accessHandlers[region].Write8(address, access, value);
         }
 
         public void Write16(uint address, ushort value, PipelineAccess access)
         {
-            uint section = address >> 24;
-            if (section < 2 || section > 0x0F)
+            uint region = address >> 24;
+            if (region < 2 || region > 0x0F)
             {
                 _step(1);
                 return;
             }
 
-            _accessHandlers[section].Write16(address, access, value);
+            _accessHandlers[region].Write16(address, access, value);
         }
 
         public void Write32(uint address, uint value, PipelineAccess access)
         {
-            uint section = address >> 24;
-            if (section < 2 || section > 0x0F)
+            uint region = address >> 24;
+            if (region < 2 || region > 0x0F)
             {
                 _step(1);
                 return;
             }
 
-            _accessHandlers[section].Write32(address, access, value);
+            _accessHandlers[region].Write32(address, access, value);
         }
         #endregion
 

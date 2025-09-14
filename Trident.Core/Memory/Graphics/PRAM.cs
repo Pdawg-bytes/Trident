@@ -36,6 +36,7 @@ namespace Trident.Core.Memory.Graphics
         }
 
         internal T Fetch<T>(uint address) where T : unmanaged => _memory.Read<T>(address);
+        internal T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & ADDR_MASK);
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

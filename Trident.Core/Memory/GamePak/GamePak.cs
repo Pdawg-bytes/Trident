@@ -1,5 +1,5 @@
-﻿using Trident.Core.Hardware.IO;
-using Trident.Core.CPU.Pipeline;
+﻿using Trident.Core.Global;
+using Trident.Core.Hardware.IO;
 using System.Runtime.CompilerServices;
 using Trident.Core.Memory.GamePak.GPIO;
 using Trident.Core.Memory.GamePak.Backup;
@@ -67,6 +67,14 @@ namespace Trident.Core.Memory.GamePak
         internal T? GetGPIODevice<T>() where T : GPIODevice
             => _gpio.GetDevice<T>();
 
+
+        internal T DebugRead<T>(uint address) where T : unmanaged
+        {
+            if (address + Unsafe.SizeOf<T>() < ActualSize)
+                return _romMemory.Read<T>(address);
+            else
+                return default!;
+        }
 
         private ushort ReadData16<TAccess>(uint address, bool seqAccess) where TAccess : struct, IAccess
         {

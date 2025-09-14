@@ -1,6 +1,6 @@
 ﻿namespace Trident.Core.Memory
 {
-    internal enum MemoryRegion
+    public enum MemoryRegion
     {
         BIOS = 0,
 

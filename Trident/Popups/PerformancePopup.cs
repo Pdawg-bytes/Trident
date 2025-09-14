@@ -13,12 +13,15 @@ namespace Trident.Popups
         private readonly float[] _gbaFrameTimes = new float[BufferSize];
         private int _frameIndex = 0;
 
+        private double _realRenderTime;
+
         private readonly Func<double> _getGbaSpeed = getGbaSpeed;
 
 
-        internal void Update(double uiFrameTimeMs)
+        internal void Update(double uiFrameTimeMs, double uiRenderTimeMs)
         {
             _uiFrameTimes[_frameIndex] = (float)uiFrameTimeMs;
+            _realRenderTime = uiRenderTimeMs;
 
             double gbaFps = _getGbaSpeed() / 100.0 * 59.73;
             _gbaFrameTimes[_frameIndex] = (float)(1000.0 / gbaFps);
@@ -53,6 +56,7 @@ namespace Trident.Popups
                 ImGui.PlotLines("##UIFrametime", ref _uiFrameTimes[0], BufferSize, _frameIndex, null, 0.0f, 50.0f, new Vector2(ImGui.GetContentRegionAvail().X, 80));
 
                 ImGui.TextUnformatted($"UI FPS: {uiFps:F1}");
+                ImGui.TextUnformatted($"UI Render time (ms): {_realRenderTime:F1}");
 
                 ImGui.Separator();
 

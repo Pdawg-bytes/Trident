@@ -2,12 +2,12 @@
 
 namespace Trident.Core.Debugging.Snapshots
 {
-    public readonly struct CPUSnapshot(IReadOnlyList<uint> Registers, uint CPSR, uint SPSR, ProcessorMode Mode)
+    public readonly struct CPUSnapshot(IReadOnlyList<uint> registers, uint cpsr, uint spsr, ProcessorMode mode)
     {
-        public readonly IReadOnlyList<uint> Registers = Registers;
+        public readonly IReadOnlyList<uint> Registers = registers;
 
-        public readonly uint CPSR = CPSR;
-        public readonly uint SPSR = SPSR;
-        public readonly ProcessorMode Mode = Mode;
+        public readonly uint CPSR = cpsr;
+        public readonly uint SPSR = spsr;
+        public readonly ProcessorMode Mode = mode;
     }
 }

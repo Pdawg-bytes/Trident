@@ -6,6 +6,7 @@ using System.Text.Json;
 using Trident.Commands;
 using Trident.Emulation;
 using System.Reflection;
+using System.Diagnostics;
 using OpenTK.Mathematics;
 using Trident.Popups.File;
 using Trident.Interaction;
@@ -200,13 +201,15 @@ namespace Trident.Windowing
             base.OnRenderFrame(e);
             _controller.Update(this, (float)e.Time);
 
-            _performancePopup.Update(e.Time * 1000.0);
-
             GL.ClearColor(new Color4(20, 20, 20, 255));
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
 
+            long start = Stopwatch.GetTimestamp();
             ImGui.DockSpaceOverViewport();
             RenderGUI();
+            long end = Stopwatch.GetTimestamp();
+
+            _performancePopup.Update(e.Time * 1000.0, (end - start) * 1000.0 / Stopwatch.Frequency);
 
             _controller.Render();
             SwapBuffers();
@@ -267,7 +270,7 @@ namespace Trident.Windowing
                     if (ImGui.MenuItem("Accurate sleep", "", _emulatorThread.AccurateSleep))
                         _emulatorThread.AccurateSleep = !_emulatorThread.AccurateSleep;
 
-                    Tooltips.HelpTooltip("Enforces more precise timing in the GBA's run loop at the cost of CPU time.", -88f);
+                    Tooltips.HelpTooltip("Enforces more precise timing in the GBA's run loop at the cost of CPU time.", -72f);
 
                     ImGui.EndMenu();
                 }

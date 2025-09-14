@@ -35,6 +35,8 @@ namespace Trident.Core.Memory
             return _memory.Read<T>(address.Align<T>() & ADDR_MASK);
         }
 
+        internal T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & ADDR_MASK);
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Write<T>(uint address, T value) where T : unmanaged
