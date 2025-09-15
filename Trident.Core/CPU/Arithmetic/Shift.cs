@@ -1,24 +1,23 @@
 ﻿using Trident.Core.Bus;
-using Trident.Core.CPU.Registers;
-using System.Runtime.CompilerServices;
 using Trident.Core.Global;
+using System.Runtime.CompilerServices;
 
 namespace Trident.Core.CPU
 {
+    internal enum ShiftType : uint
+    {
+        /// <summary>Logical shift left</summary>
+        LSL = 0b00,
+        /// <summary>Logical shift right</summary>
+        LSR = 0b01,
+        /// <summary>Arithmetic shift right</summary>
+        ASR = 0b10,
+        /// <summary>Rotate right</summary>
+        ROR = 0b11
+    }
+
     public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
-        private enum ShiftType : uint
-        {
-            /// <summary>Logical shift left</summary>
-            LSL = 0b00,
-            /// <summary>Logical shift right</summary>
-            LSR = 0b01,
-            /// <summary>Arithmetic shift right</summary>
-            ASR = 0b10,
-            /// <summary>Rotate right</summary>
-            ROR = 0b11
-        }
-
         private uint PerformShift(ShiftType operation, bool immediateShift, uint value, byte shiftAmount, ref bool carryOut)
         {
             return operation switch

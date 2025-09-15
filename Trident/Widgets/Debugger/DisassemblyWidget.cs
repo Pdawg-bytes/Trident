@@ -56,7 +56,7 @@ namespace Trident.Widgets.Debugger
                     ImGui.PushFont(_monoFont);
 
                     int currentRowIndex = -1;
-                    var (actualAddress, instructions) = _disassembler.GetAroundPC(20, 20);
+                    var (actualAddress, instructions) = _disassembler.GetAroundPC(30, 30);
                     for (int i = 0; i < instructions.Count; i++)
                     {
                         var instr = instructions[i];
@@ -171,13 +171,13 @@ namespace Trident.Widgets.Debugger
         private static readonly Regex ImmediateRegex = GenerateImmediateRegex();
         private static readonly Regex LabelRegex     = GenerateLabelRegex();
 
-        [GeneratedRegex(@"(r\d+|lr|sp|pc|#(?:0x)?[0-9A-Fa-f]+|0x[0-9A-Fa-f]+|[\[\]\{\},!^]|[-+]| )", RegexOptions.Compiled)]
+        [GeneratedRegex(@"(r\d+|lr|sp|pc|#[-+]?(?:0x[0-9A-Fa-f]+|\d+)|0x[0-9A-Fa-f]+|[\[\]\{\},!^]|[-+]| )", RegexOptions.Compiled)]
         private static partial Regex GenerateTokenRegex();
 
         [GeneratedRegex(@"^r\d+$|^lr$|^pc$|^sp$", RegexOptions.Compiled)]
         private static partial Regex GenerateRegisterRegex();
 
-        [GeneratedRegex(@"^#(?:0x)?[0-9A-Fa-f]+$", RegexOptions.Compiled)]
+        [GeneratedRegex(@"^#[-+]?(?:0x[0-9A-Fa-f]+|\d+)$", RegexOptions.Compiled)]
         private static partial Regex GenerateImmediateRegex();
 
         [GeneratedRegex(@"^0x[0-9A-Fa-f]+$", RegexOptions.Compiled)]
