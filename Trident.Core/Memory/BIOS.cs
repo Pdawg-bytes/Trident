@@ -1,9 +1,11 @@
-﻿using Trident.Core.Global;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
+using Trident.Core.CPU.Pipeline;
+using Trident.Core.Global;
+using Trident.Core.Memory.Region;
 
 namespace Trident.Core.Memory
 {
-    internal class BIOS(Func<uint> getPC, Action<uint> step)
+    internal sealed class BIOS(Func<uint> getPC, Action<uint> step) : IMemoryRegion, IDebugMemory
     {
         internal const uint MEMORY_SIZE = 16 * 1024;
         private readonly UnsafeMemoryBlock _memory = new(MEMORY_SIZE);
@@ -15,18 +17,16 @@ namespace Trident.Core.Memory
 
         internal void LoadBIOS(byte[] bios) => _memory.WriteBytes(0, bios);
 
-        internal MemoryAccessHandler GetAccessHandler() => new
-        (
-            read8:  (address, _) => (byte)Read(address),
-            read16: (address, _) => (ushort)Read(address.Align<ushort>()),
-            read32: (address, _) => Read(address.Align<uint>()),
 
-            write8:  (_, _, _) => _step(1),
-            write16: (_, _, _) => _step(1),
-            write32: (_, _, _) => _step(1),
+        public byte Read8(uint address, PipelineAccess access)    => (byte)Read(address);
+        public ushort Read16(uint address, PipelineAccess access) => (ushort)Read(address.Align<ushort>());
+        public uint Read32(uint address, PipelineAccess access)   => Read(address.Align<uint>());
 
-            dispose: _memory.Dispose
-        );
+        public void Write8(uint address, PipelineAccess access, byte value)    => _step(1);
+        public void Write16(uint address, PipelineAccess access, ushort value) => _step(1);
+        public void Write32(uint address, PipelineAccess access, uint value)   => _step(1);
+
+        public void Dispose() => _memory.Dispose();
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -44,7 +44,8 @@ namespace Trident.Core.Memory
             return _busValue >> ((int)(address & 3) << 3);
         }
 
-        internal T DebugRead<T>(uint address) where T : unmanaged
+
+        public T DebugRead<T>(uint address) where T : unmanaged
         {
             address = address.Align<T>();
 
@@ -53,5 +54,8 @@ namespace Trident.Core.Memory
             else 
                 return default!;
         }
+
+        public uint BaseAddress => 00000000;
+        public uint Length => MEMORY_SIZE;
     }
 }

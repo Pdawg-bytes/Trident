@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
-using Trident.CodeGeneration.Shared;
-using Trident.CodeGeneration.CodeGen;
+using System.Runtime.CompilerServices;
 
-namespace Trident.CodeGeneration.Decoding
+namespace Trident.CodeGeneration.Shared
 {
     internal static class ARMDecoder
     {
@@ -70,5 +69,8 @@ namespace Trident.CodeGeneration.Decoding
             }
             return map;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsBitSet(this uint value, int bit) => (value >> bit & 1) != 0;
     }
 }

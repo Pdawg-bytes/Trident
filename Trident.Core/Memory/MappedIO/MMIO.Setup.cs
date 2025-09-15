@@ -1,12 +1,13 @@
-﻿using Trident.Core.Global;
-using Trident.Core.Hardware.IO;
+﻿using Trident.Core.CPU.Pipeline;
+using Trident.Core.Global;
 using Trident.Core.Hardware.Graphics.Registers;
-
+using Trident.Core.Hardware.IO;
+using Trident.Core.Memory.Region;
 using static Trident.Core.Hardware.IO.IORegisters;
 
 namespace Trident.Core.Memory.MappedIO
 {
-    internal partial class MMIO
+    internal partial class MMIO : IMemoryRegion
     {
         private readonly Func<ushort> _zeroRead = () => 0;
         private readonly Action<ushort, bool, bool> _emptyWrite = (_, _, _) => { };
@@ -74,17 +75,42 @@ namespace Trident.Core.Memory.MappedIO
         }
 
 
-        internal MemoryAccessHandler GetAccessHandler() => new
-        (
-            read8:  (address, _) => { _step(1); return Read8(address);                  },
-            read16: (address, _) => { _step(1); return Read16(address.Align<ushort>()); },
-            read32: (address, _) => { _step(1); return Read32(address.Align<uint>());   },
+        public byte Read8(uint address, PipelineAccess access)
+        {
+            _step(1);
+            return Read8(address);
+        }
 
-            write8:  (address, _, value) => { _step(1); Write8(address, value);                  },
-            write16: (address, _, value) => { _step(1); Write16(address.Align<ushort>(), value); },
-            write32: (address, _, value) => { _step(1); Write32(address.Align<uint>(), value);   },
+        public ushort Read16(uint address, PipelineAccess access)
+{
+            _step(1);
+            return Read16(address.Align<ushort>());
+        }
 
-            dispose: null
-        );
+        public uint Read32(uint address, PipelineAccess access)
+        {
+            _step(1);
+            return Read32(address.Align<uint>());
+        }
+
+        public void Write8(uint address, PipelineAccess access, byte value)
+        {
+            _step(1);
+            Write8(address, value);
+        }
+
+        public void Write16(uint address, PipelineAccess access, ushort value)
+        {
+            _step(1);
+            Write16(address.Align<ushort>(), value);
+        }
+
+        public void Write32(uint address, PipelineAccess access, uint value)
+        {
+            _step(1);
+            Write32(address.Align<uint>(), value);
+        }
+
+        public void Dispose() { }
     }
 }

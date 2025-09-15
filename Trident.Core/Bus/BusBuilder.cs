@@ -1,12 +1,12 @@
-﻿using Trident.Core.Memory;
+﻿using Trident.Core.Memory.Region;
 
 namespace Trident.Core.Bus
 {
     internal class BusBuilder
     {
-        private readonly MemoryAccessHandler[] _handlers = new MemoryAccessHandler[16];
+        private readonly IMemoryRegion[] _handlers = new IMemoryRegion[16];
 
-        internal void Attach(MemoryRegion region, MemoryAccessHandler handler) => _handlers[(int)region] = handler;
+        internal void Attach(MemoryRegion region, IMemoryRegion handler) => _handlers[(int)region] = handler;
 
         internal GBABus Build(Action<uint> step)
         {

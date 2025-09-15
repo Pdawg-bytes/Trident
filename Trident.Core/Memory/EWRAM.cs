@@ -1,9 +1,11 @@
 ﻿using Trident.Core.Global;
 using System.Runtime.CompilerServices;
+using Trident.Core.CPU.Pipeline;
+using Trident.Core.Memory.Region;
 
 namespace Trident.Core.Memory
 {
-    internal class EWRAM(Action<uint> step)
+    internal class EWRAM(Action<uint> step) : IMemoryRegion
     {
         internal const uint MEMORY_SIZE = 256 * 1024;
         private const uint ADDR_MASK = MEMORY_SIZE - 1;
@@ -12,18 +14,15 @@ namespace Trident.Core.Memory
         private readonly Action<uint> _step = step;
 
 
-        internal MemoryAccessHandler GetAccessHandler() => new
-        (
-            read8:  (address, _) => Read<byte>(address),
-            read16: (address, _) => Read<ushort>(address),
-            read32: (address, _) => Read<uint>(address),
+        public byte Read8(uint address, PipelineAccess access)    => Read<byte>(address);
+        public ushort Read16(uint address, PipelineAccess access) => Read<ushort>(address);
+        public uint Read32(uint address, PipelineAccess access)   => Read<uint>(address);
 
-            write8:  (address, _, value) => Write<byte>(address, value),
-            write16: (address, _, value) => Write<ushort>(address, value),
-            write32: (address, _, value) => Write<uint>(address, value),
+        public void Write8(uint address, PipelineAccess access, byte value)    => Write<byte>(address, value);
+        public void Write16(uint address, PipelineAccess access, ushort value) => Write<ushort>(address, value);
+        public void Write32(uint address, PipelineAccess access, uint value)   => Write<uint>(address, value);
 
-            dispose: _memory.Dispose
-        );
+        public void Dispose() => _memory.Dispose();
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

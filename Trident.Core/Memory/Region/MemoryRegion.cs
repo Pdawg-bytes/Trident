@@ -1,4 +1,4 @@
-﻿namespace Trident.Core.Memory
+﻿namespace Trident.Core.Memory.Region
 {
     public enum MemoryRegion
     {

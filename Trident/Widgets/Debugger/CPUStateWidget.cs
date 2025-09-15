@@ -15,7 +15,7 @@ namespace Trident.Widgets.Debugger
         private readonly ImFontPtr _monoFont;
 
         private readonly Vector4 _lavender = new(0.87f, 0.82f, 0.97f, 1f);
-        private readonly uint _tableHighlight = ImGui.ColorConvertFloat4ToU32(new(0.16f, 0.14f, 0.20f, 0.85f));
+        private readonly uint _tableHighlight = ImGui.ColorConvertFloat4ToU32(new(0.20f, 0.18f, 0.28f, 0.90f));
 
         internal CPUStateWidget(Func<CPUSnapshot> getSnapshot, ImFontPtr monoFont)
         {

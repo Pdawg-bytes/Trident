@@ -1,12 +1,12 @@
-﻿using Trident.Core.Global;
-using Trident.Core.Hardware.IO;
+﻿using Trident.Core.Hardware.IO;
+using Trident.Core.Memory.Region;
 using System.Runtime.CompilerServices;
 using Trident.Core.Memory.GamePak.GPIO;
 using Trident.Core.Memory.GamePak.Backup;
 
 namespace Trident.Core.Memory.GamePak
 {
-    internal partial class GamePak : IDisposable
+    internal partial class GamePak : IDisposable, IDebugMemory
     {
         internal const int MaxSize = 32 * 1024 * 1024;
         internal readonly int ActualSize;
@@ -27,9 +27,12 @@ namespace Trident.Core.Memory.GamePak
         private readonly Action<uint> _step;
         private readonly WaitControl _waitControl;
 
-        private readonly MemoryAccessHandler _upperAccessHandler;
-        private readonly MemoryAccessHandler _lowerAccessHandler;
-        private readonly MemoryAccessHandler _backupAccessHandler = new();
+        private readonly IMemoryRegion _upperRegion;
+        private readonly IMemoryRegion _lowerRegion;
+        private readonly IMemoryRegion _backupRegion;
+
+        public uint BaseAddress => 0x08000000;
+        public uint Length => MaxSize * 3;
 
         internal GamePak(byte[] romData, GamePakInfo info, Action<uint> step, WaitControl waitControl, IBackupDevice? backupDevice, GPIOBus? gpio)
         {
@@ -40,7 +43,7 @@ namespace Trident.Core.Memory.GamePak
             {
                 _backupDevice = backupDevice;
                 _isEEPROM = (backupDevice.Type & (BackupType.EEPROMDetect | BackupType.EEPROM512B | BackupType.EEPROM8K)) != 0;
-                _backupAccessHandler = InitBackupHandler();
+                _backupRegion = new BackupRegion(this);
             }
             if (gpio != null)
             {
@@ -56,22 +59,27 @@ namespace Trident.Core.Memory.GamePak
             _step = step;
             _waitControl = waitControl;
 
-            _upperAccessHandler = GetHandler<UpperAccess>();
-            _lowerAccessHandler = GetHandler<LowerAccess>();
+            _upperRegion = new GamePakRegion<UpperAccess>(this);
+            _lowerRegion = new GamePakRegion<LowerAccess>(this);
         }
 
-        internal MemoryAccessHandler GetUpperHandler() => _upperAccessHandler;
-        internal MemoryAccessHandler GetLowerHandler() => _lowerAccessHandler;
-        internal MemoryAccessHandler GetBackupHandler() => _backupAccessHandler;
+        internal IMemoryRegion GetUpperRegion()  => _upperRegion;
+        internal IMemoryRegion GetLowerRegion()  => _lowerRegion;
+        internal IMemoryRegion GetBackupRegion() => _backupRegion;
 
         internal T? GetGPIODevice<T>() where T : GPIODevice
             => _gpio.GetDevice<T>();
 
 
-        internal T DebugRead<T>(uint address) where T : unmanaged
+        public T DebugRead<T>(uint address) where T : unmanaged
         {
-            if (address + Unsafe.SizeOf<T>() < ActualSize)
-                return _romMemory.Read<T>(address);
+            const uint ROM_MIRROR_MASK = 0x0E000000;
+
+            uint normalized = (address & ~ROM_MIRROR_MASK) | BaseAddress;
+            uint offset = normalized - BaseAddress;
+
+            if (offset + (uint)Unsafe.SizeOf<T>() <= _romMemory.Size)
+                return _romMemory.Read<T>(offset);
             else
                 return default!;
         }

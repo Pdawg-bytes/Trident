@@ -1,14 +1,17 @@
 ﻿using Trident.Core.Memory;
 using Trident.Core.CPU.Pipeline;
+using Trident.Core.Memory.Region;
 
 namespace Trident.Core.Bus
 {
-    public struct GBABus : IDataBus
+    public readonly struct GBABus : IDataBus
     {
         private readonly Action<uint> _step;
 
-        private readonly MemoryAccessHandler[] _accessHandlers;
-        private readonly MemoryAccessHandler _unusedSection;
+        private readonly IMemoryRegion[] _accessHandlers;
+        private readonly IDebugMemory?[] _debugHandlers = new IDebugMemory?[16];
+
+        private readonly IMemoryRegion _unusedSection;
         private readonly UnusedSection _unused;
 
         public GBABus(Action<uint> step)
@@ -16,7 +19,7 @@ namespace Trident.Core.Bus
             _step = step;
 
             _unused = new(step);
-            _unusedSection = _unused.GetAccessHandler();
+            _unusedSection = _unused;
 
             _accessHandlers = 
             [
@@ -43,27 +46,35 @@ namespace Trident.Core.Bus
         /// Registers the <paramref name="handler"/> for the given <paramref name="page"/>.
         /// </summary>
         /// <param name="page">The page that the handler should be registered to.</param>
-        internal void RegisterHandler(int page, MemoryAccessHandler handler)
+        internal void RegisterHandler(int page, IMemoryRegion handler)
         {
             if (page < 0 || page >= 16)
                 throw new ArgumentOutOfRangeException(nameof(page), $"Invalid page index {page}. Must be in 0..15.");
 
-            if (handler.IsNull()) return;
+            if (handler is null) return;
 
             _accessHandlers[page] = handler;
+
+            if (page < 8)
+                _debugHandlers[page] = handler as IDebugMemory;
         }
 
         /// <summary>
         /// Registers multiple <see cref="MemoryAccessHandler"/>s at the respective pages.
         /// </summary>
         /// <param name="handlers">The list of handlers to register.</param>
-        internal void RegisterHandlers((int page, MemoryAccessHandler handler)[] handlers)
+        internal void RegisterHandlers((int page, IMemoryRegion handler)[] handlers)
         {
             if (handlers.Any(handler => handler.page < 0 || handler.page >= 16))
                 throw new ArgumentOutOfRangeException(nameof(handlers), $"Invalid page index for one or more handlers.");
 
-            foreach (var handler in handlers.Where(mapping => !mapping.handler.IsNull()))
+            foreach (var handler in handlers.Where(mapping => mapping.handler is not null))
+            {
                 _accessHandlers[handler.page] = handler.handler;
+
+                if (handler.page < 8)
+                    _debugHandlers[handler.page] = handler.handler as IDebugMemory;
+            }
         }
 
         /// <summary>
@@ -77,6 +88,22 @@ namespace Trident.Core.Bus
 
             _accessHandlers[page].Dispose();
             _accessHandlers[page] = _unusedSection;
+            _debugHandlers[page] = null;
+        }
+
+
+        internal void LoadDebugGamePak(IDebugMemory handler)
+        {
+            for (int i = 8; i < 15; i++)
+                _debugHandlers[i] = handler;
+        }
+
+        internal IDebugMemory? GetRegionAsDebug(uint region)
+        {
+            if (region >= _debugHandlers.Length)
+                throw new ArgumentOutOfRangeException(nameof(region), $"Invalid region index: {region}");
+
+            return _debugHandlers[region];
         }
 
 
@@ -154,8 +181,8 @@ namespace Trident.Core.Bus
 
         internal void DisposeMemory()
         {
-            foreach (var handler in _accessHandlers)
-                handler.Dispose?.Invoke();
+            foreach (var handler in _accessHandlers.Where(h => h is not null))
+                handler.Dispose();
         }
     }
 }

@@ -1,29 +1,14 @@
 ﻿using Trident.Core.CPU.Pipeline;
+using Trident.Core.Memory.Region;
 
 namespace Trident.Core.Memory
 {
-    internal class UnusedSection(Action<uint> step)
+    internal class UnusedSection(Action<uint> step) : IMemoryRegion
     {
-        private Action<uint> _step = step;
+        private readonly Action<uint> _step = step;
 
 
-        internal MemoryAccessHandler GetAccessHandler()
-        {
-            return new MemoryAccessHandler
-            (
-                read8:  Read8,
-                read16: Read16,
-                read32: Read32,
-
-                write8:  (_, _, _) => _step(1),
-                write16: (_, _, _) => _step(1),
-                write32: (_, _, _) => _step(1),
-
-                dispose: null
-            );
-        }
-
-        internal byte Read8(uint address, PipelineAccess access)
+        public byte Read8(uint address, PipelineAccess access)
         {
             _step(1);
 
@@ -31,7 +16,7 @@ namespace Trident.Core.Memory
             return 0xFF;
         }
 
-        internal ushort Read16(uint address, PipelineAccess access)
+        public ushort Read16(uint address, PipelineAccess access)
         {
             _step(1);
 
@@ -39,12 +24,18 @@ namespace Trident.Core.Memory
             return 0xFFFF;
         }
 
-        internal uint Read32(uint address, PipelineAccess access)
+        public uint Read32(uint address, PipelineAccess access)
         {
             _step(1);
 
             // TODO: open bus
             return 0xFFFFFFFF;
         }
+
+        public void Write8(uint address, PipelineAccess access, byte value)    => _step(1);
+        public void Write16(uint address, PipelineAccess access, ushort value) => _step(1);
+        public void Write32(uint address, PipelineAccess access, uint value)   => _step(1);
+
+        public void Dispose() { }
     }
 }

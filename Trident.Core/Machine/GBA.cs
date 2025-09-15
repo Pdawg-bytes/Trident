@@ -1,18 +1,19 @@
 ﻿using Trident.Core.Bus;
 using Trident.Core.CPU;
-using Trident.Core.Global;
 using Trident.Core.Memory;
 using Trident.Core.Scheduling;
 using Trident.Core.Hardware.IO;
+using Trident.Core.Memory.Region;
 using Trident.Core.Memory.GamePak;
 using Trident.Core.Memory.Graphics;
 using Trident.Core.Memory.MappedIO;
 using Trident.Core.Hardware.Graphics;
-using System.Runtime.CompilerServices;
 using Trident.Core.Debugging.Snapshots;
 using Trident.Core.Memory.GamePak.GPIO;
 using Trident.Core.Hardware.Controller;
 using Trident.Core.Hardware.Interrupts;
+
+using Trident.Core.Debugging.Disassembly;
 
 namespace Trident.Core.Machine
 {
@@ -21,6 +22,7 @@ namespace Trident.Core.Machine
         internal ARM7TDMI<GBABus> CPU;
         internal InterruptController IRQController;
         private GBABusView? _busView;
+        public Disassembler Disassembler;
 
         public Framebuffer Framebuffer = new();
         internal PPU PPU;
@@ -70,18 +72,19 @@ namespace Trident.Core.Machine
 
             BusBuilder builder = new();
 
-            builder.Attach(MemoryRegion.BIOS,  _bios.GetAccessHandler());
-            builder.Attach(MemoryRegion.EWRAM, _eWRAM.GetAccessHandler());
-            builder.Attach(MemoryRegion.IWRAM, _iWRAM.GetAccessHandler());
-            builder.Attach(MemoryRegion.PRAM,  _pram.GetAccessHandler());
-            builder.Attach(MemoryRegion.VRAM,  _vram.GetAccessHandler());
-            builder.Attach(MemoryRegion.OAM,   _oam.GetAccessHandler());
+            builder.Attach(MemoryRegion.BIOS,  _bios);
+            builder.Attach(MemoryRegion.EWRAM, _eWRAM);
+            builder.Attach(MemoryRegion.IWRAM, _iWRAM);
+            builder.Attach(MemoryRegion.PRAM,  _pram);
+            builder.Attach(MemoryRegion.VRAM,  _vram);
+            builder.Attach(MemoryRegion.OAM,   _oam);
 
             _mmio = new(Scheduler.Step, _ppuRegisters, _keypad, IRQController, _waitControl, _postHalt);
-            builder.Attach(MemoryRegion.MMIO, _mmio.GetAccessHandler());
+            builder.Attach(MemoryRegion.MMIO, _mmio);
 
             CPU.AttachBus(builder.Build(Scheduler.Step));
             _busView = new(ref CPU.Bus);
+            Disassembler = new(GetDebugRegion, getPC, () => CPUSnapshot);
 
 
             PPU = new(Framebuffer, _ppuRegisters, _pram, _vram, _oam, Scheduler, IRQController.Raise);
@@ -92,43 +95,7 @@ namespace Trident.Core.Machine
 
         public CPUSnapshot CPUSnapshot => CPU.GetSnapshot();
 
-        public T DebugRead<T>(uint address) where T : unmanaged
-        {
-            uint region = address >> 24;
-            address &= 0x00FFFFFF;
-
-            switch (region)
-            {
-                case 0x00:
-                    if (address < BIOS.MEMORY_SIZE)
-                        return _bios.DebugRead<T>(address);
-                    break;
-
-                case 0x02: return _eWRAM.DebugRead<T>(address);
-                case 0x03: return _iWRAM.DebugRead<T>(address);
-
-                //case 0x04: /* mmio */
-
-                case 0x05: return _pram.DebugRead<T>(address);
-                //case 0x06: /* vram */
-                case 0x07: return _oam.DebugRead<T>(address);
-
-                case 0x08: case 0x09:
-                case 0x0A: case 0x0B:
-                case 0x0C: case 0x0D:
-                {
-                    uint romAddress = (((region & 0x01) << 24) | address).Align<T>();
-                    if (romAddress + Unsafe.SizeOf<T>() < _gamePak.ActualSize)
-                       return _gamePak.DebugRead<T>(romAddress);
-
-                    break;
-                }
-
-                //case 0x0E: case 0x0F: /* backup */
-            }
-
-            return default!;
-        }
+        private IDebugMemory? GetDebugRegion(uint region) => CPU.Bus.GetRegionAsDebug(region);
 
 
         public void RunFor(ulong cycles)
@@ -181,9 +148,9 @@ namespace Trident.Core.Machine
             _gamePak?.Dispose();
             _gamePak = GamePakLoader.Load(File.ReadAllBytes(filePath), Scheduler.Step, _waitControl);
 
-            MemoryAccessHandler gamePakUpper = _gamePak.GetUpperHandler();
-            MemoryAccessHandler gamePakLower = _gamePak.GetLowerHandler();
-            MemoryAccessHandler backupHandler = _gamePak.GetBackupHandler();
+            IMemoryRegion gamePakUpper = _gamePak.GetUpperRegion();
+            IMemoryRegion gamePakLower = _gamePak.GetLowerRegion();
+            IMemoryRegion backupHandler = _gamePak.GetBackupRegion();
 
             CPU.Bus.RegisterHandlers
             ([
@@ -194,9 +161,11 @@ namespace Trident.Core.Machine
                 (0x0C, gamePakLower),
                 (0x0D, gamePakUpper),
 
-                (0x0E, backupHandler),
-                (0x0F, backupHandler)
+                //(0x0E, backupHandler),
+                //(0x0F, backupHandler)
             ]);
+
+            CPU.Bus.LoadDebugGamePak(_gamePak);
         }
 
         public GamePakInfo GetGamePakInfo() => _gamePak.PakInfo;

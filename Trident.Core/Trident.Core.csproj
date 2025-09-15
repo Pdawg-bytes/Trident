@@ -18,5 +18,7 @@
   <ItemGroup>
     <Compile Include="..\Trident.CodeGeneration\Shared\ARMGroup.cs" Link="Shared\ARMGroup.cs" />
     <Compile Include="..\Trident.CodeGeneration\Shared\ThumbGroup.cs" Link="Shared\ThumbGroup.cs" />
+    <Compile Include="..\Trident.CodeGeneration\Shared\ARMDecoder.cs" Link="Shared\ARMDecoder.cs" />
+    <Compile Include="..\Trident.CodeGeneration\Shared\ThumbDecoder.cs" Link="Shared\ThumbDecoder.cs" />
   </ItemGroup>
 </Project>
