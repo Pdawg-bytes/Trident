@@ -8,7 +8,7 @@ namespace Trident.CodeGeneration.Shared
         {
             ushort i when (i & 0xF800) < 0x1800 =>  ThumbGroup.ShiftImmediate,
             ushort i when (i & 0xF800) == 0x1800 => ThumbGroup.AddSubtract,
-            ushort i when (i & 0xE000) == 0x2000 => ThumbGroup.UnnamedGroup3,
+            ushort i when (i & 0xE000) == 0x2000 => ThumbGroup.ImmediateOperations,
             ushort i when (i & 0xFC00) == 0x4000 => ThumbGroup.ThumbALU,
             ushort i when (i & 0xFC00) == 0x4400 && (i >> 8 & 0b11) == 0b11 => ThumbGroup.BranchExchange,
             ushort i when (i & 0xFC00) == 0x4400 => ThumbGroup.HiRegisterOps,

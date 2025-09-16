@@ -4,7 +4,7 @@
     {
         ShiftImmediate,
         AddSubtract,
-        UnnamedGroup3,
+        ImmediateOperations,
         ThumbALU,
         HiRegisterOps,
         BranchExchange,

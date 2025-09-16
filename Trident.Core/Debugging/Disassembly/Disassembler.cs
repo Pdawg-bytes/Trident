@@ -19,6 +19,8 @@ namespace Trident.Core.Debugging.Disassembly
 
         public (uint, bool, List<DisassembledInstruction>) GetAroundPC(uint before, uint after)
         {
+            uint lr = 0;
+
             uint pc = _getPC();
             bool thumb = _getSnapshot().CPSR.IsBitSet(5);
 
@@ -34,7 +36,14 @@ namespace Trident.Core.Debugging.Disassembly
             for (uint addr = start; addr < end; addr += thumb ? 2u : 4u)
             {
                 if (thumb)
-                    instructions.Add(ThumbDisassembler.Disassemble(addr, region.DebugRead<ushort>(addr)));
+                {
+                    ushort opcode = region.DebugRead<ushort>(addr);
+                    instructions.Add(ThumbDisassembler.Disassemble(addr, lr, opcode));
+
+                    uint offset = (uint)((uint)opcode & 0x07FF).ExtendFrom(11) << 12;
+                    lr = addr + 4 + offset;
+                }
+                    
                 else
                     instructions.Add(ARMDisassembler.Disassemble(addr, region.DebugRead<uint>(addr)));
             }

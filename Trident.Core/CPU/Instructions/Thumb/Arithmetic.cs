@@ -45,12 +45,12 @@ namespace Trident.Core.CPU
 
 
         [TemplateParameter<byte>("Operation", size: 2, hi: 12, lo: 11)]
-        [TemplateGroup<ThumbGroup>(ThumbGroup.UnnamedGroup3)]
+        [TemplateGroup<ThumbGroup>(ThumbGroup.ImmediateOperations)]
         internal void Thumb_MovCmpAddSubImm<TTraits>(ushort opcode)
             where TTraits : struct, IThumb_MovCmpAddSubImm_Traits
         {
             uint rd = ((uint)opcode >> 8) & 0b111;
-            uint immOperand = (uint)opcode & 0xFF;
+            uint immOperand = (byte)opcode;
 
             switch (TTraits.Operation)
             {
