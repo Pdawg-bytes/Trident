@@ -138,7 +138,7 @@ namespace Trident.Windowing
             _shortcutManager.RegisterShortcut(new(Keys.R, Ctrl: true), _emulatorThread.Reset);
             _shortcutManager.RegisterShortcut(new(Keys.P, Ctrl: true), () => _emulatorThread.SetPause(!_emulatorThread.IsPaused()));
             _shortcutManager.RegisterShortcut(new(Keys.P, Shift: true), () => _emulatorThread.SetSpeedCap(!_emulatorThread.IsSpeedCapped()));
-            _shortcutManager.RegisterShortcut(new(Keys.F10), () => StepGBA(1));
+            _shortcutManager.RegisterShortcut(new(Keys.F11), () => StepGBA(1));
 
             InitFramebufferTexture();
             InitWidgets();
@@ -257,7 +257,7 @@ namespace Trident.Windowing
                     else
                     {
                         ImGui.BeginDisabled();
-                        ImGui.MenuItem("Step", "F10");
+                        ImGui.MenuItem("Step", "F11");
                         ImGui.EndDisabled();
                     }
 

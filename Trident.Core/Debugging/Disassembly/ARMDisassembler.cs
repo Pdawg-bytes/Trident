@@ -1,16 +1,18 @@
 ﻿using Trident.Core.Global;
+using Trident.Core.CPU.Decoding;
 using Trident.CodeGeneration.Shared;
 
-using static Trident.Core.CPU.Conditions;
+using static Trident.Core.Debugging.Disassembly.DisassemblerUtilities;
 
 using InstructionData = (string Mnemonic, System.Collections.Generic.List<string> Operands);
-using Trident.Core.CPU;
 
 namespace Trident.Core.Debugging.Disassembly
 {
     internal static class ARMDisassembler
     {
-        private readonly static string[] _registers = [ "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "sp", "lr", "pc" ];
+        private static readonly string[] _dataProcessingMnemonics = ["and", "eor", "sub", "rsb", "add", "adc", "sbc", "rsc", "tst", "teq", "cmp", "cmn", "orr", "mov", "bic", "mvn"];
+        private static readonly string[] _multiplyLongMnemonics   = ["umull", "umlal", "smull", "smlal"];
+        private static readonly string[] _blockTransferModes      = ["da", "ia", "db", "ib"];
 
         internal static DisassembledInstruction Disassemble(uint address, uint opcode)
         {
@@ -27,6 +29,8 @@ namespace Trident.Core.Debugging.Disassembly
             {
                 ARMGroup.BranchExchange      => BranchExchange(opcode),
                 ARMGroup.BranchWithLink      => BranchWithLink(opcode, address),
+                ARMGroup.DataProcessing      => DataProcessing(opcode, address),
+                ARMGroup.PSRTransfer         => PSRTransfer(opcode),
                 ARMGroup.Multiply            => Multiply(opcode),
                 ARMGroup.MultiplyLong        => MultiplyLong(opcode),
                 ARMGroup.SingleDataTrasnfer  => SingleDataTransfer(opcode),
@@ -42,105 +46,84 @@ namespace Trident.Core.Debugging.Disassembly
             return instr;
         }
 
-        private static string ConditionCodeString(uint condition) => condition switch
-        {
-            CondEQ => "eq",
-            CondNE => "ne",
-            CondCS => "cs",
-            CondCC => "cc",
-            CondMI => "mi",
-            CondPL => "pl",
-            CondVS => "vs",
-            CondVC => "vc",
-            CondHI => "hi",
-            CondLS => "ls",
-            CondGE => "ge",
-            CondLT => "lt",
-            CondGT => "gt",
-            CondLE => "le",
-            CondAL => "",
-            _      => "??"
-        };
-
-        private static string RegisterList(uint rlist)
-        {
-            List<string> parts = [];
-            int? rangeStart = null;
-            int rangeLength = 0;
-
-            for (int i = 0; i <= 16; i++) 
-            {
-                bool set = i < 16 && (rlist & (1u << i)) != 0;
-
-                if (set)
-                {
-                    if (!rangeStart.HasValue)
-                    {
-                        rangeStart = i;
-                        rangeLength = 1;
-                    }
-                    else
-                        rangeLength++;
-                }
-                else if (rangeStart.HasValue)
-                {
-                    int start = rangeStart.Value;
-                    int end = i - 1;
-
-                    if (rangeLength >= 3)
-                        parts.Add($"{_registers[start]}-{_registers[end]}");
-                    else
-                        for (int j = start; j <= end; j++)
-                            parts.Add(_registers[j]);
-
-                    rangeStart = null;
-                    rangeLength = 0;
-                }
-            }
-
-            return "{ " + string.Join(", ", parts) + " }";
-        }
-
-        private static string ShiftedRegister(uint shiftData)
-        {
-            uint rm        = shiftData & 0x0F;
-            bool regShift  = shiftData.IsBitSet(4);
-            ShiftType type = (ShiftType)((shiftData >> 5) & 0b11);
-
-            string mnemonic = new[] { "lsl", "lsr", "asr", "ror" }[(int)type];
-
-            if (regShift)
-            {
-                string rs = _registers[(shiftData >> 8) & 0x0F];
-                return $"{_registers[rm]}, {mnemonic} {rs}";
-            }
-
-            uint shamt = (shiftData >> 7) & 0x1F;
-
-            if (shamt == 0 && (type == ShiftType.LSR || type == ShiftType.ASR))
-                shamt = 32;
-
-            if (shamt == 0)
-            {
-                return type == ShiftType.ROR
-                    ? $"{_registers[rm]}, rrx"
-                    : _registers[rm];
-            }
-
-            return $"{_registers[rm]}, {mnemonic} #{shamt}";
-        }
-
-
-
+        
         #region Branch
-        private static InstructionData BranchExchange(uint opcode) => ("bx", [ _registers[opcode & 0x0F] ]);
+        private static InstructionData BranchExchange(uint opcode) => ("bx", [_registers[opcode & 0x0F]]);
 
         private static InstructionData BranchWithLink(uint opcode, uint address)
         {
             int offset = ((opcode & 0xFFFFFF).ExtendFrom(24)) << 2;
             bool link  = opcode.IsBitSet(24);
 
-            return (link ? "bl" : "b", [ $"0x{((address + (uint)offset) + 8):X8}" ]);
+            return (link ? "bl" : "b", [$"0x{((address + (uint)offset) + 8):X8}"]);
+        }
+        #endregion
+
+
+        #region Data processing
+        private static InstructionData DataProcessing(uint opcode, uint address)
+        {
+            uint rd         = (opcode >> 12) & 0x0F;
+            uint rn         = (opcode >> 16) & 0x0F;
+            string setFlags = opcode.IsBitSet(20) ? "s" : "";
+            bool immediate  = opcode.IsBitSet(25);
+            ALUOpARM op     = (ALUOpARM)((opcode >> 21) & 0x0F);
+
+            string mnemonic = _dataProcessingMnemonics[(int)op] + setFlags;
+
+            string operand;
+            if (immediate)
+            {
+                uint value = RotatedImmediate(opcode);
+                if (rn == 15)
+                {
+                    if (op == ALUOpARM.SUB) value = address - value;
+                    if (op == ALUOpARM.ADD) value = address + value;
+                }
+                operand = $"#0x{value:X}";
+            }
+            else
+                operand = ShiftedRegister(opcode & 0x0FFF);
+
+            return op switch
+            {
+                ALUOpARM.ADD or ALUOpARM.SUB when rn == 15 && immediate
+                    => (mnemonic, [_registers[rd], operand]),
+
+                ALUOpARM.TST or ALUOpARM.TEQ or ALUOpARM.CMP or ALUOpARM.CMN
+                    => (mnemonic, [_registers[rn], operand]),
+
+                ALUOpARM.MOV or ALUOpARM.MVN
+                    => (mnemonic, [_registers[rd], operand]),
+
+                _ => (mnemonic, [_registers[rd], _registers[rn], operand])
+            };
+        }
+        #endregion
+
+
+        #region PSR
+        private static InstructionData PSRTransfer(uint opcode)
+        {
+            bool toPSR = opcode.IsBitSet(21);
+            bool useSpsr = opcode.IsBitSet(22);
+            bool immediate = opcode.IsBitSet(25);
+
+            string psrName = useSpsr ? "spsr" : "cpsr";
+
+            if (!toPSR)
+            {
+                string rd = _registers[(opcode >> 12) & 0x0F];
+                return ("mrs", [rd, psrName]);
+            }
+            else
+            {
+                string operand = immediate
+                    ? $"#0x{RotatedImmediate(opcode):X}"
+                    : _registers[opcode & 0x0F];
+
+                return ("msr", [psrName + BuildFSXC((opcode >> 16) & 0x0F), operand]);
+            }
         }
         #endregion
 
@@ -159,20 +142,20 @@ namespace Trident.Core.Debugging.Disassembly
                 (accumulate ? "mla" : "mul") +
                 setFlags;
 
-            return (mnemonic, [ rd, rm, rs, (accumulate) ? rn : "" ]);
+            return (mnemonic, [rd, rm, rs, (accumulate ? rn : "")]);
         }
 
         private static InstructionData MultiplyLong(uint opcode)
         {
-            string rm = _registers[opcode & 0x0F];
-            string rs = _registers[(opcode >> 8) & 0x0F];
-            string rdLo = _registers[(opcode >> 12) & 0x0F];
-            string rdHi = _registers[(opcode >> 16) & 0x0F];
+            string rm       = _registers[opcode & 0x0F];
+            string rs       = _registers[(opcode >> 8) & 0x0F];
+            string rdLo     = _registers[(opcode >> 12) & 0x0F];
+            string rdHi     = _registers[(opcode >> 16) & 0x0F];
             string setFlags = opcode.IsBitSet(20) ? "s" : "";
             bool accumulate = opcode.IsBitSet(21);
 
-            string mnemonic = (new[] { "umull", "umlal", "smull", "smlal" }[(opcode >> 21) & 0b11]) + setFlags;
-            return (mnemonic, [ rdLo, rdHi, rm, rs ]);
+            string mnemonic = _multiplyLongMnemonics[(opcode >> 21) & 0b11] + setFlags;
+            return (mnemonic, [rdLo, rdHi, rm, rs]);
         }
         #endregion
 
@@ -220,7 +203,7 @@ namespace Trident.Core.Debugging.Disassembly
             if (immediate)
             {
                 int imm = (int)(((opcode >> 4) & 0xF0) | (opcode & 0x0F));
-                offset = $"#{(add ? "" : "-")}0x{imm:X2}";
+                offset = $"#{(add ? "" : "-")}0x{imm:X}";
             }
             else
                 offset = $"{(add ? "" : "-")}{_registers[opcode & 0x0F]}";
@@ -245,7 +228,7 @@ namespace Trident.Core.Debugging.Disassembly
             uint addrMode  = (opcode >> 23) & 0b11;
 
             string mnemonic = opcode.IsBitSet(20) ? "ldm" : "stm";
-            string suffix   = new[] { "da", "ia", "db", "ib" }[addrMode];
+            string suffix   = _blockTransferModes[addrMode];
 
             List<string> operands = [];
 
@@ -265,13 +248,13 @@ namespace Trident.Core.Debugging.Disassembly
             uint rn       = (opcode >> 16) & 0x0F;
             bool byteMode = opcode.IsBitSet(22);
 
-            return (byteMode ? "swpb" : "swp", [ _registers[rd], _registers[rm], $"[{_registers[rn]}]" ]);
+            return (byteMode ? "swpb" : "swp", [_registers[rd], _registers[rm], $"[{_registers[rn]}]"]);
         }
         #endregion
 
 
         #region Software interrupt
-        private static InstructionData SoftwareInterrupt(uint opcode) => ("swi", [ $"#0x{opcode & 0x00FFFFFF:X6}"] );
+        private static InstructionData SoftwareInterrupt(uint opcode) => ("swi", [$"#0x{opcode & 0x00FFFFFF:X}"]);
         #endregion
     }
 }

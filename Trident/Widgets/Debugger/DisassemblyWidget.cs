@@ -56,7 +56,7 @@ namespace Trident.Widgets.Debugger
                     ImGui.PushFont(_monoFont);
 
                     int currentRowIndex = -1;
-                    var (actualAddress, instructions) = _disassembler.GetAroundPC(30, 30);
+                    var (actualAddress, isThumb, instructions) = _disassembler.GetAroundPC(30, 30);
                     for (int i = 0; i < instructions.Count; i++)
                     {
                         var instr = instructions[i];
@@ -84,7 +84,7 @@ namespace Trident.Widgets.Debugger
                         if (_showOpcode)
                         {
                             ImGui.PushStyleColor(ImGuiCol.Text, _colorOpcode);
-                            ImGui.Text($"{instr.Opcode:X8}");
+                            ImGui.Text(isThumb ? $"{instr.Opcode:X4}" : $"{instr.Opcode:X8}");
                             ImGui.PopStyleColor();
                             ImGui.SameLine(0f, 10f);
                         }
@@ -94,7 +94,7 @@ namespace Trident.Widgets.Debugger
                         string cond = instr.ConditionCode;
 
                         const int targetColumn = 8;
-                        string padding = new string(' ', Math.Max(0, targetColumn - (mnemonic.Length + cond.Length)));
+                        string padding = new(' ', Math.Max(0, targetColumn - (mnemonic.Length + cond.Length)));
 
                         ImGui.TextColored(_colorMnemonic, mnemonic);
                         ImGui.SameLine(0f, 0f);
@@ -144,13 +144,15 @@ namespace Trident.Widgets.Debugger
 
         private Vector4 GetColorForToken(OperandTokenType type) => type switch
         {
-            OperandTokenType.Register  => new Vector4(0.65f, 0.80f, 1.00f, 1.0f),
-            OperandTokenType.Immediate => new Vector4(0.95f, 0.65f, 0.80f, 1.0f),
-            OperandTokenType.Bracket   => new Vector4(1f),
-            OperandTokenType.Comma     => new Vector4(1f),
-            OperandTokenType.Symbol    => new Vector4(0.75f, 0.55f, 0.95f, 1.0f),
-            OperandTokenType.Label     => new Vector4(0.90f, 0.80f, 0.55f, 1.0f),
-            OperandTokenType.Unknown   => new Vector4(0.80f, 0.30f, 0.30f, 1.0f),
+            OperandTokenType.Register       => new Vector4(0.65f, 0.80f, 1.00f, 1.0f),
+            OperandTokenType.StatusRegister => new Vector4(0.50f, 0.90f, 0.60f, 1.0f),
+            OperandTokenType.Immediate      => new Vector4(0.95f, 0.65f, 0.80f, 1.0f),
+            OperandTokenType.ShiftType      => new Vector4(0.60f, 0.90f, 1.00f, 1.0f),
+            OperandTokenType.Bracket        => new Vector4(1f),
+            OperandTokenType.Comma          => new Vector4(1f),
+            OperandTokenType.Symbol         => new Vector4(0.75f, 0.55f, 0.95f, 1.0f),
+            OperandTokenType.Label          => new Vector4(0.90f, 0.80f, 0.55f, 1.0f),
+            OperandTokenType.Unknown        => new Vector4(0.80f, 0.30f, 0.30f, 1.0f),
             _ => new Vector4(1f)
         };
     }
@@ -167,15 +169,19 @@ namespace Trident.Widgets.Debugger
 
 
         private static readonly Regex TokenRegex     = GenerateTokenRegex();
-        private static readonly Regex RegisterRegex  = GenerateRegisterRegex();
+        private static readonly Regex RegisterRegex  = GenerateRegisterRegex(); 
+        private static readonly Regex PSRRegex       = GeneratePSRRegex();
         private static readonly Regex ImmediateRegex = GenerateImmediateRegex();
         private static readonly Regex LabelRegex     = GenerateLabelRegex();
 
-        [GeneratedRegex(@"(r\d+|lr|sp|pc|#[-+]?(?:0x[0-9A-Fa-f]+|\d+)|0x[0-9A-Fa-f]+|[\[\]\{\},!^]|[-+]| )", RegexOptions.Compiled)]
+        [GeneratedRegex(@"(spsr(?:_[a-z]+)?|cpsr(?:_[a-z]+)?|lsl|lsr|asr|ror|rrx|r\d+|lr|sp|pc|#[-+]?(?:0x[0-9A-Fa-f]+|\d+)|0x[0-9A-Fa-f]+|[\[\]\{\},!^]|[-+]| )", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
         private static partial Regex GenerateTokenRegex();
 
         [GeneratedRegex(@"^r\d+$|^lr$|^pc$|^sp$", RegexOptions.Compiled)]
         private static partial Regex GenerateRegisterRegex();
+
+        [GeneratedRegex(@"^spsr(_[a-z]+)?$|^cpsr(_[a-z]+)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
+        private static partial Regex GeneratePSRRegex();
 
         [GeneratedRegex(@"^#[-+]?(?:0x[0-9A-Fa-f]+|\d+)$", RegexOptions.Compiled)]
         private static partial Regex GenerateImmediateRegex();
@@ -250,13 +256,15 @@ namespace Trident.Widgets.Debugger
 
         private static OperandTokenType ClassifyToken(string token) => token switch
         {
-            _ when RegisterRegex.IsMatch(token)  => OperandTokenType.Register,
-            _ when ImmediateRegex.IsMatch(token) => OperandTokenType.Immediate,
-            _ when "[]{}".Contains(token)        => OperandTokenType.Bracket,
-            ","                                  => OperandTokenType.Comma,
-            "!" or "-" or "+" or "^" or " "      => OperandTokenType.Symbol,
-            _ when LabelRegex.IsMatch(token)     => OperandTokenType.Label,
-            _                                    => OperandTokenType.Unknown
+            _ when RegisterRegex.IsMatch(token)       => OperandTokenType.Register,
+            _ when ImmediateRegex.IsMatch(token)      => OperandTokenType.Immediate,
+            _ when "[]{}".Contains(token)             => OperandTokenType.Bracket,
+            ","                                       => OperandTokenType.Comma,
+            "!" or "-" or "+" or "^" or " "           => OperandTokenType.Symbol,
+            "lsl" or "lsr" or "asr" or "ror" or "rrx" => OperandTokenType.ShiftType,
+            _ when LabelRegex.IsMatch(token)          => OperandTokenType.Label,
+            _ when PSRRegex.IsMatch(token)            => OperandTokenType.StatusRegister,
+            _                                         => OperandTokenType.Unknown
         };
     }
 
@@ -264,7 +272,9 @@ namespace Trident.Widgets.Debugger
     enum OperandTokenType
     {
         Register,
+        StatusRegister,
         Immediate,
+        ShiftType,
         Bracket,
         Comma,
         Symbol,

@@ -17,14 +17,14 @@ namespace Trident.Core.Debugging.Disassembly
             _getSnapshot = getSnapshot;
         }
 
-        public (uint, List<DisassembledInstruction>) GetAroundPC(uint before, uint after)
+        public (uint, bool, List<DisassembledInstruction>) GetAroundPC(uint before, uint after)
         {
             uint pc = _getPC();
             bool thumb = _getSnapshot().CPSR.IsBitSet(5);
 
             IDebugMemory? region = _getRegion(pc >> 24);
             if (region is null)
-                return (0, []);
+                return (0, thumb, []);
 
             uint instrSize = thumb ? 2 : 4u;
             var (start, end) = GetDisasmWindow(pc, before, after, instrSize, region);
@@ -33,15 +33,13 @@ namespace Trident.Core.Debugging.Disassembly
 
             for (uint addr = start; addr < end; addr += thumb ? 2u : 4u)
             {
-                var opcode = region.DebugRead<uint>(addr);
-
                 if (thumb)
-                    instructions.Add(new(addr, opcode, "??", "??", ["??"]));
+                    instructions.Add(ThumbDisassembler.Disassemble(addr, region.DebugRead<ushort>(addr)));
                 else
-                    instructions.Add(ARMDisassembler.Disassemble(addr, opcode));
+                    instructions.Add(ARMDisassembler.Disassemble(addr, region.DebugRead<uint>(addr)));
             }
 
-            return (pc - (thumb ? 4 : 8u), instructions);
+            return (pc - (thumb ? 4 : 8u), thumb, instructions);
         }
 
         private static (uint start, uint end) GetDisasmWindow(uint pc, uint before, uint after, uint instrSize, IDebugMemory region)
