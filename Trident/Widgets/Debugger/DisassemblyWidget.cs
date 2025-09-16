@@ -160,11 +160,11 @@ namespace Trident.Widgets.Debugger
 
     internal static partial class OperandTokenizer
     {
-        private static readonly Dictionary<string, int> _operandUsageCount = new();
-        private static readonly Dictionary<string, List<OperandToken>> _tokenCache = new();
+        private static readonly Dictionary<string, int> _operandUsageCount = [];
+        private static readonly Dictionary<string, List<OperandToken>> _tokenCache = [];
 
         private const int UsageThreshold = 3;
-        private const int MaxCacheSize = 1024;
+        private const int MaxCacheSize = 512;
         private static readonly Random _random = new();
 
 

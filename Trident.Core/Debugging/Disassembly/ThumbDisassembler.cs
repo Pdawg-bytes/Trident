@@ -1,5 +1,6 @@
 ﻿using Trident.Core.Global;
 using Trident.CodeGeneration.Shared;
+using System.Runtime.CompilerServices;
 
 using static Trident.Core.Debugging.Disassembly.DisassemblerUtilities;
 
@@ -17,7 +18,11 @@ namespace Trident.Core.Debugging.Disassembly
         private static readonly string[] _loadStoreSignedMnemonics = ["strh", "ldrsb", "ldrh", "ldrsh"];
         private static readonly string[] _loadStoreImmOffMnemonics = ["str", "ldr", "strb", "ldrb"];
 
-        internal static DisassembledInstruction Disassemble(uint address, uint lr, ushort opcode)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static DisassembledInstruction Disassemble(uint address, uint lr, ushort opcode) =>
+            Disassemble(address, lr, opcode, ThumbDecoder.DetermineThumbGroup(opcode));
+
+        internal static DisassembledInstruction Disassemble(uint address, uint lr, ushort opcode, ThumbGroup group)
         {
             var instr = new DisassembledInstruction
             {
@@ -28,7 +33,7 @@ namespace Trident.Core.Debugging.Disassembly
                 Operands = ["??"]
             };
 
-            InstructionData data = ThumbDecoder.DetermineThumbGroup(opcode) switch
+            InstructionData data = group switch
             {
                 ThumbGroup.ShiftImmediate      => ShiftImmediate(opcode),
                 ThumbGroup.AddSubtract         => AddSubtract(opcode),

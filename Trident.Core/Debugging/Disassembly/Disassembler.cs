@@ -1,21 +1,31 @@
-﻿using Trident.Core.Global;
-using Trident.Core.Memory.Region;
+﻿using Trident.CodeGeneration.Shared;
+using Trident.Core.CPU.Decoding;
 using Trident.Core.Debugging.Snapshots;
+using Trident.Core.Global;
+using Trident.Core.Memory.Region;
 
 namespace Trident.Core.Debugging.Disassembly
 {
     public sealed class Disassembler
     {
         private readonly Func<uint, IDebugMemory?> _getRegion;
+
         private readonly Func<uint> _getPC;
         private readonly Func<CPUSnapshot> _getSnapshot;
+
+        private readonly OpcodeDisasmCache<ushort> _thumbCache;
+        private readonly OpcodeDisasmCache<uint> _armCache;
 
         public Disassembler(Func<uint, IDebugMemory?> getRegion, Func<uint> getPC, Func<CPUSnapshot> getSnapshot)
         {
             _getRegion = getRegion;
             _getPC = getPC;
             _getSnapshot = getSnapshot;
+
+            _thumbCache = new(maxSize: 4096, usageThreshold: 3, opcode => ThumbDisassembler.Disassemble(0, 0, opcode));
+            _armCache   = new(maxSize: 8192, usageThreshold: 3, opcode => ARMDisassembler.Disassemble(0, opcode));
         }
+
 
         public (uint, bool, List<DisassembledInstruction>) GetAroundPC(uint before, uint after)
         {
@@ -33,19 +43,48 @@ namespace Trident.Core.Debugging.Disassembly
 
             var instructions = new List<DisassembledInstruction>();
 
-            for (uint addr = start; addr < end; addr += thumb ? 2u : 4u)
+            for (uint addr = start; addr < end; addr += instrSize)
             {
                 if (thumb)
                 {
                     ushort opcode = region.DebugRead<ushort>(addr);
-                    instructions.Add(ThumbDisassembler.Disassemble(addr, lr, opcode));
+                    var (group, cacheable) = ClassifyThumb(opcode);
 
-                    uint offset = (uint)((uint)opcode & 0x07FF).ExtendFrom(11) << 12;
-                    lr = addr + 4 + offset;
+                    DisassembledInstruction instr;
+                    if (cacheable)
+                    {
+                        instr = _thumbCache.Get(opcode);
+                        instr.Address = addr;
+                        instr.Opcode = opcode;
+                    }
+                    else
+                        instr = ThumbDisassembler.Disassemble(addr, lr, opcode, group);
+
+                    instructions.Add(instr);
+
+                    if (group == ThumbGroup.LongBranchWithLink)
+                    {
+                        uint offset = (uint)((uint)opcode & 0x07FF).ExtendFrom(11) << 12;
+                        lr = addr + 4 + offset;
+                    }
                 }
-                    
                 else
-                    instructions.Add(ARMDisassembler.Disassemble(addr, region.DebugRead<uint>(addr)));
+                {
+                    uint opcode = region.DebugRead<uint>(addr);
+                    var (group, cacheable) = ClassifyARM(opcode);
+
+                    DisassembledInstruction instr;
+                    if (cacheable)
+                    {
+                        instr = _armCache.Get(opcode);
+                        instr.Address = addr;
+                        instr.Opcode = opcode;
+                    }
+                    else
+                        instr = ARMDisassembler.Disassemble(addr, opcode, group);
+
+                    instructions.Add(instr);
+                }
             }
 
             return (pc - (thumb ? 4 : 8u), thumb, instructions);
@@ -67,7 +106,98 @@ namespace Trident.Core.Debugging.Disassembly
 
             return (start, end);
         }
+
+
+        private static (ThumbGroup group, bool cacheable) ClassifyThumb(ushort opcode)
+        {
+            ThumbGroup group = ThumbDecoder.DetermineThumbGroup(opcode);
+            bool cacheable = group switch
+            {
+                ThumbGroup.LoadPCRelative      => false,
+                ThumbGroup.LoadAddress         => false,
+                ThumbGroup.ConditionalBranch   => false,
+                ThumbGroup.UnconditionalBranch => false,
+                ThumbGroup.LongBranchWithLink  => false,
+                _ => true
+            };
+            return (group, cacheable);
+        }
+
+        private static (ARMGroup group, bool cacheable) ClassifyARM(uint opcode)
+        {
+            ARMGroup group = ARMDecoder.DetermineARMGroup(opcode);
+            bool cacheable = group switch
+            {
+                ARMGroup.BranchWithLink => false,
+                ARMGroup.DataProcessing => CachableDataProc(opcode),
+                _ => true
+            };
+            return (group, cacheable);
+        }
+
+        private static bool CachableDataProc(uint opcode)
+        {
+            ALUOpARM op    = (ALUOpARM)((opcode >> 21) & 0x0F);
+            uint rn        = (opcode >> 16) & 0xF;
+            bool immediate = (opcode & (1 << 25)) != 0;
+
+            return !(immediate && rn == 15 && (op == ALUOpARM.ADD || op == ALUOpARM.SUB));
+        }
     }
+
+
+    internal sealed class OpcodeDisasmCache<TOpcode> where TOpcode : unmanaged
+    {
+        private readonly int _maxSize;
+        private readonly int _usageThreshold;
+
+        private readonly Dictionary<TOpcode, int> _usageCount = [];
+        private readonly LinkedList<TOpcode> _lruList = [];
+
+        private readonly Dictionary<TOpcode, DisassembledInstruction> _cache = [];
+
+        private readonly Func<TOpcode, DisassembledInstruction> _disasmFunc;
+
+        internal OpcodeDisasmCache(int maxSize, int usageThreshold, Func<TOpcode, DisassembledInstruction> disasmFunc)
+        {
+            _maxSize = maxSize;
+            _usageThreshold = usageThreshold;
+            _disasmFunc = disasmFunc;
+        }
+
+
+        internal DisassembledInstruction Get(TOpcode opcode)
+        {
+            if (_cache.TryGetValue(opcode, out var cached))
+            {
+                _lruList.Remove(opcode);
+                _lruList.AddLast(opcode);
+                return cached;
+            }
+
+            int count = _usageCount.TryGetValue(opcode, out var c) ? c + 1 : 1;
+            _usageCount[opcode] = count;
+
+            if (count >= _usageThreshold)
+            {
+                var instr = _disasmFunc(opcode);
+
+                if (_cache.Count >= _maxSize)
+                {
+                    var evictKey = _lruList.First!.Value;
+                    _lruList.RemoveFirst();
+                    _cache.Remove(evictKey);
+                }
+
+                _cache[opcode] = instr;
+                _lruList.AddLast(opcode);
+                return instr;
+            }
+
+            return _disasmFunc(opcode);
+        }
+    }
+
 
     public struct DisassembledInstruction(uint address, uint opcode, string mnemonicBase, string conditionCode, List<string> operands)
     {

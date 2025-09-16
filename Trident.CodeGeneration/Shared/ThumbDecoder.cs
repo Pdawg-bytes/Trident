@@ -6,7 +6,7 @@ namespace Trident.CodeGeneration.Shared
     {
         internal static ThumbGroup DetermineThumbGroup(ushort instruction) => instruction switch
         {
-            ushort i when (i & 0xF800) < 0x1800 =>  ThumbGroup.ShiftImmediate,
+            ushort i when (i & 0xF800) <  0x1800 => ThumbGroup.ShiftImmediate,
             ushort i when (i & 0xF800) == 0x1800 => ThumbGroup.AddSubtract,
             ushort i when (i & 0xE000) == 0x2000 => ThumbGroup.ImmediateOperations,
             ushort i when (i & 0xFC00) == 0x4000 => ThumbGroup.ThumbALU,
@@ -22,7 +22,7 @@ namespace Trident.CodeGeneration.Shared
             ushort i when (i & 0xFF00) == 0xB000 => ThumbGroup.AddOffsetSP,
             ushort i when (i & 0xF600) == 0xB400 => ThumbGroup.PushPop,
             ushort i when (i & 0xF000) == 0xC000 => ThumbGroup.LoadStoreMultiple,
-            ushort i when (i & 0xFF00) < 0xDF00 =>  ThumbGroup.ConditionalBranch,
+            ushort i when (i & 0xFF00) <  0xDF00 => ThumbGroup.ConditionalBranch,
             ushort i when (i & 0xFF00) == 0xDF00 => ThumbGroup.SoftwareInterrupt,
             ushort i when (i & 0xF800) == 0xE000 => ThumbGroup.UnconditionalBranch,
             ushort i when (i & 0xF000) == 0xF000 => ThumbGroup.LongBranchWithLink,

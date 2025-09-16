@@ -1,6 +1,7 @@
 ﻿using Trident.Core.Global;
 using Trident.Core.CPU.Decoding;
 using Trident.CodeGeneration.Shared;
+using System.Runtime.CompilerServices;
 
 using static Trident.Core.Debugging.Disassembly.DisassemblerUtilities;
 
@@ -14,7 +15,11 @@ namespace Trident.Core.Debugging.Disassembly
         private static readonly string[] _multiplyLongMnemonics   = ["umull", "umlal", "smull", "smlal"];
         private static readonly string[] _blockTransferModes      = ["da", "ia", "db", "ib"];
 
-        internal static DisassembledInstruction Disassemble(uint address, uint opcode)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static DisassembledInstruction Disassemble(uint address, uint opcode) =>
+            Disassemble(address, opcode, ARMDecoder.DetermineARMGroup(opcode));
+
+        internal static DisassembledInstruction Disassemble(uint address, uint opcode, ARMGroup group)
         {
             var instr = new DisassembledInstruction
             {
@@ -25,7 +30,7 @@ namespace Trident.Core.Debugging.Disassembly
                 Operands = ["??"]
             };
 
-            InstructionData data = ARMDecoder.DetermineARMGroup(opcode) switch
+            InstructionData data = group switch
             {
                 ARMGroup.BranchExchange      => BranchExchange(opcode),
                 ARMGroup.BranchWithLink      => BranchWithLink(opcode, address),
