@@ -177,10 +177,10 @@ namespace Trident.Widgets.Debugger
         [GeneratedRegex(@"(spsr(?:_[a-z]+)?|cpsr(?:_[a-z]+)?|lsl|lsr|asr|ror|rrx|r\d+|lr|sp|pc|#[-+]?(?:0x[0-9A-Fa-f]+|\d+)|0x[0-9A-Fa-f]+|[\[\]\{\},!^]|[-+]| )", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
         private static partial Regex GenerateTokenRegex();
 
-        [GeneratedRegex(@"^r\d+$|^lr$|^pc$|^sp$", RegexOptions.Compiled)]
+        [GeneratedRegex(@"^(r\d+|lr|pc|sp)$", RegexOptions.Compiled)]
         private static partial Regex GenerateRegisterRegex();
 
-        [GeneratedRegex(@"^spsr(_[a-z]+)?$|^cpsr(_[a-z]+)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
+        [GeneratedRegex(@"^(spsr|cpsr)(_[a-z]+)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
         private static partial Regex GeneratePSRRegex();
 
         [GeneratedRegex(@"^#[-+]?(?:0x[0-9A-Fa-f]+|\d+)$", RegexOptions.Compiled)]

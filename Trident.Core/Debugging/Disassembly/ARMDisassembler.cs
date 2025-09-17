@@ -74,7 +74,7 @@ namespace Trident.Core.Debugging.Disassembly
             bool immediate  = opcode.IsBitSet(25);
             ALUOpARM op     = (ALUOpARM)((opcode >> 21) & 0x0F);
 
-            string mnemonic = _dataProcessingMnemonics[(int)op] + setFlags;
+            string mnemonic = _dataProcessingMnemonics[(int)op] + (((int)op >= 0b1000 && (int)op <= 0b1011) ? "" : setFlags);
 
             string operand;
             if (immediate)

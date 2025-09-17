@@ -5,8 +5,8 @@ using Trident.Core.Scheduling;
 using Trident.Core.CPU.Pipeline;
 using Trident.Core.CPU.Registers;
 using Trident.Core.CPU.Decoding.ARM;
-using System.Runtime.CompilerServices;
 using Trident.Core.CPU.Decoding.Thumb;
+using System.Runtime.CompilerServices;
 using Trident.Core.Debugging.Snapshots;
 using Trident.Core.Hardware.Interrupts;
 
@@ -14,7 +14,7 @@ using static Trident.Core.CPU.Conditions;
 
 namespace Trident.Core.CPU
 {
-    public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
+    public sealed partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     {
         public RegisterSet Registers;
         public InstructionPipeline Pipeline;
@@ -65,6 +65,24 @@ namespace Trident.Core.CPU
             else
                 StepARM(opcode);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void StepDebug()
+        {
+            // TODO: check breakpoints
+
+            if (_irqController.IRQAvailable) RaiseIRQ();
+
+            uint opcode = Pipeline.Prefetch[0];
+            Pipeline.Prefetch[0] = Pipeline.Prefetch[1];
+            Registers.PC &= 0xFFFFFFFE;
+
+            if (Registers.IsFlagSet(Flags.T))
+                StepThumb((ushort)opcode);
+            else
+                StepARM(opcode);
+        }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void StepThumb(ushort opcode)

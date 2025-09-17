@@ -1,13 +1,15 @@
-﻿using Trident.CodeGeneration.Shared;
+﻿using Trident.Core.Global;
 using Trident.Core.CPU.Decoding;
-using Trident.Core.Debugging.Snapshots;
-using Trident.Core.Global;
 using Trident.Core.Memory.Region;
+using Trident.CodeGeneration.Shared;
+using Trident.Core.Debugging.Snapshots;
 
 namespace Trident.Core.Debugging.Disassembly
 {
     public sealed class Disassembler
     {
+        internal bool Enabled { get; set; }
+
         private readonly Func<uint, IDebugMemory?> _getRegion;
 
         private readonly Func<uint> _getPC;
@@ -29,6 +31,9 @@ namespace Trident.Core.Debugging.Disassembly
 
         public (uint, bool, List<DisassembledInstruction>) GetAroundPC(uint before, uint after)
         {
+            if (!Enabled)
+                return (0, false, []);
+
             uint lr = 0;
 
             uint pc = _getPC();

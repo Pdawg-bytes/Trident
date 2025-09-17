@@ -1,11 +1,8 @@
-﻿using System.Diagnostics;
-using System.Reflection;
-using System.Text.Json;
+﻿using System.Reflection;
+using System.Diagnostics;
 using System.Threading.Channels;
-using Trident.Core.CPU;
-using Trident.Tests.SingleStep.Constraints;
-using Trident.Tests.SingleStep.Infrastructure;
 using Trident.Tests.SingleStep.Models;
+using Trident.Tests.SingleStep.Infrastructure;
 
 namespace Trident.Tests.SingleStep
 {
@@ -46,7 +43,7 @@ namespace Trident.Tests.SingleStep
 
         public static IEnumerable<string[]> GetJsonFiles()
         {
-            string baseDir = @"D:\Source\Git\ARM7TDMI\v1";
+            string baseDir = @"G:\Source\Git\ARM7TDMI\v1";
             foreach (var file in Directory.GetFiles(baseDir, "*.json"))
                 yield return new string[] { file };
         }

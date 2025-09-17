@@ -8,16 +8,16 @@ using Trident.Core.Memory.GamePak;
 using Trident.Core.Memory.Graphics;
 using Trident.Core.Memory.MappedIO;
 using Trident.Core.Hardware.Graphics;
+using System.Runtime.CompilerServices;
 using Trident.Core.Debugging.Snapshots;
 using Trident.Core.Memory.GamePak.GPIO;
 using Trident.Core.Hardware.Controller;
 using Trident.Core.Hardware.Interrupts;
-
 using Trident.Core.Debugging.Disassembly;
 
 namespace Trident.Core.Machine
 {
-    public class GBA : IDisposable
+    public sealed partial class GBA : IDisposable
     {
         internal ARM7TDMI<GBABus> CPU;
         internal InterruptController IRQController;
@@ -26,7 +26,7 @@ namespace Trident.Core.Machine
 
         public Framebuffer Framebuffer = new();
         internal PPU PPU;
-        private PPURegisters _ppuRegisters = new();
+        private readonly PPURegisters _ppuRegisters = new();
 
         internal Scheduler Scheduler = new();
 
@@ -93,10 +93,6 @@ namespace Trident.Core.Machine
         public T? GetGPIODevice<T>() where T : GPIODevice
             => _gamePak?.GetGPIODevice<T>();
 
-        public CPUSnapshot CPUSnapshot => CPU.GetSnapshot();
-
-        private IDebugMemory? GetDebugRegion(uint region) => CPU.Bus.GetRegionAsDebug(region);
-
 
         public void RunFor(ulong cycles)
         {
@@ -107,21 +103,40 @@ namespace Trident.Core.Machine
                 if (!CPU.Halted)
                     CPU.Step();
                 else
-                {
-                    Scheduler.SkipToNextEvent();
+                    HandleHalt();
+            }
+        }
 
-                    if (IRQController.IRQAvailable)
-                    {
-                        Scheduler.Step(1);
-                        CPU.Halted = false;
-                    }
-                }
+        public void DebugRunFor(ulong cycles)
+        {
+            ulong runTarget = Scheduler.CurrentTimestamp + cycles;
+
+            while (runTarget > Scheduler.CurrentTimestamp)
+            {
+                if (!CPU.Halted)
+                    CPU.StepDebug();
+                else
+                    HandleHalt();
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void HandleHalt()
+        {
+            Scheduler.SkipToNextEvent();
+
+            if (IRQController.IRQAvailable)
+            {
+                Scheduler.Step(1);
+                CPU.Halted = false;
             }
         }
 
 
         public void Reset()
         {
+            Disassembler.Enabled = false;
+
             Scheduler.Reset();
 
             _eWRAM.Reset();
@@ -140,11 +155,15 @@ namespace Trident.Core.Machine
 
             if (ShouldSkipBIOS)
                 SkipBIOS();
+
+            Disassembler.Enabled = true;
         }
 
 
         public void AttachGamePak(string filePath)
         {
+            Disassembler.Enabled = false;
+
             _gamePak?.Dispose();
             _gamePak = GamePakLoader.Load(File.ReadAllBytes(filePath), Scheduler.Step, _waitControl);
 
@@ -166,6 +185,8 @@ namespace Trident.Core.Machine
             ]);
 
             CPU.Bus.LoadDebugGamePak(_gamePak);
+
+            Disassembler.Enabled = true;
         }
 
         public GamePakInfo GetGamePakInfo() => _gamePak.PakInfo;
@@ -173,12 +194,16 @@ namespace Trident.Core.Machine
 
         public void AttachBIOS(string path)
         {
+            Disassembler.Enabled = false;
+
             byte[] bios = File.ReadAllBytes(path);
 
             if (bios.Length != BIOS.MEMORY_SIZE)
                 throw new Exception("BIOS image is not the correct size.");
 
             _bios.LoadBIOS(bios);
+
+            Disassembler.Enabled = true;
         }
 
         public void SkipBIOS()
@@ -196,6 +221,7 @@ namespace Trident.Core.Machine
 
         public void Dispose()
         {
+            Disassembler.Enabled = false;
             _busView?.Dispose();
             _busView = null;
             CPU.Bus.DisposeMemory();

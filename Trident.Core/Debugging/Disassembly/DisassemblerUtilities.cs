@@ -67,7 +67,7 @@ namespace Trident.Core.Debugging.Disassembly
                 }
             }
 
-            return "{ " + string.Join(", ", parts) + " }";
+            return '{' + string.Join(", ", parts) + '}';
         }
 
 

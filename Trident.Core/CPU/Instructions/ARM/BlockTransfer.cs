@@ -24,7 +24,6 @@ namespace Trident.Core.CPU
             uint regList = (ushort)opcode;
             uint rb = (opcode >> 16) & 0x0F;
 
-            bool pcIncluded = regList.IsBitSet(15);
             uint address = Registers[rb];
 
             Registers.PC += 4;
@@ -43,6 +42,7 @@ namespace Trident.Core.CPU
             else
                 transferSize = (uint)BitOperations.PopCount(regList) << 2;
 
+            bool pcIncluded = regList.IsBitSet(15);
 
             ProcessorMode mode = Registers.CurrentMode;
             bool switchMode = TTraits.UserMode && !RegisterSet.IsUserOrSystem(mode) && (!TTraits.Load || !pcIncluded);
