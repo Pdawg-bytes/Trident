@@ -38,10 +38,8 @@ namespace Trident.Core.CPU
             if (TTraits.SetFlags)
                 SetNZ(mulResult);
 
-            Registers[rd] = mulResult;
-
-            if (rd == 15)
-                ReloadPipelineARM();
+            if (rd != 15)
+                Registers[rd] = mulResult;
         }
 
 
@@ -84,11 +82,11 @@ namespace Trident.Core.CPU
                 // however to achieve better accuracy, i should do it at some point
             }
 
-            Registers[rdLo] = (uint)(mulResult & uint.MaxValue);
-            Registers[rdHi] = resultHi;
+            if (rdLo != 15)
+                Registers[rdLo] = (uint)mulResult;
 
-            if (rdHi == 15 || rdLo == 15)
-                ReloadPipelineARM();
+            if (rdHi != 15)
+                Registers[rdHi] = resultHi;
         }
     }
 }

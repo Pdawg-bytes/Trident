@@ -16,7 +16,7 @@
             Reset();
         }
 
-        internal void Raise(InterruptSource source) => Raise(source);
+        internal void Raise(InterruptSource source) => Raise(source, 0);
         internal void Raise(InterruptSource source, int channel = 0)
         {
             if (source is InterruptSource.Timer || source is InterruptSource.DMA)

@@ -52,6 +52,12 @@ namespace Trident.Core.CPU
             {
                 uint rd = (opcode >> 12) & 0x0F;
                 Registers[rd] = TTraits.SPSR ? (uint)Registers.SPSR : (uint)Registers.CPSR;
+
+                if (rd == 15)
+                {
+                    ReloadPipelineARM();
+                    return;
+                }
             }
 
             Registers.PC += 4;

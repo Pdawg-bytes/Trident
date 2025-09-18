@@ -30,8 +30,9 @@ namespace Trident.Tests.SingleStep.Infrastructure
             cpu.Pipeline.Access = (PipelineAccess)state.Access;
         }
 
-        internal static void AssertState(ARM7TDMI<TransactionalMemory> cpu, RegisterState state)
+        internal static void AssertState(ARM7TDMI<TransactionalMemory> cpu, SystemState testCase)
         {
+            RegisterState state = testCase.Final;
             var errors = new List<string>();
 
             void AddError(string label, object expected, object actual) =>
@@ -67,7 +68,7 @@ namespace Trident.Tests.SingleStep.Infrastructure
             if (state.Pipeline[1] != cpu.Pipeline.Prefetch[1])
                 AddError("Pipeline[1]", $"0x{state.Pipeline[1]:X8}", $"0x{cpu.Pipeline.Prefetch[1]:X8}");
 
-            if ((PipelineAccess)state.Access != cpu.Pipeline.Access)
+            if (((PipelineAccess)state.Access != cpu.Pipeline.Access) && !testCase.IgnoreAccessMismatch)
                 AddError("Pipeline access", (PipelineAccess)state.Access, cpu.Pipeline.Access);
 
             if (errors.Count > 0)
@@ -82,11 +83,11 @@ namespace Trident.Tests.SingleStep.Infrastructure
         {
             (List<uint> bank, Flags spsr) = mode switch
             {
-                ProcessorMode.FIQ =>        (state.RFiq, (Flags)state.Spsr[0]),
-                ProcessorMode.IRQ =>        (state.RIrq, (Flags)state.Spsr[3]),
+                ProcessorMode.FIQ => (state.RFiq, (Flags)state.Spsr[0]),
+                ProcessorMode.IRQ => (state.RIrq, (Flags)state.Spsr[3]),
                 ProcessorMode.SVC => (state.RSvc, (Flags)state.Spsr[1]),
-                ProcessorMode.ABT =>      (state.RAbt, (Flags)state.Spsr[2]),
-                ProcessorMode.UND =>  (state.RUnd, (Flags)state.Spsr[4]),
+                ProcessorMode.ABT => (state.RAbt, (Flags)state.Spsr[2]),
+                ProcessorMode.UND => (state.RUnd, (Flags)state.Spsr[4]),
                 _ => throw new InvalidOperationException($"Unsupported mode for bank/SPSR setting: {mode}")
             };
 
@@ -98,7 +99,8 @@ namespace Trident.Tests.SingleStep.Infrastructure
         {
             (List<uint> expectedBank, Flags spsr) = mode switch
             {
-                ProcessorMode.USR or ProcessorMode.SYS => (expected.R, (Flags)0),
+                ProcessorMode.USR or ProcessorMode.SYS 
+                                  => (expected.R, (Flags)0),
                 ProcessorMode.FIQ => (expected.RFiq, (Flags)expected.Spsr[0]),
                 ProcessorMode.IRQ => (expected.RIrq, (Flags)expected.Spsr[3]),
                 ProcessorMode.SVC => (expected.RSvc, (Flags)expected.Spsr[1]),

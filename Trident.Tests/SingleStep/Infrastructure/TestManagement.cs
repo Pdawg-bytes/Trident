@@ -30,9 +30,9 @@ namespace Trident.Tests.SingleStep.Infrastructure
                     {
                         constraintProcessor.ApplyConstraints(testType, testCase);
                         CPUHelper.ApplyInitialState(cpu, testCase.Initial);
-                        cpu.Bus.Initialize(testCase.BaseAddr, testCase.Opcode, testCase.Transactions);
+                        cpu.Bus.Initialize(testCase.Transactions);
                         cpu.Step();
-                        CPUHelper.AssertState(cpu, testCase.Final);
+                        CPUHelper.AssertState(cpu, testCase);
                     }
                     catch (Exception ex)
                     {

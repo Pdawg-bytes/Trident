@@ -7,16 +7,11 @@ namespace Trident.Tests.SingleStep.Infrastructure
 {
     internal struct TransactionalMemory : IDataBus
     {
-        private uint _baseAddr;
-        private uint _opcode;
-
         private List<Transaction> _transactions;
         private int _transactionIndex;
 
-        internal void Initialize(uint baseAddr, uint opcode, List<Transaction> transactions)
+        internal void Initialize(List<Transaction> transactions)
         {
-            _baseAddr = baseAddr;
-            _opcode = opcode;
             _transactions = transactions;
             _transactionIndex = 0;
         }

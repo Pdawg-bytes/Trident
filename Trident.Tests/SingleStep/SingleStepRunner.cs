@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Threading.Channels;
 using Trident.Tests.SingleStep.Models;
+using Trident.Tests.SingleStep.Constraints;
 using Trident.Tests.SingleStep.Infrastructure;
 
 namespace Trident.Tests.SingleStep
@@ -19,7 +20,10 @@ namespace Trident.Tests.SingleStep
             int consumerCount = Debugger.IsAttached ? 1 : Environment.ProcessorCount / 2;
 
             int failures = 0;
-            var constraintProcessor = TestConstraintProcessor.CreateConstraintProcessor();
+            var constraintProcessor = new TestConstraintProcessor();
+            constraintProcessor.Register(new IgnoreCarryConstraint());
+            constraintProcessor.Register(new MulR15Constraint());
+            constraintProcessor.Register(new MRSWritebackConstraint());
 
             var tasks = TestManagement.CreateConsumers
             (

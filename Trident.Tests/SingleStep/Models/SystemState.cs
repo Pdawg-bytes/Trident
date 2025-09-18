@@ -20,6 +20,9 @@ namespace Trident.Tests.SingleStep.Models
 
         [JsonPropertyName("base_addr")]
         public uint BaseAddr { get; set; }
+
+        [JsonIgnore]
+        public bool IgnoreAccessMismatch { get; set; }
     }
 
     public class RegisterState

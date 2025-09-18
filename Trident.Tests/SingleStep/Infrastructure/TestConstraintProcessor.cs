@@ -1,5 +1,4 @@
 ﻿using Trident.Tests.SingleStep.Models;
-using Trident.Tests.SingleStep.Constraints;
 using static Trident.Tests.SingleStep.Infrastructure.TestTypeResolver;
 
 namespace Trident.Tests.SingleStep.Infrastructure
@@ -17,13 +16,6 @@ namespace Trident.Tests.SingleStep.Infrastructure
                 if (constraint.Matches(type, testCase))
                     constraint.Apply(testCase);
             }
-        }
-
-        internal static TestConstraintProcessor CreateConstraintProcessor()
-        {
-            var processor = new TestConstraintProcessor();
-            processor.Register(new IgnoreCarryConstraint());
-            return processor;
         }
     }
 }
