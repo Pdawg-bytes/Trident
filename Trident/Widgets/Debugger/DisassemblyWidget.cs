@@ -39,105 +39,105 @@ namespace Trident.Widgets.Debugger
         {
             if (!IsVisible) return;
 
-            if (ImGui.Begin("Disassembly"))
+            if (!ImGui.Begin("Disassembly"))
+                return;
+
+
+            ImGui.Checkbox("Show Address", ref _showAddress);
+            ImGui.SameLine();
+            ImGui.Checkbox("Show Bytecode", ref _showOpcode);
+
+            ImGui.Checkbox("Follow PC", ref _followPC);
+
+            ImGui.Separator();
+
+            ImGui.BeginChild("DisasmScroll");
+
+            if (ImGui.BeginTable("DisasmTable", 1, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp))
             {
-                ImGui.Checkbox("Show Address", ref _showAddress);
-                ImGui.SameLine(); 
-                ImGui.Checkbox("Show Bytecode", ref _showOpcode);
+                ImGui.PushFont(_monoFont);
 
-                ImGui.Checkbox("Follow PC", ref _followPC);
-
-                ImGui.Separator();
-
-                ImGui.BeginChild("DisasmScroll");
-
-                if (ImGui.BeginTable("DisasmTable", 1, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp))
+                int currentRowIndex = -1;
+                var (actualAddress, isThumb, instructions) = _disassembler.GetAroundPC(30, 30);
+                for (int i = 0; i < instructions.Count; i++)
                 {
-                    ImGui.PushFont(_monoFont);
+                    var instr = instructions[i];
 
-                    int currentRowIndex = -1;
-                    var (actualAddress, isThumb, instructions) = _disassembler.GetAroundPC(30, 30);
-                    for (int i = 0; i < instructions.Count; i++)
+                    ImGui.TableNextRow();
+
+                    if (instr.Address == actualAddress)
                     {
-                        var instr = instructions[i];
-
-                        ImGui.TableNextRow();
-
-                        if (instr.Address == actualAddress)
-                        {
-                            ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, _currentInstructionHighlight);
-                            currentRowIndex = i;
-                        }
-
-                        ImGui.TableNextColumn();
-
-                        ImGui.Indent(LEFT_MARGIN);
-
-                        if (_showAddress)
-                        {
-                            ImGui.PushStyleColor(ImGuiCol.Text, _colorAddress);
-                            ImGui.Text($"{instr.Address:X8}");
-                            ImGui.PopStyleColor();
-                            ImGui.SameLine(0f, 10f);
-                        }
-
-                        if (_showOpcode)
-                        {
-                            ImGui.PushStyleColor(ImGuiCol.Text, _colorOpcode);
-                            ImGui.Text(isThumb ? $"{instr.Opcode:X4}" : $"{instr.Opcode:X8}");
-                            ImGui.PopStyleColor();
-                            ImGui.SameLine(0f, 10f);
-                        }
-
-
-                        string mnemonic = instr.MnemonicBase;
-                        string cond = instr.ConditionCode;
-
-                        const int targetColumn = 8;
-                        string padding = new(' ', Math.Max(0, targetColumn - (mnemonic.Length + cond.Length)));
-
-                        ImGui.TextColored(_colorMnemonic, mnemonic);
-                        ImGui.SameLine(0f, 0f);
-
-                        ImGui.TextColored(_colorCondition, cond + padding);
-                        ImGui.SameLine(0f, 0f);
-
-                        for (int j = 0; j < instr.Operands.Count; j++)
-                        {
-                            string operand = instr.Operands[j];
-
-                            foreach (var token in OperandTokenizer.GetTokens(operand))
-                            {
-                                ImGui.TextColored(GetColorForToken(token.Type), token.Text);
-                                ImGui.SameLine(0f, 0f);
-                            }
-
-                            if (j < instr.Operands.Count - 1)
-                            {
-                                ImGui.TextColored(new Vector4(1f), ", ");
-                                ImGui.SameLine(0.0f, 0.0f);
-                            }
-                        }
-
-                        ImGui.Unindent(LEFT_MARGIN);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, _currentInstructionHighlight);
+                        currentRowIndex = i;
                     }
 
-                    if (_followPC && currentRowIndex >= 0)
+                    ImGui.TableNextColumn();
+
+                    ImGui.Indent(LEFT_MARGIN);
+
+                    if (_showAddress)
                     {
-                        float scrollWindowHeight = ImGui.GetWindowHeight();
-                        float rowHeight = ImGui.GetTextLineHeightWithSpacing() + (2.2f * ImGui.GetWindowDpiScale());
-                        float scrollTarget = rowHeight * currentRowIndex - scrollWindowHeight / 2 + rowHeight / 2;
-                        scrollTarget = Math.Clamp(scrollTarget, 0, ImGui.GetScrollMaxY());
-                        ImGui.SetScrollY(scrollTarget);
+                        ImGui.PushStyleColor(ImGuiCol.Text, _colorAddress);
+                        ImGui.Text($"{instr.Address:X8}");
+                        ImGui.PopStyleColor();
+                        ImGui.SameLine(0f, 10f);
                     }
 
-                    ImGui.EndTable();
-                    ImGui.PopFont();
+                    if (_showOpcode)
+                    {
+                        ImGui.PushStyleColor(ImGuiCol.Text, _colorOpcode);
+                        ImGui.Text(isThumb ? $"{instr.Opcode:X4}" : $"{instr.Opcode:X8}");
+                        ImGui.PopStyleColor();
+                        ImGui.SameLine(0f, 10f);
+                    }
+
+
+                    string mnemonic = instr.MnemonicBase;
+                    string cond = instr.ConditionCode;
+
+                    const int targetColumn = 8;
+                    string padding = new(' ', Math.Max(0, targetColumn - (mnemonic.Length + cond.Length)));
+
+                    ImGui.TextColored(_colorMnemonic, mnemonic);
+                    ImGui.SameLine(0f, 0f);
+
+                    ImGui.TextColored(_colorCondition, cond + padding);
+                    ImGui.SameLine(0f, 0f);
+
+                    for (int j = 0; j < instr.Operands.Count; j++)
+                    {
+                        string operand = instr.Operands[j];
+
+                        foreach (var token in OperandTokenizer.GetTokens(operand))
+                        {
+                            ImGui.TextColored(GetColorForToken(token.Type), token.Text);
+                            ImGui.SameLine(0f, 0f);
+                        }
+
+                        if (j < instr.Operands.Count - 1)
+                        {
+                            ImGui.TextColored(new Vector4(1f), ", ");
+                            ImGui.SameLine(0.0f, 0.0f);
+                        }
+                    }
+
+                    ImGui.Unindent(LEFT_MARGIN);
                 }
 
-                ImGui.EndChild();
+                if (_followPC && currentRowIndex >= 0)
+                {
+                    float scrollWindowHeight = ImGui.GetWindowHeight();
+                    float rowHeight = ImGui.GetTextLineHeightWithSpacing() + (2.2f * ImGui.GetWindowDpiScale());
+                    float scrollTarget = rowHeight * currentRowIndex - scrollWindowHeight / 2 + rowHeight / 2;
+                    scrollTarget = Math.Clamp(scrollTarget, 0, ImGui.GetScrollMaxY());
+                    ImGui.SetScrollY(scrollTarget);
+                }
+
+                ImGui.EndTable();
+                ImGui.PopFont();
             }
 
+            ImGui.EndChild();
             ImGui.End();
         }
 

@@ -32,65 +32,66 @@ namespace Trident.Widgets.Debugger
         {
             if (!IsVisible) return;
 
-            if (ImGui.Begin("CPU State"))
+            if (!ImGui.Begin("CPU State"))
+                return;
+
+
+            CPUSnapshot snapshot = _getSnapshot();
+
+            ImGui.PushFont(_monoFont);
+
+            if (ImGui.BeginTable("RegisterTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
             {
-                CPUSnapshot snapshot = _getSnapshot();
-
-                ImGui.PushFont(_monoFont);
-
-                if (ImGui.BeginTable("RegisterTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+                for (int row = 0; row < 8; row++)
                 {
-                    for (int row = 0; row < 8; row++)
-                    {
-                        ImGui.TableNextRow();
+                    ImGui.TableNextRow();
 
-                        int regLow = row;
-                        ImGui.TableSetColumnIndex(0);
-                        HighlightChange($"R{regLow}:", snapshot.Registers[regLow], _previousSnapshot?.Registers[regLow], 4);
+                    int regLow = row;
+                    ImGui.TableSetColumnIndex(0);
+                    HighlightChange($"R{regLow}:", snapshot.Registers[regLow], _previousSnapshot?.Registers[regLow], 4);
 
 
-                        int regHigh = row + 8;
-                        ImGui.TableSetColumnIndex(1);
-                        if (IsBanked(regHigh, snapshot.Mode))
-                            ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, _tableHighlight);
+                    int regHigh = row + 8;
+                    ImGui.TableSetColumnIndex(1);
+                    if (IsBanked(regHigh, snapshot.Mode))
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, _tableHighlight);
 
-                        HighlightChange($"R{regHigh}:", snapshot.Registers[regHigh], _previousSnapshot?.Registers[regHigh], 5);
-                    }
-                    ImGui.EndTable();
+                    HighlightChange($"R{regHigh}:", snapshot.Registers[regHigh], _previousSnapshot?.Registers[regHigh], 5);
                 }
-
-                ImGui.Separator();
-                HighlightChange("CPSR:", snapshot.CPSR, _previousSnapshot?.CPSR, 6);
-
-                bool n = snapshot.CPSR.IsBitSet(31);
-                bool z = snapshot.CPSR.IsBitSet(30);
-                bool c = snapshot.CPSR.IsBitSet(29);
-                bool v = snapshot.CPSR.IsBitSet(28);
-                bool i = snapshot.CPSR.IsBitSet(7);
-                bool f = snapshot.CPSR.IsBitSet(6);
-                bool t = snapshot.CPSR.IsBitSet(5);
-
-                ImGui.BeginDisabled();
-                ImGui.Checkbox("N", ref n);
-                ImGui.SameLine(); ImGui.Checkbox("Z", ref z);
-                ImGui.SameLine(); ImGui.Checkbox("C", ref c);
-                ImGui.SameLine(); ImGui.Checkbox("V", ref v);
-                ImGui.Checkbox("I", ref i);
-                ImGui.SameLine(); ImGui.Checkbox("F", ref f);
-                ImGui.SameLine(); ImGui.Checkbox("T", ref t);
-                ImGui.EndDisabled();
-
-                ImGui.Text($"Mode: {snapshot.Mode}");
-
-                if (!RegisterSet.IsUserOrSystem(snapshot.Mode))
-                {
-                    ImGui.Separator();
-                    ImGui.Text($"SPSR: 0x{snapshot.SPSR:X8}");
-                }
-                ImGui.PopFont();
-
-                _previousSnapshot = snapshot;
+                ImGui.EndTable();
             }
+
+            ImGui.Separator();
+            HighlightChange("CPSR:", snapshot.CPSR, _previousSnapshot?.CPSR, 6);
+
+            bool n = snapshot.CPSR.IsBitSet(31);
+            bool z = snapshot.CPSR.IsBitSet(30);
+            bool c = snapshot.CPSR.IsBitSet(29);
+            bool v = snapshot.CPSR.IsBitSet(28);
+            bool i = snapshot.CPSR.IsBitSet(7);
+            bool f = snapshot.CPSR.IsBitSet(6);
+            bool t = snapshot.CPSR.IsBitSet(5);
+
+            ImGui.BeginDisabled();
+            ImGui.Checkbox("N", ref n);
+            ImGui.SameLine(); ImGui.Checkbox("Z", ref z);
+            ImGui.SameLine(); ImGui.Checkbox("C", ref c);
+            ImGui.SameLine(); ImGui.Checkbox("V", ref v);
+            ImGui.Checkbox("I", ref i);
+            ImGui.SameLine(); ImGui.Checkbox("F", ref f);
+            ImGui.SameLine(); ImGui.Checkbox("T", ref t);
+            ImGui.EndDisabled();
+
+            ImGui.Text($"Mode: {snapshot.Mode}");
+
+            if (!RegisterSet.IsUserOrSystem(snapshot.Mode))
+            {
+                ImGui.Separator();
+                ImGui.Text($"SPSR: 0x{snapshot.SPSR:X8}");
+            }
+            ImGui.PopFont();
+
+            _previousSnapshot = snapshot;
 
             ImGui.End();
         }

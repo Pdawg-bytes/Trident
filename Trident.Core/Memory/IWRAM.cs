@@ -1,11 +1,11 @@
-﻿using System.Runtime.CompilerServices;
+﻿using Trident.Core.Global;
 using Trident.Core.CPU.Pipeline;
-using Trident.Core.Global;
 using Trident.Core.Memory.Region;
+using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Memory
 {
-    internal class IWRAM(Action<uint> step) : IMemoryRegion
+    internal class IWRAM(Action<uint> step) : IMemoryRegion, IDebugMemory
     {
         internal const uint MEMORY_SIZE = 32 * 1024;
         private const uint ADDR_MASK = MEMORY_SIZE - 1;
@@ -24,6 +24,8 @@ namespace Trident.Core.Memory
 
         public void Dispose() => _memory.Dispose();
 
+        internal void Reset() => _memory.Clear();
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private T Read<T>(uint address) where T : unmanaged
@@ -31,8 +33,6 @@ namespace Trident.Core.Memory
             _step(1);
             return _memory.Read<T>(address.Align<T>() & ADDR_MASK);
         }
-
-        internal T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & ADDR_MASK);
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -43,6 +43,9 @@ namespace Trident.Core.Memory
         }
 
 
-        internal void Reset() => _memory.Clear();
+        public T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & ADDR_MASK);
+
+        public uint BaseAddress => 0x3000000;
+        public uint Length => MEMORY_SIZE;
     }
 }

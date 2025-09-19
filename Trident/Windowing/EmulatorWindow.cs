@@ -68,7 +68,7 @@ namespace Trident.Windowing
 
 
             VSync = VSyncMode.Off;
-            UpdateFrequency = Math.Min(Monitors.GetPrimaryMonitor().CurrentVideoMode.RefreshRate, 90);
+            UpdateFrequency = Math.Max(Monitors.GetPrimaryMonitor().CurrentVideoMode.RefreshRate, 90);
 
             WindowHandle = GLFW.GetWin32Window(WindowPtr);
         }
@@ -182,6 +182,10 @@ namespace Trident.Windowing
 
             AddWidget(new CPUStateWidget(() => _gba.CPUSnapshot, monoFont));
             AddWidget(new DisassemblyWidget(monoFont, _gba.Disassembler));
+
+            MemoryViewer memView = new(monoFont);
+            memView.SetReadFunction(address => _gba.DebugRead<byte>(address));
+            AddWidget(memView);
         }
 
 

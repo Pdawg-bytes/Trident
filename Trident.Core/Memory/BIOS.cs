@@ -1,7 +1,7 @@
-﻿using System.Runtime.CompilerServices;
+﻿using Trident.Core.Global;
 using Trident.Core.CPU.Pipeline;
-using Trident.Core.Global;
 using Trident.Core.Memory.Region;
+using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Memory
 {
@@ -55,7 +55,7 @@ namespace Trident.Core.Memory
                 return default!;
         }
 
-        public uint BaseAddress => 00000000;
+        public uint BaseAddress => 0x00000000;
         public uint Length => MEMORY_SIZE;
     }
 }

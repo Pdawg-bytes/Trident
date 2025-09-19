@@ -60,13 +60,12 @@ namespace Trident.Core.Hardware.Graphics
                     if (_registers.DisplayControl.BackgroundMode == 3)
                     {
                         color = _vram.Fetch<ushort>(((uint)x + _registers.VCount * 240) << 1);
-                        _framebuffer.SetPixel(x, (int)_registers.VCount, Framebuffer.ToArgb(color));
                     }
                     else if (_registers.DisplayControl.BackgroundMode == 4)
                     {
                         uint baseFrame = _registers.DisplayControl.FrameSelect ? 0xA000 : 0x0000u;
                         uint addr = baseFrame + (uint)(x + _registers.VCount * 240);
-                        byte index = (byte)(_vram.Fetch<byte>(addr) << 1);
+                        uint index = (uint)(_vram.Fetch<byte>(addr) << 1);
                         color = _pram.Fetch<ushort>(index);
                     }
 

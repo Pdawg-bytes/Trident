@@ -1,11 +1,11 @@
-﻿using System.Runtime.CompilerServices;
+﻿using Trident.Core.Global;
 using Trident.Core.CPU.Pipeline;
-using Trident.Core.Global;
 using Trident.Core.Memory.Region;
+using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Memory.Graphics
 {
-    internal class VRAM(Action<uint> step, Func<byte> getDisplayMode) : IMemoryRegion
+    internal class VRAM(Action<uint> step, Func<byte> getDisplayMode) : IMemoryRegion, IDebugMemory
     {
         internal const uint MEMORY_SIZE = 96 * 1024;
         private const uint ADDR_MASK = MEMORY_SIZE - 1;
@@ -24,6 +24,8 @@ namespace Trident.Core.Memory.Graphics
         public void Write32(uint address, PipelineAccess access, uint value)   => Write<uint>(address, value, false);
 
         public void Dispose() => _memory.Dispose();
+
+        internal void Reset() => _memory.Clear();
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -58,13 +60,18 @@ namespace Trident.Core.Memory.Graphics
             if (isByte)
             {
                 bool objWrite = (_getDisplayMode() >= 3) ? address >= 0x14000 : address >= 0x10000;
-                if (objWrite) return;
+
+                if (!objWrite)
+                    _memory.Write(address.Align<ushort>(), value);
             }
             else
                 _memory.Write(address, value);
         }
 
 
-        internal void Reset() => _memory.Clear();
+        public T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & ADDR_MASK);
+
+        public uint BaseAddress => 0x6000000;
+        public uint Length => MEMORY_SIZE;
     }
 }
