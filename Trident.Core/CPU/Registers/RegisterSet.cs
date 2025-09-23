@@ -34,13 +34,13 @@ namespace Trident.Core.CPU.Registers
 
         public RegisterSet()
         {
-            _bankParams[(uint)ProcessorMode.USR] =       new(8, 0, 7, 0);
-            _bankParams[(uint)ProcessorMode.SYS] =     new(8, 0, 7, 0);
-            _bankParams[(uint)ProcessorMode.FIQ] =        new(8, 7, 7, 1);
-            _bankParams[(uint)ProcessorMode.IRQ] =        new(13, 14, 2, 2);
+            _bankParams[(uint)ProcessorMode.USR] = new(8, 0, 7, 0);
+            _bankParams[(uint)ProcessorMode.SYS] = new(8, 0, 7, 0);
+            _bankParams[(uint)ProcessorMode.FIQ] = new(8, 7, 7, 1);
+            _bankParams[(uint)ProcessorMode.IRQ] = new(13, 14, 2, 2);
             _bankParams[(uint)ProcessorMode.SVC] = new(13, 16, 2, 3);
-            _bankParams[(uint)ProcessorMode.ABT] =      new(13, 18, 2, 4);
-            _bankParams[(uint)ProcessorMode.UND] =  new(13, 20, 2, 5);
+            _bankParams[(uint)ProcessorMode.ABT] = new(13, 18, 2, 4);
+            _bankParams[(uint)ProcessorMode.UND] = new(13, 20, 2, 5);
 
             ResetRegisters();
             CurrentMode = ProcessorMode.SYS;
@@ -226,7 +226,8 @@ namespace Trident.Core.CPU.Registers
         /// <param name="flag">The flag to modify.</param>
         /// <param name="condition">True to set the flag; false otherwise.</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ModifyFlag(Flags flag, bool condition) { if (condition) CPSR |= flag; else CPSR &= ~flag; }
+        public void ModifyFlag(Flags flag, bool condition) => CPSR = condition ? (CPSR | flag) : (CPSR & ~flag);
+
 
         /// <summary>
         /// Determines whether a specified flag is set in the <see cref="CPSR"/>

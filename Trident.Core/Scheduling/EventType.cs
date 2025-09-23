@@ -18,10 +18,7 @@
         APU_Sample,
 
         // DMA Events
-        DMA_C0Activate,
-        DMA_C1Activate,
-        DMA_C2Activate,
-        DMA_C3Activate,
+        DMA_Activate,
 
         // Timer Events
         TMR_T0Overflow,

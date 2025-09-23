@@ -3,13 +3,13 @@ using Trident.Core.CPU;
 using Trident.Core.Memory;
 using Trident.Core.Scheduling;
 using Trident.Core.Hardware.IO;
+using Trident.Core.Hardware.DMA;
 using Trident.Core.Memory.Region;
 using Trident.Core.Memory.GamePak;
 using Trident.Core.Memory.Graphics;
 using Trident.Core.Memory.MappedIO;
 using Trident.Core.Hardware.Graphics;
 using System.Runtime.CompilerServices;
-using Trident.Core.Debugging.Snapshots;
 using Trident.Core.Memory.GamePak.GPIO;
 using Trident.Core.Hardware.Controller;
 using Trident.Core.Hardware.Interrupts;
@@ -23,6 +23,8 @@ namespace Trident.Core.Machine
         internal InterruptController IRQController;
         private GBABusView? _busView;
         public Disassembler Disassembler;
+
+        private readonly DMAManager _dmaManager;
 
         public Framebuffer Framebuffer = new();
         internal PPU PPU;
@@ -58,6 +60,8 @@ namespace Trident.Core.Machine
             IRQController = new(() => CPU.Halted = false);
             CPU.AttachIRQController(IRQController);
 
+            _dmaManager = new(IRQController.Raise, Scheduler);
+
             _keypad = new(IRQController.Raise);
             _postHalt = new(() => CPU.Halted = true, getPC);
 
@@ -79,11 +83,12 @@ namespace Trident.Core.Machine
             builder.Attach(MemoryRegion.VRAM,  _vram);
             builder.Attach(MemoryRegion.OAM,   _oam);
 
-            _mmio = new(Scheduler.Step, _ppuRegisters, _keypad, IRQController, _waitControl, _postHalt);
+            _mmio = new(Scheduler.Step, _ppuRegisters, _dmaManager, _keypad, IRQController, _waitControl, _postHalt);
             builder.Attach(MemoryRegion.MMIO, _mmio);
 
             CPU.AttachBus(builder.Build(Scheduler.Step));
             _busView = new(ref CPU.Bus);
+            _dmaManager.SetBusView(_busView);
             Disassembler = new(GetDebugRegion, getPC, () => CPUSnapshot);
 
 

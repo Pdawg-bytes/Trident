@@ -1,8 +1,9 @@
 ﻿using Trident.Core.Hardware.IO;
+using Trident.Core.Hardware.Graphics;
 using System.Runtime.CompilerServices;
 using Trident.Core.Hardware.Interrupts;
 using Trident.Core.Hardware.Controller;
-using Trident.Core.Hardware.Graphics;
+using Trident.Core.Hardware.DMA;
 
 namespace Trident.Core.Memory.MappedIO
 {
@@ -20,6 +21,8 @@ namespace Trident.Core.Memory.MappedIO
 
         private readonly PPURegisters _ppuRegisters;
 
+        private readonly DMAManager _dmaManager;
+
         private readonly Keypad _keypad;
 
         private readonly InterruptController _irqController;
@@ -33,6 +36,8 @@ namespace Trident.Core.Memory.MappedIO
 
             PPURegisters ppuRegisters,
 
+            DMAManager dmaManager,
+
             Keypad keypad,
 
             InterruptController irqController,
@@ -44,6 +49,8 @@ namespace Trident.Core.Memory.MappedIO
             _step = step;
 
             _ppuRegisters = ppuRegisters;
+
+            _dmaManager = dmaManager;
 
             _keypad = keypad;
 

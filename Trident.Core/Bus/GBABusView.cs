@@ -12,13 +12,12 @@ namespace Trident.Core.Bus
         private Action<uint, ushort, PipelineAccess>? _write16;
         private Action<uint, uint, PipelineAccess>? _write32;
 
-
         public GBABusView(ref GBABus bus)
         {
-            _read8 = bus.Read8;
-            _read16 = bus.Read16;
-            _read32 = bus.Read32;
-            _write8 = bus.Write8;
+            _read8   = bus.Read8;
+            _read16  = bus.Read16;
+            _read32  = bus.Read32;
+            _write8  = bus.Write8;
             _write16 = bus.Write16;
             _write32 = bus.Write32;
         }
@@ -34,11 +33,11 @@ namespace Trident.Core.Bus
 
         public void Dispose()
         {
-            _read8 = null;
+            _read8  = null;
             _read16 = null;
             _read32 = null;
 
-            _write8 = null;
+            _write8  = null;
             _write16 = null;
             _write32 = null;
         }

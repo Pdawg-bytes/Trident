@@ -1,8 +1,8 @@
-﻿using Trident.Core.CPU.Pipeline;
-using Trident.Core.Global;
-using Trident.Core.Hardware.Graphics.Registers;
+﻿using Trident.Core.Global;
 using Trident.Core.Hardware.IO;
+using Trident.Core.CPU.Pipeline;
 using Trident.Core.Memory.Region;
+using Trident.Core.Hardware.Graphics.Registers;
 using static Trident.Core.Hardware.IO.IORegisters;
 
 namespace Trident.Core.Memory.MappedIO
@@ -39,6 +39,10 @@ namespace Trident.Core.Memory.MappedIO
             SetAccessor(BG2CNT, bgxcnt.Read, bgxcnt.Write);
             bgxcnt = _ppuRegisters.BackgroundControls[3];
             SetAccessor(BG3CNT, bgxcnt.Read, bgxcnt.Write);
+
+
+            // DMA registers
+            
 
             
             // Keypad registers
