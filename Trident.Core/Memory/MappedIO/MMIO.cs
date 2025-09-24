@@ -1,9 +1,9 @@
 ﻿using Trident.Core.Hardware.IO;
+using Trident.Core.Hardware.DMA;
 using Trident.Core.Hardware.Graphics;
 using System.Runtime.CompilerServices;
 using Trident.Core.Hardware.Interrupts;
 using Trident.Core.Hardware.Controller;
-using Trident.Core.Hardware.DMA;
 
 namespace Trident.Core.Memory.MappedIO
 {
@@ -65,7 +65,7 @@ namespace Trident.Core.Memory.MappedIO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool TryNormalize(uint address, out uint index)
         {
-            index = (address & 0x3FF) >> 1;
+            index = (address - 0x04000000) >> 1;
 
             if (index >= REGISTER_COUNT)
                 return false;
@@ -113,12 +113,6 @@ namespace Trident.Core.Memory.MappedIO
                 return;
 
             _registers[index].Write(value, true, true);
-        }
-
-        private void Write32(uint address, uint value)
-        {
-            Write16(address | 0, (ushort)(value));
-            Write16(address | 2, (ushort)(value >> 16));
         }
     }
 }

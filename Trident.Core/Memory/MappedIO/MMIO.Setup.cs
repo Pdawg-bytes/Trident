@@ -42,7 +42,14 @@ namespace Trident.Core.Memory.MappedIO
 
 
             // DMA registers
-            
+            SetAccessor(DMA0CNT_L, _zeroRead, (value, upper, lower) => _dmaManager.WriteDMAControlL(value, upper, lower, 0));
+            SetAccessor(DMA0CNT_H, () => _dmaManager.ReadDMAControlH(0), (value, upper, lower) => _dmaManager.WriteDMAControlH(value, upper, lower, 0));
+            SetAccessor(DMA1CNT_L, _zeroRead, (value, upper, lower) => _dmaManager.WriteDMAControlL(value, upper, lower, 1));
+            SetAccessor(DMA1CNT_H, () => _dmaManager.ReadDMAControlH(1), (value, upper, lower) => _dmaManager.WriteDMAControlH(value, upper, lower, 1));
+            SetAccessor(DMA2CNT_L, _zeroRead, (value, upper, lower) => _dmaManager.WriteDMAControlL(value, upper, lower, 2));
+            SetAccessor(DMA2CNT_H, () => _dmaManager.ReadDMAControlH(2), (value, upper, lower) => _dmaManager.WriteDMAControlH(value, upper, lower, 2));
+            SetAccessor(DMA3CNT_L, _zeroRead, (value, upper, lower) => _dmaManager.WriteDMAControlL(value, upper, lower, 3));
+            SetAccessor(DMA3CNT_H, () => _dmaManager.ReadDMAControlH(3), (value, upper, lower) => _dmaManager.WriteDMAControlH(value, upper, lower, 3));
 
             
             // Keypad registers
@@ -86,7 +93,7 @@ namespace Trident.Core.Memory.MappedIO
         }
 
         public ushort Read16(uint address, PipelineAccess access)
-{
+        {
             _step(1);
             return Read16(address.Align<ushort>());
         }
@@ -112,7 +119,10 @@ namespace Trident.Core.Memory.MappedIO
         public void Write32(uint address, PipelineAccess access, uint value)
         {
             _step(1);
-            Write32(address.Align<uint>(), value);
+            address = address.Align<uint>();
+
+            Write16(address | 0, (ushort)(value));
+            Write16(address | 2, (ushort)(value >> 16));
         }
 
         public void Dispose() { }
