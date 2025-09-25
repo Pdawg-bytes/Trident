@@ -1,4 +1,6 @@
-﻿namespace Trident.Core.Hardware.Graphics.Registers
+﻿using Trident.Core.Memory.MappedIO;
+
+namespace Trident.Core.Hardware.Graphics.Registers
 {
     internal class BackgroundControl(int bg)
     {
@@ -18,9 +20,9 @@
 
         internal ushort Read() => _bgxcnt;
 
-        internal void Write(ushort value, bool upper, bool lower)
+        internal void Write(ushort value, WriteMask mask)
         {
-            if (lower)
+            if (mask.IsLower())
             {
                 _bgxcnt = (ushort)((_bgxcnt & 0xFF00) | (byte)value);
 
@@ -30,7 +32,7 @@
                 Use256Colors  = ((value >> 7) & 1) != 0;
             }
 
-            if (upper)
+            if (mask.IsUpper())
             {
                 _bgxcnt = (ushort)((_bgxcnt & 0x00FF) | (value & 0xFF00));
 

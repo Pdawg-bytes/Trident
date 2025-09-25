@@ -1,16 +1,13 @@
-﻿using Trident.Core.Global;
-using Trident.Core.Hardware.IO;
-using Trident.Core.CPU.Pipeline;
-using Trident.Core.Memory.Region;
+﻿using Trident.Core.Hardware.IO;
 using Trident.Core.Hardware.Graphics.Registers;
 using static Trident.Core.Hardware.IO.IORegisters;
 
 namespace Trident.Core.Memory.MappedIO
 {
-    internal partial class MMIO : IMemoryRegion
+    internal partial class MMIO
     {
         private readonly Func<ushort> _zeroRead = () => 0;
-        private readonly Action<ushort, bool, bool> _emptyWrite = (_, _, _) => { };
+        private readonly Action<ushort, WriteMask> _emptyWrite = (_, _) => { };
 
         private void InitializeRegisterMap()
         {
@@ -27,7 +24,7 @@ namespace Trident.Core.Memory.MappedIO
 
             // PPU registers
             SetAccessor(DISPCNT, _ppuRegisters.DisplayControl.Read, _ppuRegisters.DisplayControl.Write);
-            SetAccessor(GREENSWAP, () => (ushort)_ppuRegisters.Greenswap, (value, upper, lower) => { if (lower) _ppuRegisters.Greenswap = value & 1u; });
+            SetAccessor(GREENSWAP, () => (ushort)_ppuRegisters.Greenswap, (value, mask) => { if (mask.IsLower()) _ppuRegisters.Greenswap = value & 1u; });
             SetAccessor(DISPSTAT, _ppuRegisters.DisplayStatus.Read, _ppuRegisters.DisplayStatus.Write);
             SetAccessor(VCOUNT, () => (ushort)_ppuRegisters.VCount, _emptyWrite);
 
@@ -42,16 +39,12 @@ namespace Trident.Core.Memory.MappedIO
 
 
             // DMA registers
-            SetAccessor(DMA0CNT_L, _zeroRead, (value, upper, lower) => _dmaManager.WriteDMAControlL(value, upper, lower, 0));
-            SetAccessor(DMA0CNT_H, () => _dmaManager.ReadDMAControlH(0), (value, upper, lower) => _dmaManager.WriteDMAControlH(value, upper, lower, 0));
-            SetAccessor(DMA1CNT_L, _zeroRead, (value, upper, lower) => _dmaManager.WriteDMAControlL(value, upper, lower, 1));
-            SetAccessor(DMA1CNT_H, () => _dmaManager.ReadDMAControlH(1), (value, upper, lower) => _dmaManager.WriteDMAControlH(value, upper, lower, 1));
-            SetAccessor(DMA2CNT_L, _zeroRead, (value, upper, lower) => _dmaManager.WriteDMAControlL(value, upper, lower, 2));
-            SetAccessor(DMA2CNT_H, () => _dmaManager.ReadDMAControlH(2), (value, upper, lower) => _dmaManager.WriteDMAControlH(value, upper, lower, 2));
-            SetAccessor(DMA3CNT_L, _zeroRead, (value, upper, lower) => _dmaManager.WriteDMAControlL(value, upper, lower, 3));
-            SetAccessor(DMA3CNT_H, () => _dmaManager.ReadDMAControlH(3), (value, upper, lower) => _dmaManager.WriteDMAControlH(value, upper, lower, 3));
+            RegisterDMAChannel(0, DMA0SAD, DMA0DAD, DMA0CNT_L, DMA0CNT_H);
+            RegisterDMAChannel(1, DMA1SAD, DMA1DAD, DMA1CNT_L, DMA1CNT_H);
+            RegisterDMAChannel(2, DMA2SAD, DMA2DAD, DMA2CNT_L, DMA2CNT_H);
+            RegisterDMAChannel(3, DMA3SAD, DMA3DAD, DMA3CNT_L, DMA3CNT_H);
 
-            
+
             // Keypad registers
             SetAccessor(KEYINPUT, _keypad.ReadKeyInput, _emptyWrite);
             SetAccessor(KEYCNT, _keypad.ReadKeyControl, _keypad.WriteKeyControl);
@@ -69,7 +62,7 @@ namespace Trident.Core.Memory.MappedIO
             SetAccessor(POSTFLG, _postHalt.Read, _postHalt.Write);
         }
 
-        private void SetAccessor(uint register, Func<ushort> read, Action<ushort, bool, bool> write)
+        private void SetAccessor(uint register, Func<ushort> read, Action<ushort, WriteMask> write)
         {
             if (!TryNormalize(register, out uint index))
                 throw new ArgumentOutOfRangeException(nameof(register), $"MMIO: Tried to initialize invalid MMIO register: 0x{register:X}");
@@ -86,45 +79,19 @@ namespace Trident.Core.Memory.MappedIO
         }
 
 
-        public byte Read8(uint address, PipelineAccess access)
+        private void RegisterDMAChannel(uint id, uint sadBase, uint dadBase, uint cntL, uint cntH)
         {
-            _step(1);
-            return Read8(address);
+            // DMAXCNT
+            SetAccessor(cntL, _zeroRead,                            (value, mask) => _dmaManager.WriteDMAControlL(value, mask, id));
+            SetAccessor(cntH, () => _dmaManager.ReadDMAControl(id), (value, mask) => _dmaManager.WriteDMAControlH(value, mask, id));
+
+            // DMAXSAD
+            SetAccessor(sadBase + 0, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Lower, mask, id, true));
+            SetAccessor(sadBase + 2, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Upper, mask, id, true));
+
+            // DMAXDAD
+            SetAccessor(dadBase + 0, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Lower, mask, id, false));
+            SetAccessor(dadBase + 2, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Upper, mask, id, false));
         }
-
-        public ushort Read16(uint address, PipelineAccess access)
-        {
-            _step(1);
-            return Read16(address.Align<ushort>());
-        }
-
-        public uint Read32(uint address, PipelineAccess access)
-        {
-            _step(1);
-            return Read32(address.Align<uint>());
-        }
-
-        public void Write8(uint address, PipelineAccess access, byte value)
-        {
-            _step(1);
-            Write8(address, value);
-        }
-
-        public void Write16(uint address, PipelineAccess access, ushort value)
-        {
-            _step(1);
-            Write16(address.Align<ushort>(), value);
-        }
-
-        public void Write32(uint address, PipelineAccess access, uint value)
-        {
-            _step(1);
-            address = address.Align<uint>();
-
-            Write16(address | 0, (ushort)(value));
-            Write16(address | 2, (ushort)(value >> 16));
-        }
-
-        public void Dispose() { }
     }
 }

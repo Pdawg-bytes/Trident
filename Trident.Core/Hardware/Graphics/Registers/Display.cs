@@ -1,4 +1,6 @@
-﻿namespace Trident.Core.Hardware.Graphics.Registers
+﻿using Trident.Core.Memory.MappedIO;
+
+namespace Trident.Core.Hardware.Graphics.Registers
 {
     internal class DisplayControl()
     {
@@ -17,9 +19,9 @@
 
         internal ushort Read() => _dispcnt;
 
-        internal void Write(ushort value, bool upper, bool lower)
+        internal void Write(ushort value, WriteMask mask)
         {
-            if (lower)
+            if (mask.IsLower())
             {
                 _dispcnt = (ushort)((_dispcnt & 0xFF00) | (byte)value);
 
@@ -31,7 +33,7 @@
                 ForcedBlank        = (_dispcnt & (1 << 7)) != 0;
             }
 
-            if (upper)
+            if (mask.IsUpper())
             {
                 _dispcnt = (ushort)((_dispcnt & 0x00FF) | (value & 0xFF00));
 
@@ -66,16 +68,16 @@
             VCountSetting << 8
         );
 
-        internal void Write(ushort value, bool upper, bool lower)
+        internal void Write(ushort value, WriteMask mask)
         {
-            if (lower)
+            if (mask.IsLower())
             {
                 VBlankIrq = ((value >> 3) & 1) != 0;
                 HBlankIrq = ((value >> 4) & 1) != 0;
                 VCountIrq = ((value >> 5) & 1) != 0;
             }
 
-            if (upper)
+            if (mask.IsUpper())
                 VCountSetting = (byte)(value >> 8);
         }
     }

@@ -1,13 +1,6 @@
 ﻿using ImGuiNET;
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 using Trident.Core.Memory;
-using Trident.Core.Memory.Region;
 
 namespace Trident.Widgets.Debugger
 {
@@ -34,7 +27,7 @@ namespace Trident.Widgets.Debugger
 
         private const uint BytesPerRow = 16;
         private bool _showAscii = true;
-        private DebugMemoryRead<byte>[] _rowBytes = new DebugMemoryRead<byte>[BytesPerRow];
+        private readonly DebugMemoryRead<byte>[] _rowBytes = new DebugMemoryRead<byte>[BytesPerRow];
 
         internal MemoryViewer(ImFontPtr monoFont)
         {

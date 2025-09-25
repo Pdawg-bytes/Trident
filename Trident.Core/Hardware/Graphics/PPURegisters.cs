@@ -1,4 +1,5 @@
-﻿using Trident.Core.Hardware.Graphics.Registers;
+﻿using Trident.Core.Memory.MappedIO;
+using Trident.Core.Hardware.Graphics.Registers;
 
 namespace Trident.Core.Hardware.Graphics
 {
@@ -22,14 +23,14 @@ namespace Trident.Core.Hardware.Graphics
 
         internal void Reset()
         {
-            DisplayControl.Write(0, true, true);
-            DisplayStatus.Write(0, true, true);
+            DisplayControl.Write(0, WriteMask.Both);
+            DisplayStatus.Write(0, WriteMask.Both);
 
             Greenswap = 0;
             VCount = 0;
 
             for (int i = 0; i < 4; i++)
-                BackgroundControls[i].Write(0, true, true);
+                BackgroundControls[i].Write(0, WriteMask.Both);
         }
     }
 }

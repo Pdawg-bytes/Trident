@@ -1,4 +1,6 @@
-﻿namespace Trident.Core.Hardware.Interrupts
+﻿using Trident.Core.Memory.MappedIO;
+
+namespace Trident.Core.Hardware.Interrupts
 {
     internal class InterruptController
     {
@@ -36,31 +38,31 @@
         internal ushort ReadIME() => _globalInterruptEnable ? (ushort)1 : (ushort)0;
 
 
-        internal void WriteIE(ushort value, bool upper, bool lower)
+        internal void WriteIE(ushort value, WriteMask mask)
         {
-            if (lower)
+            if (mask.IsLower())
                 _interruptEnable = (ushort)((_interruptEnable & 0xFF00) | (value & 0x00FF));
 
-            if (upper)
+            if (mask.IsUpper())
                 _interruptEnable = (ushort)((_interruptEnable & 0x00FF) | (value & 0x3F00));
 
             UpdateIRQStatus();
         }
 
-        internal void WriteIF(ushort value, bool upper, bool lower)
+        internal void WriteIF(ushort value, WriteMask mask)
         {
-            if (lower)
+            if (mask.IsLower())
                 _interruptFlag &= (ushort)~(value & 0x00FF);
 
-            if (upper)
+            if (mask.IsUpper())
                 _interruptFlag &= (ushort)~(value & 0xFF00);
 
             UpdateIRQStatus();
         }
 
-        internal void WriteIME(ushort value, bool upper, bool lower)
+        internal void WriteIME(ushort value, WriteMask mask)
         {
-            if (lower)
+            if (mask.IsLower())
             {
                 _globalInterruptEnable = (value & 1) != 0;
                 UpdateIRQStatus();

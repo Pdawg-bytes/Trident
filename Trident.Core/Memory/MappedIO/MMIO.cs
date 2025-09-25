@@ -1,13 +1,17 @@
-﻿using Trident.Core.Hardware.IO;
+﻿using Trident.Core.Global;
+using Trident.Core.Hardware.IO;
+using Trident.Core.CPU.Pipeline;
 using Trident.Core.Hardware.DMA;
+using Trident.Core.Memory.Region;
 using Trident.Core.Hardware.Graphics;
 using System.Runtime.CompilerServices;
-using Trident.Core.Hardware.Interrupts;
 using Trident.Core.Hardware.Controller;
+using Trident.Core.Hardware.Interrupts;
+
 
 namespace Trident.Core.Memory.MappedIO
 {
-    internal partial class MMIO
+    internal partial class MMIO : IMemoryRegion
     {
         // Since all but two MMIO registers are 2 or 4 bytes in size - meaning they are all accessed on half-word boundaries - 
         // we can normalize the addresses to those boundaries, halving the required space needed to cover the MMIO map.
@@ -74,16 +78,7 @@ namespace Trident.Core.Memory.MappedIO
         }
 
 
-        private byte Read8(uint address)
-        {
-            if (!TryNormalize(address, out uint index))
-                return 0; // TODO: return open bus
-
-            int shift = (int)(address & 1) << 3;
-            return (byte)(_registers[index].Read() >> shift);
-        }
-
-        private ushort Read16(uint address)
+        private ushort Read(uint address)
         {
             if (!TryNormalize(address, out uint index))
                 return 0; // TODO: return open bus
@@ -91,28 +86,93 @@ namespace Trident.Core.Memory.MappedIO
             return _registers[index].Read();
         }
 
-        private uint Read32(uint address) => (uint)(Read16(address) | (Read16(address | 2) << 16));
-
-
-        private void Write8(uint address, byte value)
+        private void Write(uint address, ushort value)
         {
+            if (!TryNormalize(address, out uint index))
+                return;
+
+            _registers[index].Write(value, WriteMask.Both);
+        }
+
+        #region External access
+        public byte Read8(uint address, PipelineAccess access)
+        {
+            _step(1);
+
+            if (!TryNormalize(address, out uint index))
+                return 0; // TODO: return open bus
+
+            int shift = (int)(address & 1) << 3;
+            return (byte)(_registers[index].Read() >> shift);
+        }
+
+        public ushort Read16(uint address, PipelineAccess access)
+        {
+            _step(1);
+            address = address.Align<ushort>();
+
+            return Read(address);
+        }
+
+        public uint Read32(uint address, PipelineAccess access)
+        {
+            _step(1);
+            address = address.Align<uint>();
+
+            return (uint)(Read(address) | (Read(address | 2) << 16));
+        }
+
+
+        public void Write8(uint address, PipelineAccess access, byte value)
+        {
+            _step(1);
+
             if (!TryNormalize(address, out uint index))
                 return;
 
             bool upper = (address & 1) != 0;
+            WriteMask mask = upper ? WriteMask.Upper : WriteMask.Lower;
 
             ushort data = upper ? (ushort)(value << 8) : value;
-
-            // We're either writing the upper or lower byte; never both at once.
-            _registers[index].Write(data, upper, !upper);
+            _registers[index].Write(data, mask);
         }
 
-        private void Write16(uint address, ushort value)
+        public void Write16(uint address, PipelineAccess access, ushort value)
         {
-            if (!TryNormalize(address, out uint index))
-                return;
-
-            _registers[index].Write(value, true, true);
+            _step(1);
+            Write(address.Align<ushort>(), value);
         }
+
+        public void Write32(uint address, PipelineAccess access, uint value)
+        {
+            _step(1);
+            address = address.Align<uint>();
+
+            Write(address | 0, (ushort)(value));
+            Write(address | 2, (ushort)(value >> 16));
+        }
+
+
+        public void Dispose() { }
+        #endregion
+    }
+
+
+    [Flags]
+    internal enum WriteMask : byte
+    {
+        None = 0,
+        Lower = 1 << 0,
+        Upper = 1 << 1,
+        Both = Lower | Upper
+    }
+
+    internal static class WriteMaskExtensions
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool IsLower(this WriteMask mask) => (mask & WriteMask.Lower) != 0;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool IsUpper(this WriteMask mask) => (mask & WriteMask.Upper) != 0;
     }
 }

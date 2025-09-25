@@ -1,4 +1,5 @@
 ﻿using Trident.Core.CPU.Pipeline;
+using Trident.Core.Memory.MappedIO;
 
 namespace Trident.Core.Hardware.IO
 {
@@ -12,15 +13,15 @@ namespace Trident.Core.Hardware.IO
         // HALTCNT is not readable - only POSTFLG is. Therefore, we can just return POSTFLG as it's the low byte.
         internal ushort Read() => _postFlag;
 
-        internal void Write(ushort value, bool upper, bool lower)
+        internal void Write(ushort value, WriteMask mask)
         {
             if (_getPC() > 0x3FFF)
                 return;
 
-            if (lower)
+            if (mask.IsLower())
                 _postFlag |= (byte)(value & 1);
 
-            if (upper)
+            if (mask.IsUpper())
             {
                 if ((value & 0x8000) != 0)
                 {
@@ -57,15 +58,15 @@ namespace Trident.Core.Hardware.IO
             AccessTimings32[(int)PipelineAccess.NonSequential] = new uint[4];
             AccessTimings32[(int)PipelineAccess.Sequential]    = new uint[4];
 
-            Write(0x0000, true, true);
+            Write(0x0000, WriteMask.Both);
         }
 
 
         internal ushort Read() => (ushort)(_waitcnt & 0x7FFF);
 
-        internal void Write(ushort value, bool upper, bool lower)
+        internal void Write(ushort value, WriteMask mask)
         {
-            if (lower)
+            if (mask.IsLower())
             {
                 int ws0First  = (value >> 2) & 0b11;
                 int ws0Second = (value >> 4) & 0b01;
@@ -85,7 +86,7 @@ namespace Trident.Core.Hardware.IO
                 _waitcnt = (ushort)((_waitcnt & 0xFF00) | (value & 0x00FF));
             }
 
-            if (upper)
+            if (mask.IsUpper())
             {
                 int ws2First  = (value >> 8)  & 0b11;
                 int ws2Second = (value >> 10) & 0b01;

@@ -56,12 +56,13 @@ namespace Trident.Core.Hardware.Graphics
                 for (int x = 0; x < 240; x++)
                 {
                     ushort color = 0;
+                    uint bgMode = _registers.DisplayControl.BackgroundMode;
 
-                    if (_registers.DisplayControl.BackgroundMode == 3)
+                    if (bgMode == 3)
                     {
                         color = _vram.Fetch<ushort>(((uint)x + _registers.VCount * 240) << 1);
                     }
-                    else if (_registers.DisplayControl.BackgroundMode == 4)
+                    else if (bgMode == 4)
                     {
                         uint baseFrame = _registers.DisplayControl.FrameSelect ? 0xA000 : 0x0000u;
                         uint addr = baseFrame + (uint)(x + _registers.VCount * 240);

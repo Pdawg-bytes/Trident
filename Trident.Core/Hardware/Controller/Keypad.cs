@@ -1,4 +1,5 @@
-﻿using Trident.Core.Hardware.Interrupts;
+﻿using Trident.Core.Memory.MappedIO;
+using Trident.Core.Hardware.Interrupts;
 
 namespace Trident.Core.Hardware.Controller
 {
@@ -15,15 +16,15 @@ namespace Trident.Core.Hardware.Controller
 
         internal ushort ReadKeyControl() => (ushort)(_keyCntMask | (_irqEnabled ? (1 << 14) : 0) | ((int)_irqMode << 15));
 
-        internal void WriteKeyControl(ushort value, bool upper, bool lower)
+        internal void WriteKeyControl(ushort value, WriteMask mask)
         {
-            if (lower)
+            if (mask.IsLower())
             {
                 _keyCntMask &= 0xFF00;
                 _keyCntMask |= (ushort)(value & 0x00FF);
             }
 
-            if (upper)
+            if (mask.IsUpper())
             {
                 // Only L & R bits (bits 8-9) go in upper byte
                 _keyCntMask &= 0x00FF;
