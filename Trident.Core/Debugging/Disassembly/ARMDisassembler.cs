@@ -180,7 +180,7 @@ namespace Trident.Core.Debugging.Disassembly
 
             string offset = immediate
                 ? (add ? ShiftedRegister(data) : $"-{ShiftedRegister(data)}")
-                : (add ? $"#0x{data:X}" : $"-#0x{data:X}");
+                : (add ? $"#0x{data:X}" : $"#-0x{data:X}");
 
             string mnemonic =
                 (load ? "ldr" : "str") +
