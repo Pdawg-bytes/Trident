@@ -7,9 +7,9 @@ namespace Trident.Core.Memory.Graphics
 {
     internal class VRAM(Action<uint> step, Func<byte> getDisplayMode) : IMemoryRegion, IDebugMemory
     {
-        internal const uint MEMORY_SIZE = 96 * 1024;
-        private const uint ADDR_MASK = MEMORY_SIZE - 1;
-        private readonly UnsafeMemoryBlock _memory = new(MEMORY_SIZE);
+        internal const uint MemorySize = 96 * 1024;
+        private const uint AddressMask = MemorySize - 1;
+        private readonly UnsafeMemoryBlock _memory = new(MemorySize);
 
         private readonly Action<uint> _step = step;
         private readonly Func<byte> _getDisplayMode = getDisplayMode;
@@ -69,9 +69,9 @@ namespace Trident.Core.Memory.Graphics
         }
 
 
-        public T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & ADDR_MASK);
+        public T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & AddressMask);
 
         public uint BaseAddress => 0x6000000;
-        public uint Length => MEMORY_SIZE;
+        public uint Length => MemorySize;
     }
 }

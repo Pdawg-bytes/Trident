@@ -7,9 +7,9 @@ namespace Trident.Core.Memory
 {
     internal class EWRAM(Action<uint> step) : IMemoryRegion, IDebugMemory
     {
-        internal const uint MEMORY_SIZE = 256 * 1024;
-        private const uint ADDR_MASK = MEMORY_SIZE - 1;
-        private readonly UnsafeMemoryBlock _memory = new(MEMORY_SIZE);
+        internal const uint MemorySize = 256 * 1024;
+        private const uint AddressMask = MemorySize - 1;
+        private readonly UnsafeMemoryBlock _memory = new(MemorySize);
 
         private readonly Action<uint> _step = step;
 
@@ -33,7 +33,7 @@ namespace Trident.Core.Memory
             bool isWord = Unsafe.SizeOf<T>() == 4;
             _step(isWord ? 6 : 3u);
 
-            return _memory.Read<T>(address.Align<T>() & ADDR_MASK);
+            return _memory.Read<T>(address.Align<T>() & AddressMask);
         }
 
 
@@ -43,13 +43,13 @@ namespace Trident.Core.Memory
             bool isWord = Unsafe.SizeOf<T>() == 4;
             _step(isWord ? 6 : 3u);
 
-            _memory.Write(address.Align<T>() & ADDR_MASK, value);
+            _memory.Write(address.Align<T>() & AddressMask, value);
         }
 
 
-        public T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & ADDR_MASK);
+        public T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & AddressMask);
 
         public uint BaseAddress => 0x2000000;
-        public uint Length => MEMORY_SIZE;
+        public uint Length => MemorySize;
     }
 }

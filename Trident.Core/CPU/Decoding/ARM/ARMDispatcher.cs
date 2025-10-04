@@ -5,8 +5,8 @@ namespace Trident.Core.CPU.Decoding.ARM
 {
     internal partial struct ARMDispatcher<TBus> where TBus : struct, IDataBus
     {
-        private const int ARM_DISPATCH_COUNT = 0x1000;
-        private readonly ARMInstructionDelegate[] _instructionHandlers = new ARMInstructionDelegate[ARM_DISPATCH_COUNT];
+        private const int ARMDispatchCount = 0x1000;
+        private readonly ARMInstructionDelegate[] _instructionHandlers = new ARMInstructionDelegate[ARMDispatchCount];
 
         private readonly ARM7TDMI<TBus> _cpu;
 
@@ -14,7 +14,7 @@ namespace Trident.Core.CPU.Decoding.ARM
         {
             _cpu = cpu;
 
-            foreach (var i in Enumerable.Range(0, ARM_DISPATCH_COUNT))
+            foreach (var i in Enumerable.Range(0, ARMDispatchCount))
                 _instructionHandlers[i] = _cpu.NonImplementedARMInstr;
 
             InitGeneratedHandlers();

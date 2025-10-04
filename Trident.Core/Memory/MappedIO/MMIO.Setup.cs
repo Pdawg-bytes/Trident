@@ -18,7 +18,7 @@ namespace Trident.Core.Memory.MappedIO
             );
 
             // There are some 'holes' - addresses not mapped to concrete registers or 0.
-            for (int i = 0; i < REGISTER_COUNT; i++)
+            for (int i = 0; i < RegisterCount; i++)
                 _registers[i] = openBusRegister;
 
 

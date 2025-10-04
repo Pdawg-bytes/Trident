@@ -7,8 +7,8 @@ namespace Trident.Core.Memory
 {
     internal sealed class BIOS(Func<uint> getPC, Action<uint> step) : IMemoryRegion, IDebugMemory
     {
-        internal const uint MEMORY_SIZE = 16 * 1024;
-        private readonly UnsafeMemoryBlock _memory = new(MEMORY_SIZE);
+        internal const uint MemorySize = 16 * 1024;
+        private readonly UnsafeMemoryBlock _memory = new(MemorySize);
         private uint _busValue;
 
         private readonly Func<uint> _getPC = getPC;
@@ -49,13 +49,13 @@ namespace Trident.Core.Memory
         {
             address = address.Align<T>();
 
-            if (address < MEMORY_SIZE)
+            if (address < MemorySize)
                 return _memory.Read<T>(address);
             else 
                 return default!;
         }
 
         public uint BaseAddress => 0x00000000;
-        public uint Length => MEMORY_SIZE;
+        public uint Length => MemorySize;
     }
 }

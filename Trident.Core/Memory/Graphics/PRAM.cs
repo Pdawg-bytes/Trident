@@ -7,9 +7,9 @@ namespace Trident.Core.Memory.Graphics
 {
     internal class PRAM(Action<uint> step) : IMemoryRegion, IDebugMemory
     {
-        internal const uint MEMORY_SIZE = 1024;
-        private const uint ADDR_MASK = MEMORY_SIZE - 1;
-        private readonly UnsafeMemoryBlock _memory = new(MEMORY_SIZE);
+        internal const uint MemorySize = 1024;
+        private const uint AddressMask = MemorySize - 1;
+        private readonly UnsafeMemoryBlock _memory = new(MemorySize);
 
         private readonly Action<uint> _step = step;
 
@@ -33,10 +33,10 @@ namespace Trident.Core.Memory.Graphics
             bool isWord = Unsafe.SizeOf<T>() == 4;
             _step(isWord ? 2 : 1u);
 
-            return _memory.Read<T>(address.Align<T>() & ADDR_MASK);
+            return _memory.Read<T>(address.Align<T>() & AddressMask);
         }
 
-        internal T Fetch<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & ADDR_MASK);
+        internal T Fetch<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & AddressMask);
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -45,13 +45,13 @@ namespace Trident.Core.Memory.Graphics
             bool isWord = Unsafe.SizeOf<T>() == 4;
             _step(isWord ? 2 : 1u);
 
-            _memory.Write(address.Align<T>() & ADDR_MASK, value);
+            _memory.Write(address.Align<T>() & AddressMask, value);
         }
 
 
-        public T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & ADDR_MASK);
+        public T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & AddressMask);
 
         public uint BaseAddress => 0x5000000;
-        public uint Length => MEMORY_SIZE;
+        public uint Length => MemorySize;
     }
 }

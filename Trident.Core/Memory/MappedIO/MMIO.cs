@@ -18,8 +18,8 @@ namespace Trident.Core.Memory.MappedIO
         // ---
         // The last MMIO register on a regular GBA is POSTFLG, at 0x300. We combine POSTFLG and HALTCNT to include those two
         // registers, therefore, our normalized address space can be exactly half that (+ 1 to include 0x300).
-        private const int REGISTER_COUNT = 0x181;
-        private readonly RegisterAccessor[] _registers = new RegisterAccessor[REGISTER_COUNT];
+        private const int RegisterCount = 0x181;
+        private readonly RegisterAccessor[] _registers = new RegisterAccessor[RegisterCount];
 
         private readonly Action<uint> _step;
 
@@ -71,7 +71,7 @@ namespace Trident.Core.Memory.MappedIO
         {
             index = (address - 0x04000000) >> 1;
 
-            if (index >= REGISTER_COUNT)
+            if (index >= RegisterCount)
                 return false;
 
             return true;

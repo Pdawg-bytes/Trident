@@ -203,7 +203,7 @@ namespace Trident.Core.Machine
 
             byte[] bios = File.ReadAllBytes(path);
 
-            if (bios.Length != BIOS.MEMORY_SIZE)
+            if (bios.Length != BIOS.MemorySize)
                 throw new Exception("BIOS image is not the correct size.");
 
             _bios.LoadBIOS(bios);

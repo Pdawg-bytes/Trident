@@ -73,9 +73,9 @@ namespace Trident.Core.Memory.GamePak
 
         public T DebugRead<T>(uint address) where T : unmanaged
         {
-            const uint ROM_MIRROR_MASK = 0x0E000000;
+            const uint ROMMirrorMask = 0x0E000000;
 
-            uint normalized = (address & ~ROM_MIRROR_MASK) | BaseAddress;
+            uint normalized = (address & ~ROMMirrorMask) | BaseAddress;
             uint offset = normalized - BaseAddress;
 
             if (offset + (uint)Unsafe.SizeOf<T>() <= _romMemory.Size)

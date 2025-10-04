@@ -8,7 +8,7 @@ using InstructionData = (string Mnemonic, System.Collections.Generic.List<string
 
 namespace Trident.Core.Debugging.Disassembly
 {
-    internal class ThumbDisassembler
+    internal static class ThumbDisassembler
     {
         private static readonly string[] _shiftMnemonics           = ["lsl", "lsl", "asr", "???"];
         private static readonly string[] _immediateOpMnemonics     = ["mov", "cmp", "add", "sub"];
