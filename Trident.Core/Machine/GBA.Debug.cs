@@ -8,6 +8,7 @@ namespace Trident.Core.Machine
     {
         public CPUSnapshot CPUSnapshot => CPU.GetSnapshot();
 
+
         private IDebugMemory? GetDebugRegion(uint region) => CPU.Bus.GetRegionAsDebug(region);
 
         public DebugMemoryRead<T> DebugRead<T>(uint address) where T : unmanaged

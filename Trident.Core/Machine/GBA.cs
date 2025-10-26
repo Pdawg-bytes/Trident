@@ -20,10 +20,10 @@ namespace Trident.Core.Machine
     public sealed partial class GBA : IDisposable
     {
         internal ARM7TDMI<GBABus> CPU;
-        internal InterruptController IRQController;
         private GBABusView? _busView;
         public Disassembler Disassembler;
 
+        private readonly InterruptController _irqController;
         private readonly DMAManager _dmaManager;
 
         public Framebuffer Framebuffer = new();
@@ -57,12 +57,12 @@ namespace Trident.Core.Machine
             CPU = new(Scheduler);
             Func<uint> getPC = () => CPU.Registers.GetRegisterRef(15);
 
-            IRQController = new(() => CPU.Halted = false);
-            CPU.AttachIRQController(IRQController);
+            _irqController = new(() => CPU.Halted = false);
+            CPU.AttachIRQController(_irqController);
 
-            _dmaManager = new(IRQController.Raise, Scheduler);
+            _dmaManager = new(_irqController.Raise, Scheduler);
 
-            _keypad = new(IRQController.Raise);
+            _keypad = new(_irqController.Raise);
             _postHalt = new(() => CPU.Halted = true, getPC);
 
 
@@ -83,7 +83,7 @@ namespace Trident.Core.Machine
             builder.Attach(MemoryRegion.VRAM,  _vram);
             builder.Attach(MemoryRegion.OAM,   _oam);
 
-            _mmio = new(Scheduler.Step, _ppuRegisters, _dmaManager, _keypad, IRQController, _waitControl, _postHalt);
+            _mmio = new(Scheduler.Step, _ppuRegisters, _dmaManager, _keypad, _irqController, _waitControl, _postHalt);
             builder.Attach(MemoryRegion.MMIO, _mmio);
 
             CPU.AttachBus(builder.Build(Scheduler.Step));
@@ -92,7 +92,7 @@ namespace Trident.Core.Machine
             Disassembler = new(GetDebugRegion, getPC, () => CPUSnapshot);
 
 
-            PPU = new(Framebuffer, _ppuRegisters, _pram, _vram, _oam, Scheduler, IRQController.Raise);
+            PPU = new(Framebuffer, _ppuRegisters, _pram, _vram, _oam, Scheduler, _irqController.Raise);
         }
 
         public T? GetGPIODevice<T>() where T : GPIODevice
@@ -130,7 +130,7 @@ namespace Trident.Core.Machine
         {
             Scheduler.SkipToNextEvent();
 
-            if (IRQController.IRQAvailable)
+            if (_irqController.IRQAvailable)
             {
                 Scheduler.Step(1);
                 CPU.Halted = false;
@@ -151,7 +151,7 @@ namespace Trident.Core.Machine
             _oam.Reset();
 
             CPU.Reset();
-            IRQController.Reset();
+            _irqController.Reset();
 
             PPU.Reset();
             Framebuffer.Clear();

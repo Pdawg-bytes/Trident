@@ -8,6 +8,10 @@ namespace Trident.Widgets.Debugger
     {
         private Func<uint, DebugMemoryRead<byte>> _readFunc;
 
+        private string _gotoAddressInput = "";
+        private uint _gotoAddress;
+        private bool _gotoRequested;
+
         private uint _baseAddress = 0x0000;
         private int _selectedRegionIndex = 0;
         private readonly (string Name, uint BaseAddress)[] _regions =
@@ -47,6 +51,7 @@ namespace Trident.Widgets.Debugger
             if (!ImGui.Begin("Memory Viewer"))
                 return;
 
+            ImGui.Dummy(new(0));
 
             ImGui.Text("Region:");
             ImGui.SameLine();
@@ -67,6 +72,19 @@ namespace Trident.Widgets.Debugger
             }
             ImGui.SameLine();
             ImGui.Checkbox("Show ASCII", ref _showAscii);
+
+            ImGui.Text("Go to:");
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(140);
+            if (ImGui.InputText("##gotoAddress", ref _gotoAddressInput, 16, ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CharsHexadecimal))
+            {
+                if (uint.TryParse(_gotoAddressInput, System.Globalization.NumberStyles.HexNumber, null, out var parsed))
+                {
+                    _gotoAddress = parsed;
+                    _gotoRequested = true;
+                }
+            }
+
             ImGui.Separator();
 
 
@@ -99,23 +117,26 @@ namespace Trident.Widgets.Debugger
 
 
             uint regionStart = regionInfo.BaseAddress;
-            uint regionEnd = regionInfo.EndAddress;
-            uint totalBytes = regionEnd - regionStart;
-            uint totalRows = totalBytes / bytesPerRow;
+            uint regionEnd   = regionInfo.EndAddress;
+            uint totalBytes  = regionEnd - regionStart;
+            uint totalRows   = totalBytes / bytesPerRow;
 
-            float rowHeight = ImGui.GetFontSize() + ImGui.GetStyle().ItemSpacing.Y;
-            float totalHeight = rowHeight * totalRows;
-            ImGui.Dummy(new Vector2(1, totalHeight));
+            float rowHeight   = ImGui.GetFontSize() + ImGui.GetStyle().ItemSpacing.Y;
+            ImGui.Dummy(new Vector2(1, rowHeight * totalRows));
 
-            float scrollY = ImGui.GetScrollY();
-            float windowHeight = ImGui.GetWindowHeight();
-            uint firstVisibleRow = (uint)(scrollY / rowHeight);
-            uint visibleRowCount = (uint)(windowHeight / rowHeight) + 1;
-            uint lastVisibleRow = Math.Min(firstVisibleRow + visibleRowCount, totalRows);
+            uint firstVisibleRow = (uint)(ImGui.GetScrollY() / rowHeight);
+            uint visibleRowCount = (uint)(ImGui.GetWindowHeight() / rowHeight) + 1;
+            uint lastVisibleRow  = Math.Min(firstVisibleRow + visibleRowCount, totalRows);
 
             ImGui.SetCursorPosY(firstVisibleRow * rowHeight);
             ImGui.PushFont(_monoFont);
 
+            if (_gotoRequested && _gotoAddress >= regionStart && _gotoAddress < regionEnd)
+            {
+                uint rowIndex = (_gotoAddress - regionStart) / bytesPerRow;
+                ImGui.SetScrollY(rowIndex * rowHeight);
+                _gotoRequested = false;
+            }
 
             for (uint row = firstVisibleRow; row < lastVisibleRow; row++)
             {
