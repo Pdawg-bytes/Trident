@@ -72,7 +72,7 @@ namespace Trident.Widgets.Debugger
                 ImGui.TableSetColumnIndex(3);
                 RenderInterrupt(snapshot, 7, "Serial");
                 RenderInterrupt(snapshot, 12, "Keypad");
-                RenderInterrupt(snapshot, 13, "Game Pak");
+                RenderInterrupt(snapshot, 13, "GamePak");
 
                 ImGui.EndTable();
                 ImGui.PopFont();
@@ -92,7 +92,7 @@ namespace Trident.Widgets.Debugger
             Vector4 color;
             if (active)       color = _lavender;
             else if (enabled) color = Vector4.One;
-            else              color = new(0.6f, 0.6f, 0.6f, 1f);
+            else              color = new(0.4f, 0.4f, 0.4f, 1f);
 
             ImGui.TextColored(color, label);
         }

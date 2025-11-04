@@ -1,9 +1,10 @@
 ﻿using ImGuiNET;
+using System.Buffers;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Trident.Core.Debugging.Disassembly;
 
-using OperandToken = (string Text, Trident.Widgets.Debugger.OperandTokenType Type);
+using OperandToken = (System.ReadOnlyMemory<char> Text, Trident.Widgets.Debugger.OperandTokenType Type);
 
 namespace Trident.Widgets.Debugger
 {
@@ -111,9 +112,10 @@ namespace Trident.Widgets.Debugger
                     {
                         string operand = instr.Operands[j];
 
-                        foreach (var token in OperandTokenizer.GetTokens(operand))
+                        using var tokens = OperandTokenizer.GetTokens(operand);
+                        foreach (var tok in tokens.Span)
                         {
-                            ImGui.TextColored(GetColorForToken(token.Type), token.Text);
+                            ImGui.TextColored(GetColorForToken(tok.Type), tok.Text.Span);
                             ImGui.SameLine(0f, 0f);
                         }
 
@@ -163,14 +165,6 @@ namespace Trident.Widgets.Debugger
 
     internal static partial class OperandTokenizer
     {
-        private static readonly Dictionary<string, int> _operandUsageCount = [];
-        private static readonly Dictionary<string, List<OperandToken>> _tokenCache = [];
-
-        private const int UsageThreshold = 3;
-        private const int MaxCacheSize = 512;
-        private static readonly Random _random = new();
-
-
         private static readonly Regex TokenRegex     = GenerateTokenRegex();
         private static readonly Regex RegisterRegex  = GenerateRegisterRegex(); 
         private static readonly Regex PSRRegex       = GeneratePSRRegex();
@@ -193,40 +187,17 @@ namespace Trident.Widgets.Debugger
         private static partial Regex GenerateLabelRegex();
 
 
-        internal static List<OperandToken> GetTokens(string operand)
+        internal static PooledTokens GetTokens(string operand)
         {
-            if (_tokenCache.TryGetValue(operand, out var cached))
-                return cached;
-
-            if (_operandUsageCount.TryGetValue(operand, out int count))
-            {
-                count++;
-                _operandUsageCount[operand] = count;
-
-                if (count >= UsageThreshold)
-                {
-                    var tokens = TokenizeOperand(operand);
-
-                    if (_tokenCache.Count >= MaxCacheSize)
-                    {
-                        string randomKey = _tokenCache.Keys.ElementAt(_random.Next(_tokenCache.Count));
-                        _tokenCache.Remove(randomKey);
-                    }
-
-                    _tokenCache[operand] = tokens;
-                    return tokens;
-                }
-            }
-            else
-                _operandUsageCount[operand] = 1;
-
-            return TokenizeOperand(operand);
+            OperandToken[] buffer = ArrayPool<OperandToken>.Shared.Rent(32);
+            int count = FillTokens(operand, buffer);
+            return new PooledTokens(buffer, count);
         }
 
-        private static List<OperandToken> TokenizeOperand(string operand)
+        private static int FillTokens(string operand, OperandToken[] buffer)
         {
-            List<OperandToken> tokens = [];
-            ReadOnlySpan<char> span = operand.AsSpan();
+            int count = 0;
+            ReadOnlyMemory<char> mem = operand.AsMemory();
             var matches = TokenRegex.Matches(operand);
 
             int lastIndex = 0;
@@ -237,38 +208,87 @@ namespace Trident.Widgets.Debugger
 
                 if (index > lastIndex)
                 {
-                    var betweenSpan = span.Slice(lastIndex, index - lastIndex).Trim();
-                    if (!betweenSpan.IsEmpty)
-                        tokens.Add((betweenSpan.ToString(), OperandTokenType.Unknown));
+                    var between = mem.Slice(lastIndex, index - lastIndex).Trim();
+                    if (!between.IsEmpty)
+                        buffer[count++] = new OperandToken(between, OperandTokenType.Unknown);
                 }
 
-                var tokenSpan = span.Slice(index, length);
-                tokens.Add((tokenSpan.ToString(), ClassifyToken(tokenSpan.ToString())));
+                var tokenMem = mem.Slice(index, length);
+                buffer[count++] = new OperandToken(tokenMem, ClassifyToken(tokenMem.Span));
                 lastIndex = index + length;
             }
 
-            if (lastIndex < span.Length)
+            if (lastIndex < mem.Length)
             {
-                var remainingSpan = span[lastIndex..].Trim();
-                if (!remainingSpan.IsEmpty)
-                    tokens.Add((remainingSpan.ToString(), OperandTokenType.Unknown));
+                var remaining = mem[lastIndex..].Trim();
+                if (!remaining.IsEmpty)
+                    buffer[count++] = new OperandToken(remaining, OperandTokenType.Unknown);
             }
 
-            return tokens;
+            return count;
         }
 
-        private static OperandTokenType ClassifyToken(string token) => token switch
+        private static OperandTokenType ClassifyToken(ReadOnlySpan<char> token)
         {
-            _ when RegisterRegex.IsMatch(token)       => OperandTokenType.Register,
-            _ when ImmediateRegex.IsMatch(token)      => OperandTokenType.Immediate,
-            _ when "[]{}".Contains(token)             => OperandTokenType.Bracket,
-            ","                                       => OperandTokenType.Comma,
-            "!" or "-" or "+" or "^" or " "           => OperandTokenType.Symbol,
-            "lsl" or "lsr" or "asr" or "ror" or "rrx" => OperandTokenType.ShiftType,
-            _ when LabelRegex.IsMatch(token)          => OperandTokenType.Label,
-            _ when PSRRegex.IsMatch(token)            => OperandTokenType.StatusRegister,
-            _                                         => OperandTokenType.Unknown
-        };
+            if (RegisterRegex.IsMatch(token)) return OperandTokenType.Register;
+            if (ImmediateRegex.IsMatch(token)) return OperandTokenType.Immediate;
+
+            if (token.Length == 1)
+            {
+                switch (token[0])
+                {
+                    case '[':
+                    case ']':
+                    case '{':
+                    case '}':
+                        return OperandTokenType.Bracket;
+                    case ',':
+                        return OperandTokenType.Comma;
+                    case '!':
+                    case '-':
+                    case '+':
+                    case '^':
+                    case ' ':
+                        return OperandTokenType.Symbol;
+                }
+            }
+
+            if (token.Equals("lsl".AsSpan(), StringComparison.OrdinalIgnoreCase) ||
+                token.Equals("lsr".AsSpan(), StringComparison.OrdinalIgnoreCase) ||
+                token.Equals("asr".AsSpan(), StringComparison.OrdinalIgnoreCase) ||
+                token.Equals("ror".AsSpan(), StringComparison.OrdinalIgnoreCase) ||
+                token.Equals("rrx".AsSpan(), StringComparison.OrdinalIgnoreCase))
+            {
+                return OperandTokenType.ShiftType;
+            }
+
+            if (LabelRegex.IsMatch(token)) return OperandTokenType.Label;
+            if (PSRRegex.IsMatch(token)) return OperandTokenType.StatusRegister;
+
+            return OperandTokenType.Unknown;
+        }
+    }
+
+    internal sealed class PooledTokens : IDisposable
+    {
+        private OperandToken[]? _buffer;
+        internal int Count { get; }
+        internal ReadOnlySpan<OperandToken> Span => _buffer.AsSpan(0, Count);
+
+        internal PooledTokens(OperandToken[] buffer, int count)
+        {
+            _buffer = buffer;
+            Count = count;
+        }
+
+        public void Dispose()
+        {
+            if (_buffer != null)
+            {
+                ArrayPool<OperandToken>.Shared.Return(_buffer, clearArray: true);
+                _buffer = null;
+            }
+        }
     }
 
 

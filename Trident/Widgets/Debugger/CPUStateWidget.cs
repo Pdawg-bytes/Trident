@@ -18,6 +18,12 @@ namespace Trident.Widgets.Debugger
         private readonly Vector4 _lavender = new(0.87f, 0.82f, 0.97f, 1f);
         private readonly uint _tableHighlight = ImGui.ColorConvertFloat4ToU32(new(0.20f, 0.18f, 0.28f, 0.90f));
 
+        private readonly (string Label, int Bit)[] _flags =
+        [
+            ("N", 31), ("Z", 30), ("C", 29), ("V", 28),
+            ("I", 7), ("F", 6), ("T", 5)
+        ];
+
         internal CPUStateWidget(ImFontPtr monoFont, Func<CPUSnapshot> getSnapshot)
         {
             _getSnapshot = getSnapshot;
@@ -44,60 +50,80 @@ namespace Trident.Widgets.Debugger
 
             ImGui.PushFont(_monoFont);
 
-            if (ImGui.BeginTable("RegisterTable", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+            const int cols = 3;
+            if (ImGui.BeginTable("RegisterTable", cols, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
             {
-                for (int row = 0; row < 8; row++)
+                const int totalRegs = 16;
+                int rows = (int)Math.Ceiling(totalRegs / (float)cols);
+
+                for (int row = 0; row < rows; row++)
                 {
                     ImGui.TableNextRow();
 
-                    int regLow = row;
-                    ImGui.TableSetColumnIndex(0);
-                    HighlightChange($"R{regLow}:", snapshot.Registers[regLow], _previousSnapshot?.Registers[regLow], 4);
+                    for (int col = 0; col < cols; col++)
+                    {
+                        int regIndex = row * cols + col;
+                        if (regIndex >= totalRegs)
+                            break;
 
+                        ImGui.TableSetColumnIndex(col);
 
-                    int regHigh = row + 8;
-                    ImGui.TableSetColumnIndex(1);
-                    if (IsBanked(regHigh, snapshot.Mode))
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, _tableHighlight);
+                        if (IsBanked(regIndex, snapshot.Mode))
+                            ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, _tableHighlight);
 
-                    HighlightChange($"R{regHigh}:", snapshot.Registers[regHigh], _previousSnapshot?.Registers[regHigh], 5);
+                        HighlightChange(
+                            $"R{regIndex}",
+                            snapshot.Registers[regIndex],
+                            _previousSnapshot?.Registers[regIndex],
+                            4
+                        );
+                    }
                 }
+
                 ImGui.EndTable();
             }
 
             ImGui.Separator();
 
-            HighlightChange("CPSR:", snapshot.CPSR, _previousSnapshot?.CPSR, 6);
-            ImGui.SameLine();
-            ImGui.Text("|");
-            ImGui.SameLine();
-
-            bool enabledSPSR = !RegisterSet.IsUserOrSystem(snapshot.Mode);
-            if (enabledSPSR)
+            if (ImGui.BeginTable("StatusRegs", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
             {
-                ImGui.Text($"SPSR: 0x{snapshot.SPSR:X8}");
-                _previousSPSR = snapshot.SPSR;
+                ImGui.TableNextRow();
+
+                ImGui.TableSetColumnIndex(0);
+                HighlightChange("CPSR", snapshot.CPSR, _previousSnapshot?.CPSR, 5);
+
+                ImGui.TableSetColumnIndex(1);
+                ImGui.TextDisabled("SPSR");
+                ImGui.SameLine();
+
+                if (!RegisterSet.IsUserOrSystem(snapshot.Mode))
+                {
+                    ImGui.Text($"0x{snapshot.SPSR:X8}");
+                    _previousSPSR = snapshot.SPSR;
+                }
+                else
+                    ImGui.TextDisabled($"0x{_previousSPSR:X8}");
+
+                ImGui.EndTable();
             }
-            else
-                ImGui.TextDisabled($"SPSR: 0x{_previousSPSR:X8}");
 
-            bool n = snapshot.CPSR.IsBitSet(31);
-            bool z = snapshot.CPSR.IsBitSet(30);
-            bool c = snapshot.CPSR.IsBitSet(29);
-            bool v = snapshot.CPSR.IsBitSet(28);
-            bool i = snapshot.CPSR.IsBitSet(7);
-            bool f = snapshot.CPSR.IsBitSet(6);
-            bool t = snapshot.CPSR.IsBitSet(5);
 
-            ImGui.BeginDisabled();
-            ImGui.Checkbox("N", ref n);
-            ImGui.SameLine(); ImGui.Checkbox("Z", ref z);
-            ImGui.SameLine(); ImGui.Checkbox("C", ref c);
-            ImGui.SameLine(); ImGui.Checkbox("V", ref v);
-            ImGui.Checkbox("I", ref i);
-            ImGui.SameLine(); ImGui.Checkbox("F", ref f);
-            ImGui.SameLine(); ImGui.Checkbox("T", ref t);
-            ImGui.EndDisabled();
+            if (ImGui.BeginTable("FlagsTable", _flags.Length, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+            {
+                ImGui.TableNextRow();
+
+                for (int col = 0; col < _flags.Length; col++)
+                {
+                    ImGui.TableSetColumnIndex(col);
+
+                    if (snapshot.CPSR.IsBitSet(_flags[col].Bit))
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, _tableHighlight);
+
+                    ImGui.Text(_flags[col].Label);
+                }
+
+                ImGui.EndTable();
+            }
 
             ImGui.Text($"Mode: {snapshot.Mode}");
 
@@ -111,16 +137,18 @@ namespace Trident.Widgets.Debugger
         private void HighlightChange(string label, uint current, uint? previous, int totalLabelWidth = 0)
         {
             string paddedLabel = label.PadRight(totalLabelWidth);
+            ImGui.TextDisabled(paddedLabel);
+            ImGui.SameLine();
 
             if (previous.HasValue && current != previous.Value)
             {
                 ImGui.PushStyleColor(ImGuiCol.Text, _lavender);
-                ImGui.Text($"{paddedLabel}0x{current:X8}");
+                ImGui.Text($"0x{current:X8}");
                 ImGui.PopStyleColor();
             }
             else
             {
-                ImGui.Text($"{paddedLabel}0x{current:X8}");
+                ImGui.Text($"0x{current:X8}");
             }
         }
 

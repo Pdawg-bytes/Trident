@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 using Trident.Core.Hardware.Controller;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
-using FontData = (nint ptr, int size, float sizePixels, System.Runtime.InteropServices.GCHandle handle);
+using FontData = (nint Pointer, int Size, float SizePixels, System.Runtime.InteropServices.GCHandle Handle);
 
 namespace Trident.Windowing
 {
@@ -67,8 +67,8 @@ namespace Trident.Windowing
             }
 
 
-            VSync = VSyncMode.Off;
-            UpdateFrequency = Math.Min(Monitors.GetPrimaryMonitor().CurrentVideoMode.RefreshRate, 90);
+            VSync = VSyncMode.On;
+            UpdateFrequency = 0;
 
             WindowHandle = GLFW.GetWin32Window(WindowPtr);
         }
@@ -86,16 +86,16 @@ namespace Trident.Windowing
             }
 
 
-            var fonts = new List<(string name, nint ptr, int size, float sizePixels)>();
+            var fonts = new List<(string Name, nint Pointer, int Size, float SizePixels)>();
             List<GCHandle> handles = [];
 
             FontData firaSans = LoadFont("Trident.Fonts.FiraSans-Regular.ttf", 17f);
-            fonts.Add(("Fira Sans", firaSans.ptr, firaSans.size, firaSans.sizePixels));
-            handles.Add(firaSans.handle);
+            fonts.Add(("Fira Sans", firaSans.Pointer, firaSans.Size, firaSans.SizePixels));
+            handles.Add(firaSans.Handle);
 
             FontData firaCode = LoadFont("Trident.Fonts.FiraCode-Medium.ttf", 17f);
-            fonts.Add(("Fira Code", firaCode.ptr, firaCode.size, firaCode.sizePixels));
-            handles.Add(firaCode.handle);
+            fonts.Add(("Fira Code", firaCode.Pointer, firaCode.Size, firaCode.SizePixels));
+            handles.Add(firaCode.Handle);
 
             _controller = new ImGuiController
             (
@@ -253,7 +253,7 @@ namespace Trident.Windowing
 
                     if (paused)
                     {
-                        if (ImGui.MenuItem("Step", "F10"))
+                        if (ImGui.MenuItem("Step", "F11"))
                             StepGBA(1);
                     }
                     else
@@ -332,7 +332,7 @@ namespace Trident.Windowing
 
             ImGui.Begin("GBA Screen");
 
-            // This is not thread-safe and will have tearing issues. Fix later.
+            // TODO: This is not thread-safe and will have tearing issues. Fix later.
             GL.BindTexture(TextureTarget.Texture2D, _framebufferTexture);
             GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, 0, 240, 160,
                              PixelFormat.Bgra, PixelType.UnsignedByte, _gba.Framebuffer.Pixels);
