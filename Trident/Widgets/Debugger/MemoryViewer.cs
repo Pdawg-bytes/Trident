@@ -49,11 +49,14 @@ namespace Trident.Widgets.Debugger
                 return;
 
             if (!ImGui.Begin("Memory Viewer"))
+            {
+                ImGui.End();
                 return;
+            }
 
             ImGui.Dummy(new(0));
 
-            ImGui.Text("Region:");
+            ImGui.Text("Region  ");
             ImGui.SameLine();
             if (ImGui.BeginCombo("##regionCombo", _regions[_selectedRegionIndex].Name))
             {
@@ -73,7 +76,7 @@ namespace Trident.Widgets.Debugger
             ImGui.SameLine();
             ImGui.Checkbox("Show ASCII", ref _showAscii);
 
-            ImGui.Text("Go to:");
+            ImGui.Text("Address");
             ImGui.SameLine();
             ImGui.SetNextItemWidth(140);
             if (ImGui.InputText("##gotoAddress", ref _gotoAddressInput, 16, ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CharsHexadecimal))

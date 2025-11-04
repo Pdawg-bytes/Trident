@@ -21,7 +21,7 @@ namespace Trident.Core.CPU
         public TBus Bus;
 
         public bool Halted;
-        private InterruptController _irqController = new(() => { });
+        private InterruptController _irqController = new(() => { }, () => false);
         private readonly Scheduler _scheduler;
 
         private readonly ARMDispatcher<TBus> _armDispatcher;

@@ -18,7 +18,7 @@ namespace Trident.Widgets.Debugger
         private readonly Vector4 _colorOpcode    = new(0.70f, 0.85f, 0.90f, 1.0f);
         private readonly Vector4 _colorMnemonic  = new(0.55f, 0.95f, 0.85f, 1.0f);
         private readonly Vector4 _colorCondition = new(0.95f, 0.75f, 0.45f, 1.0f);
-        private const float LEFT_MARGIN = 8f;
+        private const float LeftMargin = 8f;
 
         private bool _showAddress = true;
         private bool _showOpcode = true;
@@ -40,13 +40,16 @@ namespace Trident.Widgets.Debugger
             if (!IsVisible) return;
 
             if (!ImGui.Begin("Disassembly"))
+            {
+                ImGui.End();
                 return;
+            }
 
 
             ImGui.Checkbox("Show Address", ref _showAddress);
             ImGui.SameLine();
             ImGui.Checkbox("Show Bytecode", ref _showOpcode);
-
+            ImGui.SameLine();
             ImGui.Checkbox("Follow PC", ref _followPC);
 
             ImGui.Separator();
@@ -73,7 +76,7 @@ namespace Trident.Widgets.Debugger
 
                     ImGui.TableNextColumn();
 
-                    ImGui.Indent(LEFT_MARGIN);
+                    ImGui.Indent(LeftMargin);
 
                     if (_showAddress)
                     {
@@ -121,7 +124,7 @@ namespace Trident.Widgets.Debugger
                         }
                     }
 
-                    ImGui.Unindent(LEFT_MARGIN);
+                    ImGui.Unindent(LeftMargin);
                 }
 
                 if (_followPC && currentRowIndex >= 0)

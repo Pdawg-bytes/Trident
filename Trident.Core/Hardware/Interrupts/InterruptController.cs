@@ -1,10 +1,12 @@
 ﻿using Trident.Core.Memory.MappedIO;
+using Trident.Core.Debugging.Snapshots;
 
 namespace Trident.Core.Hardware.Interrupts
 {
     internal class InterruptController
     {
         private readonly Action _unhaltCPU;
+        private readonly Func<bool> _isHalted;
 
         private bool _globalInterruptEnable;
         private ushort _interruptEnable;
@@ -12,9 +14,11 @@ namespace Trident.Core.Hardware.Interrupts
 
         internal bool IRQAvailable { get; private set; }
 
-        internal InterruptController(Action unhaltCPU)
+        internal InterruptController(Action unhaltCPU, Func<bool> isHalted)
         {
             _unhaltCPU = unhaltCPU;
+            _isHalted = isHalted;
+
             Reset();
         }
 
@@ -28,7 +32,7 @@ namespace Trident.Core.Hardware.Interrupts
 
             UpdateIRQStatus();
 
-            if (IRQAvailable)
+            if (IRQAvailable && _isHalted())
                 _unhaltCPU();
         }
 
@@ -79,5 +83,13 @@ namespace Trident.Core.Hardware.Interrupts
             _interruptFlag = 0;
             IRQAvailable = false;
         }
+
+
+        internal IRQSnapshot GetSnapshot() => new
+        (
+            _globalInterruptEnable,
+            _interruptEnable,
+            _interruptFlag
+        );
     }
 }

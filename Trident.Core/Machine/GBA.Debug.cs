@@ -8,6 +8,8 @@ namespace Trident.Core.Machine
     {
         public CPUSnapshot CPUSnapshot => CPU.GetSnapshot();
 
+        public IRQSnapshot IRQSnapshot => _irqController.GetSnapshot();
+
 
         private IDebugMemory? GetDebugRegion(uint region) => CPU.Bus.GetRegionAsDebug(region);
 

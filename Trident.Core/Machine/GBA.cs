@@ -57,7 +57,7 @@ namespace Trident.Core.Machine
             CPU = new(Scheduler);
             Func<uint> getPC = () => CPU.Registers.GetRegisterRef(15);
 
-            _irqController = new(() => CPU.Halted = false);
+            _irqController = new(() => CPU.Halted = false, () => CPU.Halted);
             CPU.AttachIRQController(_irqController);
 
             _dmaManager = new(_irqController.Raise, Scheduler);

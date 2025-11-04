@@ -11,13 +11,14 @@ namespace Trident.Widgets.Debugger
     {
         private readonly Func<CPUSnapshot> _getSnapshot;
         private CPUSnapshot? _previousSnapshot;
+        private uint _previousSPSR;
 
         private readonly ImFontPtr _monoFont;
 
         private readonly Vector4 _lavender = new(0.87f, 0.82f, 0.97f, 1f);
         private readonly uint _tableHighlight = ImGui.ColorConvertFloat4ToU32(new(0.20f, 0.18f, 0.28f, 0.90f));
 
-        internal CPUStateWidget(Func<CPUSnapshot> getSnapshot, ImFontPtr monoFont)
+        internal CPUStateWidget(ImFontPtr monoFont, Func<CPUSnapshot> getSnapshot)
         {
             _getSnapshot = getSnapshot;
             _monoFont = monoFont;
@@ -33,7 +34,10 @@ namespace Trident.Widgets.Debugger
             if (!IsVisible) return;
 
             if (!ImGui.Begin("CPU State"))
+            {
+                ImGui.End(); 
                 return;
+            }
 
 
             CPUSnapshot snapshot = _getSnapshot();
@@ -62,7 +66,20 @@ namespace Trident.Widgets.Debugger
             }
 
             ImGui.Separator();
+
             HighlightChange("CPSR:", snapshot.CPSR, _previousSnapshot?.CPSR, 6);
+            ImGui.SameLine();
+            ImGui.Text("|");
+            ImGui.SameLine();
+
+            bool enabledSPSR = !RegisterSet.IsUserOrSystem(snapshot.Mode);
+            if (enabledSPSR)
+            {
+                ImGui.Text($"SPSR: 0x{snapshot.SPSR:X8}");
+                _previousSPSR = snapshot.SPSR;
+            }
+            else
+                ImGui.TextDisabled($"SPSR: 0x{_previousSPSR:X8}");
 
             bool n = snapshot.CPSR.IsBitSet(31);
             bool z = snapshot.CPSR.IsBitSet(30);
@@ -84,15 +101,9 @@ namespace Trident.Widgets.Debugger
 
             ImGui.Text($"Mode: {snapshot.Mode}");
 
-            if (!RegisterSet.IsUserOrSystem(snapshot.Mode))
-            {
-                ImGui.Separator();
-                ImGui.Text($"SPSR: 0x{snapshot.SPSR:X8}");
-            }
-            ImGui.PopFont();
-
             _previousSnapshot = snapshot;
 
+            ImGui.PopFont();
             ImGui.End();
         }
 
