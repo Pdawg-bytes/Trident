@@ -185,8 +185,8 @@ namespace Trident.Core.Machine
                 (0x0C, gamePakLower),
                 (0x0D, gamePakUpper),
 
-                //(0x0E, backupHandler),
-                //(0x0F, backupHandler)
+                (0x0E, backupHandler),
+                (0x0F, backupHandler)
             ]);
 
             CPU.Bus.LoadDebugGamePak(_gamePak);

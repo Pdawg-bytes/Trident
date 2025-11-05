@@ -26,8 +26,8 @@ namespace Trident.Windowing
 {
     internal class EmulatorWindow : GameWindow
     {
-        private GBA _gba;
-        private EmulatorThread _emulatorThread;
+        private readonly GBA _gba;
+        private readonly EmulatorThread _emulatorThread;
 
         private int _framebufferTexture;
 
@@ -42,8 +42,8 @@ namespace Trident.Windowing
 
         private readonly ShortcutManager _shortcutManager = new();
 
+        private bool _uncappedRefresh = false;
         internal IntPtr WindowHandle;
-
 
         internal unsafe EmulatorWindow(GBA gba) : base(new GameWindowSettings(), new NativeWindowSettings())
         {
@@ -66,9 +66,8 @@ namespace Trident.Windowing
                     throw new InvalidDataException("ImGui style configuration was unable to be deserialized.");
             }
 
-
-            VSync = VSyncMode.On;
-            UpdateFrequency = 0;
+            VSync = VSyncMode.Off;
+            UpdateFrequency = 60;
 
             WindowHandle = GLFW.GetWin32Window(WindowPtr);
         }
@@ -287,6 +286,19 @@ namespace Trident.Windowing
                         ImGui.EndMenu();
                     }
 
+                    if (ImGui.BeginMenu("GUI"))
+                    {
+                        if (ImGui.MenuItem("Sync to refresh      ", "", _uncappedRefresh))
+                        {
+                            _uncappedRefresh = !_uncappedRefresh;
+                            SetUpdateFrequency(_uncappedRefresh);
+                        }
+
+                        Tooltips.HelpTooltip("Allows the GUI to run closer the primary monitor's refresh rate at the cost of CPU time.\nRounds to multiples of 60.", -38f);
+
+                        ImGui.EndMenu();
+                    }
+
                     ImGui.EndMenu();
                 }
 
@@ -405,7 +417,7 @@ namespace Trident.Windowing
         }
 
 
-        private static FontData LoadFont(string resourceName, float sizePixels)
+        private FontData LoadFont(string resourceName, float sizePixels)
         {
             using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName)
                 ?? throw new FileNotFoundException($"Font resource '{resourceName}' not found.");
@@ -416,6 +428,19 @@ namespace Trident.Windowing
 
             GCHandle handle = GCHandle.Alloc(fontData, GCHandleType.Pinned);
             return (handle.AddrOfPinnedObject(), fontData.Length, sizePixels, handle);
+        }
+
+
+        private void SetUpdateFrequency(bool uncapped)
+        {
+            if (uncapped)
+            {
+                int refresh = Monitors.GetPrimaryMonitor().CurrentVideoMode.RefreshRate;
+                int rounded = Math.Clamp((int)(Math.Round(refresh / 60.0) * 60), 60, 120);
+                UpdateFrequency = rounded;
+            }
+            else
+                UpdateFrequency = 60;
         }
 
 

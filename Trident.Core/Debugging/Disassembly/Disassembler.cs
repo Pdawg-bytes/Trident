@@ -18,10 +18,13 @@ namespace Trident.Core.Debugging.Disassembly
         private readonly OpcodeDisasmCache<ushort> _thumbCache;
         private readonly OpcodeDisasmCache<uint> _armCache;
 
+        private DisassembledInstruction[] _disasmBuffer = [];
+        private int _disasmCount;
+
         public Disassembler(Func<uint, IDebugMemory?> getRegion, Func<uint> getPC, Func<CPUSnapshot> getSnapshot)
         {
-            _getRegion = getRegion;
-            _getPC = getPC;
+            _getRegion   = getRegion;
+            _getPC       = getPC;
             _getSnapshot = getSnapshot;
 
             _thumbCache = new(maxSize: 4096, usageThreshold: 3, opcode => ThumbDisassembler.Disassemble(0, 0, opcode));
@@ -29,10 +32,10 @@ namespace Trident.Core.Debugging.Disassembly
         }
 
 
-        public (uint, bool, List<DisassembledInstruction>) GetAroundPC(uint before, uint after)
+        public (uint ActualPC, bool Thumb, ReadOnlyMemory<DisassembledInstruction> Instructions) GetAroundPC(uint before, uint after)
         {
             if (!Enabled)
-                return (0, false, []);
+                return (0, false, ReadOnlyMemory<DisassembledInstruction>.Empty);
 
             uint lr = 0;
 
@@ -41,15 +44,24 @@ namespace Trident.Core.Debugging.Disassembly
 
             IDebugMemory? region = _getRegion(pc >> 24);
             if (region is null)
-                return (0, thumb, []);
+                return (0, thumb, ReadOnlyMemory<DisassembledInstruction>.Empty);
 
             uint instrSize = thumb ? 2 : 4u;
             var (start, end) = GetDisasmWindow(pc, before, after, instrSize, region);
 
-            var instructions = new List<DisassembledInstruction>();
+            int length = (int)((end - start) / instrSize);
+            if (length > 512 || length < 0)
+                throw new Exception("Disassembly window out of range.");
 
-            for (uint addr = start; addr < end; addr += instrSize)
+            if (_disasmBuffer.Length != length)
+                _disasmBuffer = new DisassembledInstruction[length];
+
+            _disasmCount = length;
+
+            for (int i = 0; i < length; i++)
             {
+                uint addr = start + (uint)(i * instrSize);
+
                 if (thumb)
                 {
                     ushort opcode = region.DebugRead<ushort>(addr);
@@ -65,7 +77,7 @@ namespace Trident.Core.Debugging.Disassembly
                     else
                         instr = ThumbDisassembler.Disassemble(addr, lr, opcode, group);
 
-                    instructions.Add(instr);
+                    _disasmBuffer[i] = instr;
 
                     if (group == ThumbGroup.LongBranchWithLink)
                     {
@@ -88,11 +100,11 @@ namespace Trident.Core.Debugging.Disassembly
                     else
                         instr = ARMDisassembler.Disassemble(addr, opcode, group);
 
-                    instructions.Add(instr);
+                    _disasmBuffer[i] = instr;
                 }
             }
 
-            return (pc - (thumb ? 4 : 8u), thumb, instructions);
+            return (pc - (thumb ? 4 : 8u), thumb, _disasmBuffer.AsMemory(0, _disasmCount));
         }
 
         private static (uint start, uint end) GetDisasmWindow(uint pc, uint before, uint after, uint instrSize, IDebugMemory region)

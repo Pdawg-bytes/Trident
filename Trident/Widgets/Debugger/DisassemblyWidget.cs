@@ -63,9 +63,11 @@ namespace Trident.Widgets.Debugger
 
                 int currentRowIndex = -1;
                 var (actualAddress, isThumb, instructions) = _disassembler.GetAroundPC(30, 30);
-                for (int i = 0; i < instructions.Count; i++)
+                var instructionsSpan = instructions.Span;
+
+                for (int i = 0; i < instructions.Length; i++)
                 {
-                    var instr = instructions[i];
+                    var instr = instructionsSpan[i];
 
                     ImGui.TableNextRow();
 
@@ -166,7 +168,7 @@ namespace Trident.Widgets.Debugger
     internal static partial class OperandTokenizer
     {
         private static readonly Regex TokenRegex     = GenerateTokenRegex();
-        private static readonly Regex RegisterRegex  = GenerateRegisterRegex(); 
+        private static readonly Regex RegisterRegex  = GenerateRegisterRegex();
         private static readonly Regex PSRRegex       = GeneratePSRRegex();
         private static readonly Regex ImmediateRegex = GenerateImmediateRegex();
         private static readonly Regex LabelRegex     = GenerateLabelRegex();
@@ -208,7 +210,7 @@ namespace Trident.Widgets.Debugger
 
                 if (index > lastIndex)
                 {
-                    var between = mem.Slice(lastIndex, index - lastIndex).Trim();
+                    var between = mem[lastIndex..index].Trim();
                     if (!between.IsEmpty)
                         buffer[count++] = new OperandToken(between, OperandTokenType.Unknown);
                 }
