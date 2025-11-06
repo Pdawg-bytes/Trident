@@ -56,7 +56,7 @@ namespace Trident.Widgets.Debugger
                 const int totalRegs = 16;
                 int rows = (int)Math.Ceiling(totalRegs / (float)cols);
 
-                Span<char> regBuf = stackalloc char[4];
+                Span<char> regBuf = stackalloc char[6];
                 for (int row = 0; row < rows; row++)
                 {
                     ImGui.TableNextRow();
@@ -95,7 +95,7 @@ namespace Trident.Widgets.Debugger
                 ImGui.TableNextRow();
                 ImGui.TableSetColumnIndex(0);
 
-                Span<char> buf = stackalloc char[5];
+                Span<char> buf = stackalloc char[6];
                 var s = StackString.From("CPSR", buf);
                 HighlightChange(s, snapshot.CPSR, _previousSnapshot?.CPSR, buf.Length);
 
@@ -104,7 +104,7 @@ namespace Trident.Widgets.Debugger
                 ImGui.TextDisabled("SPSR");
                 ImGui.SameLine();
 
-                Span<char> spsrBuf = stackalloc char[16];
+                Span<char> spsrBuf = stackalloc char[20];
                 var spsrStr = new StackString(spsrBuf);
                 if (!RegisterSet.IsUserOrSystem(snapshot.Mode))
                 {
@@ -137,9 +137,8 @@ namespace Trident.Widgets.Debugger
                     if (snapshot.CPSR.IsBitSet(_flags[col].Bit))
                         ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, _tableHighlight);
 
-                    var flagStr = new StackString(flagBuf);
-                    flagStr.Append(_flags[col].Label);
-                    ImGui.TextUnformatted(flagStr.AsSpan());
+                    flagBuf[0] = _flags[col].Label;
+                    ImGui.TextUnformatted(flagBuf);
                 }
 
                 ImGui.EndTable();
@@ -148,7 +147,7 @@ namespace Trident.Widgets.Debugger
             Span<char> modeBuf = stackalloc char[9];
             var modeStr = new StackString(modeBuf);
             modeStr.Append("Mode: ");
-            modeStr.AppendFormatted(snapshot.Mode);
+            modeStr.Append(ModeToString(snapshot.Mode));
             ImGui.TextUnformatted(modeBuf);
 
             _previousSnapshot = snapshot;
@@ -165,7 +164,7 @@ namespace Trident.Widgets.Debugger
             ImGui.TextDisabled(label.AsSpan());
             ImGui.SameLine();
 
-            Span<char> buffer = stackalloc char[16];
+            Span<char> buffer = stackalloc char[20];
             var valueStr = new StackString(buffer);
             valueStr.Append("0x");
             valueStr.AppendFormatted(current, "X8");
@@ -192,6 +191,21 @@ namespace Trident.Widgets.Debugger
                 reg == 13 || reg == 14,
 
             _ => false
+        };
+
+        private static ReadOnlySpan<char> ModeToString(ProcessorMode mode) => mode switch
+        {
+            ProcessorMode.USR => "USR",
+            ProcessorMode.SYS => "SYS",
+            ProcessorMode.SVC => "SVC",
+
+            ProcessorMode.FIQ => "FIQ",
+            ProcessorMode.IRQ => "IRQ",
+
+            ProcessorMode.ABT => "ABT",
+            ProcessorMode.UND => "UND",
+
+            _ => "???\0"
         };
     }
 }

@@ -15,11 +15,13 @@
                 _activePopups.Add(popup);
             }
 
-            foreach (var popup in _activePopups.ToList())
+
+            for (int i = _activePopups.Count - 1; i >= 0; i--)
             {
+                var popup = _activePopups[i];
                 popup.Render();
                 if (!popup.IsOpen)
-                    _activePopups.Remove(popup);
+                    _activePopups.RemoveAt(i);
             }
         }
     }

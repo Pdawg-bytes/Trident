@@ -1,5 +1,6 @@
 ﻿using ImGuiNET;
 using System.Numerics;
+using Trident.Utilities;
 using Trident.Core.Debugging.Snapshots;
 
 namespace Trident.Widgets.Debugger
@@ -29,16 +30,26 @@ namespace Trident.Widgets.Debugger
             if (!ImGui.Begin("Interrupts"))
             {
                 ImGui.End();
-                return;
+                return; 
             }
 
 
             IRQSnapshot snapshot = _getSnapshot();
 
             ImGui.PushFont(_monoFont);
-            ImGui.Text($"IME: {(snapshot.GlobalInterruptEnable ? "Enabled" : "Disabled")}");
-            ImGui.Text($"IE:  0b{Convert.ToString(snapshot.InterruptEnable, 2).PadLeft(16, '0')}");
-            ImGui.Text($"IF:  0b{Convert.ToString(snapshot.InterruptFlag, 2).PadLeft(16, '0')}");
+
+            Span<char> interruptBuf = stackalloc char[64];
+            var interruptStr = new StackString(interruptBuf);
+            interruptStr += "IME: ";
+            interruptStr += snapshot.GlobalInterruptEnable ? "Enabled" : "Disabled";
+
+            interruptStr += "\nIE:  0b";
+            interruptStr.AppendBinary(snapshot.InterruptEnable, 16);
+
+            interruptStr += "\nIF:  0b";
+            interruptStr.AppendBinary(snapshot.InterruptFlag, 16);
+
+            ImGui.TextUnformatted(interruptStr.AsSpan());
             ImGui.PopFont();
 
             if (ImGui.BeginTable("IRQTable", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
@@ -82,7 +93,7 @@ namespace Trident.Widgets.Debugger
         }
 
 
-        private void RenderInterrupt(IRQSnapshot snapshot, int bit, string label)
+        private void RenderInterrupt(IRQSnapshot snapshot, int bit, ReadOnlySpan<char> label)
         {
             ushort mask = (ushort)(1 << bit);
             bool enabled = (snapshot.InterruptEnable & mask) != 0;

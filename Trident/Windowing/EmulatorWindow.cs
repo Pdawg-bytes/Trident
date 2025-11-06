@@ -4,12 +4,13 @@ using Trident.Styling;
 using Trident.Widgets;
 using System.Text.Json;
 using Trident.Commands;
-using Trident.Emulation;
+using Trident.Utilities;
 using System.Reflection;
-using System.Diagnostics;
+using Trident.Emulation;
 using OpenTK.Mathematics;
-using Trident.Popups.File;
+using System.Diagnostics;
 using Trident.Interaction;
+using Trident.Popups.File;
 using Trident.Core.Machine;
 using System.ComponentModel;
 using OpenTK.Graphics.OpenGL4;
@@ -320,18 +321,26 @@ namespace Trident.Windowing
                     ImGui.EndMenu();
                 }
 
-                string value = $"{_emulatorThread.CurrentSpeed:F2}".PadLeft(6);
-                string speed = $"GBA Speed: {value}%";
-                var size = ImGui.CalcTextSize(speed);
+
+                Span<char> buf = stackalloc char[64];
+                var speedStr = new StackString(buf);
+
+                speedStr.Append("GBA Speed: ");
+                speedStr.AppendFormatted(_emulatorThread.CurrentSpeed, "F2");
+                speedStr.PadLeft(speedStr.Length + 6, ' ');
+                speedStr.Append('%');
+
+                var size = ImGui.CalcTextSize(speedStr.AsSpan());
                 float totalWidth = ImGui.GetWindowWidth();
 
                 ImGui.SameLine(totalWidth - size.X - 22);
 
-                if (ImGui.BeginMenu(speed))
+                if (ImGui.BeginMenu(speedStr.AsSpan()))
                 {
                     PopupManager.Show(_performancePopup);
                     ImGui.EndMenu();
                 }
+
 
                 ImGui.EndMainMenuBar();
             }

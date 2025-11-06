@@ -33,6 +33,7 @@ namespace Trident.Widgets.Debugger
         private const uint BytesPerRow = 16;
         private bool _showAscii = true;
         private readonly DebugMemoryRead<byte>[] _rowBytes = new DebugMemoryRead<byte>[BytesPerRow];
+        internal static readonly string[] _columnHeaders = Enumerable.Range(0, 16).Select(i => i.ToString("X2")).ToArray();
 
         internal MemoryViewer(ImFontPtr monoFont)
         {
@@ -49,7 +50,7 @@ namespace Trident.Widgets.Debugger
             if (!IsVisible || _readFunc == null)
                 return;
 
-            if (!ImGui.Begin("Memory Viewer"))
+            if (!ImGui.Begin("Memory Viewer", ImGuiWindowFlags.NoScrollWithMouse))
             {
                 ImGui.End();
                 return;
@@ -100,7 +101,7 @@ namespace Trident.Widgets.Debugger
             for (uint col = 0; col < 16; col++)
             {
                 ImGui.SameLine();
-                ImGui.TextUnformatted($"{col:X2}");
+                ImGui.TextUnformatted(_columnHeaders[col]);
             }
             ImGui.PopStyleColor();
             ImGui.PopFont();
@@ -143,9 +144,9 @@ namespace Trident.Widgets.Debugger
             }
 
 
-            Span<char> addrBuf  = stackalloc char[9];
-            Span<char> hexBuf   = stackalloc char[2];
-            Span<char> asciiBuf = stackalloc char[(int)bytesPerRow];
+            Span<char> addrBuf  = stackalloc char[10];
+            Span<char> hexBuf   = stackalloc char[4];
+            Span<char> asciiBuf = stackalloc char[(int)bytesPerRow + 2];
 
             for (uint row = firstVisibleRow; row < lastVisibleRow; row++)
             {
@@ -175,15 +176,16 @@ namespace Trident.Widgets.Debugger
 
                 if (_showAscii)
                 {
+                    var asciiStr = new StackString(asciiBuf);
                     for (int col = 0; col < bytesPerRow; col++)
                     {
                         var result = _rowBytes[col];
-                        asciiBuf[col] = result.IsValid && result.Value >= 32 && result.Value <= 126
+                        asciiStr += result.IsValid && result.Value >= 32 && result.Value <= 126
                             ? (char)result.Value
                             : '.';
                     }
                     ImGui.SameLine(450);
-                    ImGui.TextUnformatted(asciiBuf);
+                    ImGui.TextUnformatted(asciiStr.AsSpan());
                 }
             }
 
