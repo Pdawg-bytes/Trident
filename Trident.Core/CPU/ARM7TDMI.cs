@@ -198,7 +198,7 @@ namespace Trident.Core.CPU
 
         internal CPUSnapshot GetSnapshot() => new
         (
-            Registers.CopyRegisters(),
+            Registers.AsSpan(),
             (uint)Registers.CPSR,
             (uint)Registers.SPSR,
             Registers.CurrentMode

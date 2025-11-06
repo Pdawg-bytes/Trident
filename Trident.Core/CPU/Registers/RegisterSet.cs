@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Trident.Core.CPU.Registers
 {
@@ -190,18 +191,12 @@ namespace Trident.Core.CPU.Registers
             Console.WriteLine(new string('-', 30));
         }
 
-        public uint[] CopyRegisters()
+        public ReadOnlySpan<uint> AsSpan()
         {
-            uint[] result = new uint[RegisterArray.Length];
-
-            Unsafe.CopyBlockUnaligned
-            (
-                ref Unsafe.As<uint, byte>(ref result[0]),
-                ref Unsafe.As<RegisterArray, byte>(ref _registers),
-                (uint)(RegisterArray.Length * sizeof(uint))
+            return MemoryMarshal.CreateReadOnlySpan(
+                ref Unsafe.As<RegisterArray, uint>(ref Unsafe.AsRef(ref _registers)),
+                RegisterArray.Length
             );
-
-            return result;
         }
 
 

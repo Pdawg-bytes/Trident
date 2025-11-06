@@ -86,12 +86,12 @@ namespace Trident.Core.Memory.MappedIO
             SetAccessor(cntH, () => _dmaManager.ReadDMAControl(id), (value, mask) => _dmaManager.WriteDMAControlH(value, mask, id));
 
             // DMAXSAD
-            SetAccessor(sadBase + 0, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Lower, mask, id, true));
-            SetAccessor(sadBase + 2, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Upper, mask, id, true));
+            SetAccessor(sadBase + 0, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Lower, mask, id, source: true));
+            SetAccessor(sadBase + 2, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Upper, mask, id, source: true));
 
             // DMAXDAD
-            SetAccessor(dadBase + 0, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Lower, mask, id, false));
-            SetAccessor(dadBase + 2, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Upper, mask, id, false));
+            SetAccessor(dadBase + 0, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Lower, mask, id, source: false));
+            SetAccessor(dadBase + 2, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Upper, mask, id, source: false));
         }
     }
 }

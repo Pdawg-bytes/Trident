@@ -1,5 +1,6 @@
 ﻿using ImGuiNET;
 using System.Numerics;
+using Trident.Utilities;
 using Trident.Core.Memory;
 
 namespace Trident.Widgets.Debugger
@@ -56,7 +57,7 @@ namespace Trident.Widgets.Debugger
 
             ImGui.Dummy(new(0));
 
-            ImGui.Text("Region  ");
+            ImGui.TextUnformatted("Region  ");
             ImGui.SameLine();
             if (ImGui.BeginCombo("##regionCombo", _regions[_selectedRegionIndex].Name))
             {
@@ -76,7 +77,7 @@ namespace Trident.Widgets.Debugger
             ImGui.SameLine();
             ImGui.Checkbox("Show ASCII", ref _showAscii);
 
-            ImGui.Text("Address");
+            ImGui.TextUnformatted("Address");
             ImGui.SameLine();
             ImGui.SetNextItemWidth(140);
             if (ImGui.InputText("##gotoAddress", ref _gotoAddressInput, 16, ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CharsHexadecimal))
@@ -93,13 +94,13 @@ namespace Trident.Widgets.Debugger
 
             ImGui.BeginChild("MemoryViewerHeader", new Vector2(800, ImGui.GetFontSize()));
             ImGui.PushFont(_monoFont);
-            ImGui.Text("         ");
+            ImGui.TextUnformatted("         ");
             ImGui.SameLine();
             ImGui.PushStyleColor(ImGuiCol.Text, _addressColor);
             for (uint col = 0; col < 16; col++)
             {
                 ImGui.SameLine();
-                ImGui.Text($"{col:X2}");
+                ImGui.TextUnformatted($"{col:X2}");
             }
             ImGui.PopStyleColor();
             ImGui.PopFont();
@@ -112,7 +113,7 @@ namespace Trident.Widgets.Debugger
             var regionInfo = _readFunc(_baseAddress);
             if (!regionInfo.IsValid)
             {
-                ImGui.Text("Invalid memory region.");
+                ImGui.TextUnformatted("Invalid memory region.");
                 ImGui.EndChild();
                 ImGui.End();
                 return;
@@ -141,12 +142,20 @@ namespace Trident.Widgets.Debugger
                 _gotoRequested = false;
             }
 
+
+            Span<char> addrBuf  = stackalloc char[9];
+            Span<char> hexBuf   = stackalloc char[2];
+            Span<char> asciiBuf = stackalloc char[(int)bytesPerRow];
+
             for (uint row = firstVisibleRow; row < lastVisibleRow; row++)
             {
                 uint addr = regionStart + row * bytesPerRow;
 
                 ImGui.PushStyleColor(ImGuiCol.Text, _addressColor);
-                ImGui.Text($"{addr:X8} ");
+                var addrStr = new StackString(addrBuf);
+                addrStr.AppendFormatted(addr, "X8");
+                addrStr.Append(' ');
+                ImGui.TextUnformatted(addrStr.AsSpan());
                 ImGui.PopStyleColor();
                 ImGui.SameLine();
 
@@ -156,22 +165,25 @@ namespace Trident.Widgets.Debugger
                     var result = _rowBytes[col] = _readFunc(byteAddr);
 
                     ImGui.SameLine();
-                    ImGui.Text(result.IsValid ? $"{result.Value:X2}" : "??");
+                    if (result.IsValid)
+                    {
+                        var hexStr = new StackString(hexBuf);
+                        hexStr.AppendFormatted(result.Value, "X2");
+                        ImGui.TextUnformatted(hexStr.AsSpan());
+                    }
                 }
 
                 if (_showAscii)
                 {
-                    string ascii = "";
-                    for (uint col = 0; col < bytesPerRow; col++)
+                    for (int col = 0; col < bytesPerRow; col++)
                     {
                         var result = _rowBytes[col];
-                        char c = result.IsValid && result.Value >= 32 && result.Value <= 126
+                        asciiBuf[col] = result.IsValid && result.Value >= 32 && result.Value <= 126
                             ? (char)result.Value
                             : '.';
-                        ascii += c;
                     }
                     ImGui.SameLine(450);
-                    ImGui.Text(ascii);
+                    ImGui.TextUnformatted(asciiBuf);
                 }
             }
 
