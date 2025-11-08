@@ -98,7 +98,7 @@ namespace Trident.Widgets.Debugger
                     }
 
 
-                    string mnemonic = instr.MnemonicBase;
+                    /*string mnemonic = instr.MnemonicBase;
                     string cond = instr.ConditionCode;
 
                     const int targetColumn = 8;
@@ -128,7 +128,7 @@ namespace Trident.Widgets.Debugger
                         }
                     }
 
-                    ImGui.Unindent(LeftMargin);
+                    ImGui.Unindent(LeftMargin);*/
                 }
 
                 if (_followPC && currentRowIndex >= 0)

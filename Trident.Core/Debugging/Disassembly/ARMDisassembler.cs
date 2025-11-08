@@ -21,7 +21,7 @@ namespace Trident.Core.Debugging.Disassembly
 
         internal static DisassembledInstruction Disassemble(uint address, uint opcode, ARMGroup group)
         {
-            var instr = new DisassembledInstruction
+            /*var instr = new DisassembledInstruction
             {
                 Address = address,
                 Opcode = opcode,
@@ -49,6 +49,13 @@ namespace Trident.Core.Debugging.Disassembly
             instr.MnemonicBase = data.Mnemonic;
             instr.Operands = data.Operands;
             return instr;
+            */
+
+            return new DisassembledInstruction
+            {
+                Address = address,
+                Opcode = opcode,
+            };
         }
 
         

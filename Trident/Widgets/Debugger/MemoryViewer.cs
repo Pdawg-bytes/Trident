@@ -153,9 +153,7 @@ namespace Trident.Widgets.Debugger
                 uint addr = regionStart + row * bytesPerRow;
 
                 ImGui.PushStyleColor(ImGuiCol.Text, _addressColor);
-                var addrStr = new StackString(addrBuf);
-                addrStr.AppendFormatted(addr, "X8");
-                addrStr.Append(' ');
+                var addrStr = StackString.Interpolate(addrBuf, $"{addr:X8} ");
                 ImGui.TextUnformatted(addrStr.AsSpan());
                 ImGui.PopStyleColor();
                 ImGui.SameLine();
@@ -168,8 +166,7 @@ namespace Trident.Widgets.Debugger
                     ImGui.SameLine();
                     if (result.IsValid)
                     {
-                        var hexStr = new StackString(hexBuf);
-                        hexStr.AppendFormatted(result.Value, "X2");
+                        var hexStr = StackString.Interpolate(hexBuf, $"{result.Value:X2}");
                         ImGui.TextUnformatted(hexStr.AsSpan());
                     }
                 }

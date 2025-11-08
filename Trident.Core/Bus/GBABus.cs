@@ -98,13 +98,7 @@ namespace Trident.Core.Bus
                 _debugHandlers[i] = handler;
         }
 
-        internal IDebugMemory? GetRegionAsDebug(uint region)
-        {
-            if (region >= _debugHandlers.Length)
-                throw new ArgumentOutOfRangeException(nameof(region), $"Invalid region index: {region}");
-
-            return _debugHandlers[region];
-        }
+        internal IDebugMemory? GetRegionAsDebug(uint region) => (region >= _debugHandlers.Length) ? null : _debugHandlers[region];
 
 
         #region Read

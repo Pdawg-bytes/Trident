@@ -72,9 +72,7 @@ namespace Trident.Widgets.Debugger
                         if (IsBanked(regIndex, snapshot.Mode))
                             ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, _tableHighlight);
 
-                        var regStr = new StackString(regBuf);
-                        regStr.Append("R");
-                        regStr.AppendFormatted(regIndex);
+                        var regStr = StackString.Interpolate(regBuf, $"R{regIndex}");
 
                         HighlightChange(
                             regStr,
@@ -108,17 +106,14 @@ namespace Trident.Widgets.Debugger
                 var spsrStr = new StackString(spsrBuf);
                 if (!RegisterSet.IsUserOrSystem(snapshot.Mode))
                 {
-
-                    spsrStr.Append("0x");
-                    spsrStr.AppendFormatted(snapshot.SPSR, "X8");
+                    spsrStr = StackString.Interpolate(spsrBuf, $"0x{snapshot.SPSR:X8}");
                     ImGui.TextUnformatted(spsrStr.AsSpan());
 
                     _previousSPSR = snapshot.SPSR;
                 }
                 else
                 {
-                    spsrStr.Append("0x");
-                    spsrStr.AppendFormatted(_previousSPSR, "X8");
+                    spsrStr = StackString.Interpolate(spsrBuf, $"0x{_previousSPSR:X8}");
                     ImGui.TextDisabled(spsrStr.AsSpan());
                 }
 
@@ -165,9 +160,7 @@ namespace Trident.Widgets.Debugger
             ImGui.SameLine();
 
             Span<char> buffer = stackalloc char[20];
-            var valueStr = new StackString(buffer);
-            valueStr.Append("0x");
-            valueStr.AppendFormatted(current, "X8");
+            var valueStr = StackString.Interpolate(buffer, $"0x{current:X8}");
 
             if (previous.HasValue && current != previous.Value)
             {
@@ -205,7 +198,7 @@ namespace Trident.Widgets.Debugger
             ProcessorMode.ABT => "ABT",
             ProcessorMode.UND => "UND",
 
-            _ => "???\0"
+            _ => "???"
         };
     }
 }

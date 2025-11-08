@@ -1,4 +1,6 @@
-﻿namespace Trident.Utilities
+﻿using System.Runtime.CompilerServices;
+
+namespace Trident.Utilities
 {
     internal ref struct StackString
     {
@@ -86,5 +88,33 @@
             s.Append(text);
             return s;
         }
+
+
+        public static StackString Interpolate(Span<char> buffer, [InterpolatedStringHandlerArgument("buffer")] StackStringHandler handler) =>
+            handler.GetResult();
+    }
+
+
+    [InterpolatedStringHandler]
+    internal ref struct StackStringHandler
+    {
+        private StackString _target;
+
+        public StackStringHandler(int literalLength, int formattedCount, Span<char> buffer, out bool shouldAppend)
+        {
+            _target = new StackString(buffer);
+            shouldAppend = true;
+        }
+
+        public readonly StackString GetResult() => _target;
+
+
+        public void AppendLiteral(string s) => _target.Append(s);
+
+        public void AppendFormatted<T>(T value) where T : ISpanFormattable =>
+            _target.AppendFormatted(value);
+
+        public void AppendFormatted<T>(T value, string format) where T : ISpanFormattable =>
+            _target.AppendFormatted(value, format);
     }
 }

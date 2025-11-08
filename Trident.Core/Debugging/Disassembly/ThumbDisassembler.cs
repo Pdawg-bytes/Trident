@@ -24,7 +24,7 @@ namespace Trident.Core.Debugging.Disassembly
 
         internal static DisassembledInstruction Disassemble(uint address, uint lr, ushort opcode, ThumbGroup group)
         {
-            var instr = new DisassembledInstruction
+            /*var instr = new DisassembledInstruction
             {
                 Address = address,
                 Opcode = opcode,
@@ -60,7 +60,13 @@ namespace Trident.Core.Debugging.Disassembly
 
             instr.MnemonicBase = data.Mnemonic;
             instr.Operands = data.Operands;
-            return instr;
+            return instr;*/
+
+            return new DisassembledInstruction
+            {
+                Address = address,
+                Opcode = opcode,
+            };
         }
 
 
@@ -229,7 +235,7 @@ namespace Trident.Core.Debugging.Disassembly
         #region Branch
         private static InstructionData ConditionalBranch(uint opcode, uint address, ref DisassembledInstruction instr)
         {
-            instr.ConditionCode = ConditionCodeString((opcode >> 8) & 0x0F);
+            //instr.ConditionCode = ConditionCodeString((opcode >> 8) & 0x0F);
             uint offset = (uint)(opcode & 0xFF).ExtendFrom(8) << 1;
 
             return ("b", [$"0x{((address + offset) + 4):X8}"]);
