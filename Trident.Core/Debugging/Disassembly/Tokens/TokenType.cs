@@ -1,14 +1,14 @@
 ﻿namespace Trident.Core.Debugging.Disassembly.Tokens
 {
-    internal enum TokenType : byte
+    public enum TokenType : byte
     {
-        Mnemonic,
-        MnemonicSuffix,
+        Opcode,
         Condition,
         Register,
         Shift,
-        Immediate,
+        Number,
         PSR,
+        Coprocessor,
         Syntax
     }
 }

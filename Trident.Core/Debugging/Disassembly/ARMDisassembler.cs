@@ -43,10 +43,10 @@ namespace Trident.Core.Debugging.Disassembly
                 ARMGroup.BlockDataTransfer   => BlockDataTransfer(opcode),
                 ARMGroup.Swap                => Swap(opcode),
                 ARMGroup.SoftwareInterrupt   => SoftwareInterrupt(opcode),
-                _ => new InstructionData { Mnemonic = "??", Operands = ["??"] }
+                _ => new InstructionData { Opcode = "??", Operands = ["??"] }
             };
 
-            instr.MnemonicBase = data.Mnemonic;
+            instr.MnemonicBase = data.Opcode;
             instr.Operands = data.Operands;
             return instr;
             */

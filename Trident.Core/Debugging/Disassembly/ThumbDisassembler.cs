@@ -55,10 +55,10 @@ namespace Trident.Core.Debugging.Disassembly
                 ThumbGroup.UnconditionalBranch => UnconditionalBranch(opcode, address),
                 ThumbGroup.LongBranchWithLink  => LongBranchWithLink(opcode, lr),
                 ThumbGroup.BranchExchange      => BranchExchange(opcode),
-                _ => new InstructionData { Mnemonic = "??", Operands = ["??"] }
+                _ => new InstructionData { Opcode = "??", Operands = ["??"] }
             };
 
-            instr.MnemonicBase = data.Mnemonic;
+            instr.MnemonicBase = data.Opcode;
             instr.Operands = data.Operands;
             return instr;*/
 
