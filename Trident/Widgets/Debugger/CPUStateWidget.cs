@@ -133,6 +133,10 @@ namespace Trident.Widgets.Debugger
                         ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, _tableHighlight);
 
                     flagBuf[0] = _flags[col].Label;
+                    Vector2 cellSize = ImGui.GetContentRegionAvail();
+                    Vector2 textSize = ImGui.CalcTextSize(flagBuf);
+                    float xOffset = (cellSize.X - textSize.X) * 0.5f;
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + xOffset);
                     ImGui.TextUnformatted(flagBuf);
                 }
 

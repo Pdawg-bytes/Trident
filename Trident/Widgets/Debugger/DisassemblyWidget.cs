@@ -1,11 +1,9 @@
 ﻿using ImGuiNET;
-using System.Buffers.Binary;
 using System.Numerics;
-using System.Text;
+using Trident.Utilities;
+using System.Buffers.Binary;
 using Trident.Core.Debugging.Disassembly;
 using Trident.Core.Debugging.Disassembly.Tokens;
-using Trident.Utilities;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Trident.Widgets.Debugger
 {
@@ -67,6 +65,8 @@ namespace Trident.Widgets.Debugger
                 var (actualAddress, isThumb, instructions) = _disassembler.GetAroundPC(30, 30);
                 var instructionsSpan = instructions.Span;
 
+                Span<char> disasmBuffer = stackalloc char[64];
+                Span<char> padBuffer = stackalloc char[8];
                 Span<char> addrBuf = stackalloc char[16];
                 Span<char> opBuf = stackalloc char[16];
 
@@ -112,47 +112,43 @@ namespace Trident.Widgets.Debugger
                         ImGui.SameLine(0f, 10f);
                     }
 
+
+                    StackString text = new(disasmBuffer);
+                    StackString pad = new(padBuffer);
+
                     int mnemonicChars = 0;
-                    var reader = new TokenReader(instr.Tokens.Span[..instr.OperandsStartIndex]);
-                    while (reader.TryRead(out var tok))
-                    {
-                        mnemonicChars += tok.Type switch
-                        {
-                            TokenType.Mnemonic => tok.Length,
-                            TokenType.Syntax => 1,
-                            _ => tok.Data.Length,
-                        };
-                    }
-
                     const int targetColumn = 8;
-                    int padding = Math.Max(0, targetColumn - mnemonicChars);
 
-                    reader = new TokenReader(instr.Tokens.Span[..instr.OperandsStartIndex]);
-                    while (reader.TryRead(out var tok))
+                    var reader = new TokenReader(instr.Tokens.Span);
+                    while (!reader.EndOfStream)
                     {
-                        Vector4 color;
+                        if (!reader.TryRead(out var token, out int tokenOffset))
+                            break;
 
-                        if (tok.Type == TokenType.Mnemonic && tok.Data[0] == 1)
-                            color = _colorCondition;
-                        else
-                            color = GetColorForToken(tok.Type);
+                        bool isOperand = tokenOffset >= instr.OperandsStartIndex;
 
-                        ImGui.TextColored(color, DecodeTokenText(tok));
+                        if (!isOperand)
+                        {
+                            mnemonicChars += token.Type switch
+                            {
+                                TokenType.Mnemonic => token.Length,
+                                TokenType.Syntax   => 1,
+                                _                  => token.Data.Length,
+                            };
+                        }
+
+                        text = new(disasmBuffer);
+                        DecodeTokenText(token, ref text);
+                        ImGui.TextColored(GetColorForToken(token), text.AsSpan());
                         ImGui.SameLine(0f, 0f);
 
-                        if (reader.Remaining == 0 && padding > 0)
+                        if (!isOperand && tokenOffset + 1 + token.Data.Length >= instr.OperandsStartIndex && mnemonicChars < targetColumn)
                         {
-                            ImGui.TextUnformatted(new string(' ', padding));
+                            pad = new(padBuffer);
+                            pad.Repeat(' ', targetColumn - mnemonicChars);
+                            ImGui.TextUnformatted(pad.AsSpan());
                             ImGui.SameLine(0f, 0f);
                         }
-                    }
-
-                    reader = new TokenReader(instr.Tokens.Span[instr.OperandsStartIndex..]);
-                    while (reader.TryRead(out var tok))
-                    {
-                        var color = GetColorForToken(tok.Type);
-                        ImGui.TextColored(color, DecodeTokenText(tok));
-                        ImGui.SameLine(0f, 0f);
                     }
 
                     ImGui.Unindent(LeftMargin);
@@ -176,69 +172,91 @@ namespace Trident.Widgets.Debugger
         }
 
 
-        private Vector4 GetColorForToken(TokenType type) => type switch
+        private Vector4 GetColorForToken(Token token)
         {
-            TokenType.Register => new Vector4(0.65f, 0.80f, 1.00f, 1.0f),
-            TokenType.PSR      => new Vector4(0.50f, 0.90f, 0.60f, 1.0f),
-            TokenType.Number   => new Vector4(0.95f, 0.65f, 0.80f, 1.0f),
-            TokenType.Mnemonic => new Vector4(0.55f, 0.95f, 0.85f, 1.0f),
-            TokenType.Syntax   => new Vector4(1f),
-            //TokenType.Label  => new Vector4(0.90f, 0.80f, 0.55f, 1.0f),
-            TokenType.Unknown  => new Vector4(0.80f, 0.30f, 0.30f, 1.0f),
-            _ => new Vector4(1f)
-        };
+            if (token.Type == TokenType.Number && (token.Data[0] & 2) != 0)
+                return new Vector4(0.90f, 0.80f, 0.55f, 1.0f);
 
+            if (token.Type == TokenType.Mnemonic && token.Data[0] == 1)
+                return _colorCondition;
 
-        string DecodeTokenText(Token tok)
-        {
-            switch (tok.Type)
+            return token.Type switch
             {
-                case TokenType.Mnemonic:
-                    {
-                        bool cond = tok.Data[0] != 0;
-                        return Encoding.ASCII.GetString(tok.Data.Slice(1, tok.Length));
-                    }
-
-                case TokenType.Register: return _registers[tok.Data[0]];
-
-                case TokenType.Number:
-                    byte flag = tok.Data[0];
-                    bool neg = (flag & 1) != 0;
-                    bool lbl = (flag & 2) != 0;
-                    uint val = BinaryPrimitives.ReadUInt32LittleEndian(tok.Data.Slice(1, 4));
-                    return $"{(lbl ? "" : "#")}{(neg ? "-" : "")}0x{val:X}";
-
-                case TokenType.PSR:
-                    byte b = tok.Data[0];
-                    bool cpsr = (b & 0x80) != 0;
-                    PSRFlags flags = (PSRFlags)(b & 0x7F);
-                    return flags == PSRFlags.None
-                        ? (cpsr ? "cpsr" : "spsr")
-                        : $"{(cpsr ? "cpsr" : "spsr")}_{FormatFlags(flags)}";
-
-                case TokenType.Coprocessor:
-                    {
-                        byte f = tok.Data[0];
-                        bool isReg = (f & 0x80) != 0;
-                        byte idx = (byte)(f & 0x0F);
-                        return $"{(isReg ? 'c' : 'p')}{idx}";
-                    }
-
-                case TokenType.Syntax:
-                    return ((char)tok.Data[0]).ToString();
-
-                default: return Encoding.ASCII.GetString(tok.Data);
-            }
+                TokenType.Register => new Vector4(0.65f, 0.80f, 1.00f, 1.0f),
+                TokenType.PSR      => new Vector4(0.50f, 0.90f, 0.60f, 1.0f),
+                TokenType.Number   => new Vector4(0.95f, 0.65f, 0.80f, 1.0f),
+                TokenType.Mnemonic => new Vector4(0.55f, 0.95f, 0.85f, 1.0f),
+                TokenType.Syntax   => new Vector4(1f),
+                TokenType.Unknown  => new Vector4(0.80f, 0.30f, 0.30f, 1.0f),
+                _                  => new Vector4(0.80f, 0.30f, 0.30f, 1.0f)
+            };
         }
 
-        string FormatFlags(PSRFlags flags)
+
+        private void DecodeTokenText(Token token, ref StackString output)
         {
-            const string flagStr = "fsxc";
-            var sb = new StringBuilder();
-            for (int j = 0; j < 4; j++)
-                if (((int)flags & (1 << j)) != 0)
-                    sb.Append(flagStr[j]);
-            return sb.ToString();
+            switch (token.Type)
+            {
+                case TokenType.Mnemonic:
+                    output.Append(token.Data.Slice(1, token.Length));
+                    break;
+
+                case TokenType.Register:
+                    output.Append(_registers[token.Data[0]]);
+                    break;
+
+                case TokenType.Number:
+                    {
+                        byte flag = token.Data[0];
+                        bool neg = (flag & 1) != 0;
+                        bool lbl = (flag & 2) != 0;
+                        bool hex = (flag & 4) != 0;
+                        uint val = BinaryPrimitives.ReadUInt32LittleEndian(token.Data.Slice(1, 4));
+
+                        if (!lbl) output.Append('#');
+                        if (neg) output.Append('-');
+                        if (hex) output.Append("0x");
+                        output.AppendFormatted(val, hex ? (lbl ? "X8" : "X") : "");
+                    }
+                    break;
+
+                case TokenType.PSR:
+                    {
+                        byte flag = token.Data[0];
+                        bool cpsr = (flag & 0x80) != 0;
+                        PSRFlags flags = (PSRFlags)(flag & 0x7F);
+
+                        output.Append(cpsr ? "cpsr" : "spsr");
+
+                        if (flags != PSRFlags.None)
+                        {
+                            output.Append('_');
+
+                            const string flagStr = "fsxc";
+
+                            for (int i = 0; i < 4; i++)
+                                if (((int)flags & (1 << i)) != 0)
+                                    output.Append(flagStr[i]);
+                        }
+                    }
+                    break;
+
+                case TokenType.Coprocessor:
+                    byte f = token.Data[0];
+                    bool isReg = (f & 0x80) != 0;
+                    byte idx = (byte)(f & 0x0F);
+                    output.Append(isReg ? 'c' : 'p');
+                    output.AppendFormatted(idx);
+                    break;
+
+                case TokenType.Syntax:
+                    output.Append((char)token.Data[0]);
+                    break;
+
+                default:
+                    output.Append(token.Data);
+                    break;
+            }
         }
     }
 }

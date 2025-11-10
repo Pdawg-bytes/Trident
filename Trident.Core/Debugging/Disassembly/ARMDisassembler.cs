@@ -1,4 +1,5 @@
 ﻿using Trident.Core.Global;
+using Trident.Core.CPU.Decoding;
 using Trident.CodeGeneration.Shared;
 using System.Runtime.CompilerServices;
 using Trident.Core.Debugging.Disassembly.Tokens;
@@ -23,7 +24,7 @@ namespace Trident.Core.Debugging.Disassembly
             {
                 ARMGroup.BranchExchange      => BranchExchange(opcode, tokenBuffer),
                 ARMGroup.BranchWithLink      => BranchWithLink(opcode, address, tokenBuffer),
-                //ARMGroup.DataProcessing      => DataProcessing(opcode, address, tokenBuffer),
+                ARMGroup.DataProcessing      => DataProcessing(opcode, address, tokenBuffer),
                 ARMGroup.PSRTransfer         => PSRTransfer(opcode, tokenBuffer),
                 ARMGroup.Multiply            => Multiply(opcode, tokenBuffer),
                 ARMGroup.MultiplyLong        => MultiplyLong(opcode, tokenBuffer),
@@ -32,28 +33,11 @@ namespace Trident.Core.Debugging.Disassembly
                 ARMGroup.BlockDataTransfer   => BlockDataTransfer(opcode, tokenBuffer),
                 ARMGroup.Swap                => Swap(opcode, tokenBuffer),
                 ARMGroup.SoftwareInterrupt   => SoftwareInterrupt(opcode, tokenBuffer),
-                _ => default
+
+                _ => EmitUnknownInstruction(tokenBuffer)
             };
 
-
-            ReadOnlySpan<char> condText = ConditionCodeString(opcode >> 28);
-            if (!condText.IsEmpty)
-            {
-                int condLen = 2 + condText.Length;
-
-                if (result.BytesWritten + condLen > tokenBuffer.Length)
-                    throw new InvalidOperationException($"Not enough space in token buffer to insert condition token (need {condLen} bytes).");
-
-                for (int i = result.BytesWritten - 1; i >= result.OperandsStartIndex; i--)
-                    tokenBuffer[i + condLen] = tokenBuffer[i];
-
-                var slice = tokenBuffer.AsSpan(result.OperandsStartIndex);
-                var dummyWriter = new TokenWriter(slice);
-                dummyWriter.AppendFormatted(new Mnemonic(condText, isCondition: true));
-
-                result.BytesWritten += condLen;
-                result.OperandsStartIndex += condLen;
-            }
+            InsertConditionMnemonic(opcode >> 28, tokenBuffer, ref result);
 
             return new DisassembledInstruction
             {
@@ -84,17 +68,21 @@ namespace Trident.Core.Debugging.Disassembly
 
 
         #region Data processing
-        /*private static WriteResult DataProcessing(uint opcode, uint address, Span<byte> buffer)
+        private static WriteResult DataProcessing(uint opcode, uint address, Span<byte> buffer)
         {
-            uint rd         = (opcode >> 12) & 0x0F;
-            uint rn         = (opcode >> 16) & 0x0F;
-            string setFlags = opcode.IsBitSet(20) ? "s" : "";
-            bool immediate  = opcode.IsBitSet(25);
-            ALUOpARM op     = (ALUOpARM)((opcode >> 21) & 0x0F);
+            uint rd = (opcode >> 12) & 0x0F;
+            uint rn = (opcode >> 16) & 0x0F;
+            bool setFlags = opcode.IsBitSet(20);
+            bool immediate = opcode.IsBitSet(25);
+            ALUOpARM op = (ALUOpARM)((opcode >> 21) & 0x0F);
 
-            string mnemonic = _dataProcessingMnemonics[(int)op] + (((int)op >= 0b1000 && (int)op <= 0b1011) ? "" : setFlags);
+            TokenWriter writer = new(buffer);
 
-            string operand;
+            writer.AppendFormatted(new Mnemonic(_dataProcessingMnemonics[(int)op]));
+            if (setFlags && (op < ALUOpARM.TST || op > ALUOpARM.CMN))
+                writer.AppendFormatted(new Mnemonic("s"));
+
+            writer.BeginOperands();
             if (immediate)
             {
                 uint value = RotatedImmediate(opcode);
@@ -103,25 +91,66 @@ namespace Trident.Core.Debugging.Disassembly
                     if (op == ALUOpARM.SUB) value = address - value;
                     if (op == ALUOpARM.ADD) value = address + value;
                 }
-                operand = $"#0x{value:X}";
+
+                switch (op)
+                {
+                    case ALUOpARM.ADD or ALUOpARM.SUB when rn == 15:
+                        writer.AppendFormatted(new Register(rd));
+                        writer.SyntaxSpace(',');
+                        writer.AppendFormatted(new Number(value));
+                        break;
+
+                    case ALUOpARM.TST or ALUOpARM.TEQ or ALUOpARM.CMP or ALUOpARM.CMN:
+                        writer.AppendFormatted(new Register(rn));
+                        writer.SyntaxSpace(',');
+                        writer.AppendFormatted(new Number(value));
+                        break;
+
+                    case ALUOpARM.MOV or ALUOpARM.MVN:
+                        writer.AppendFormatted(new Register(rd));
+                        writer.SyntaxSpace(',');
+                        writer.AppendFormatted(new Number(value));
+                        break;
+
+                    default:
+                        writer.AppendFormatted(new Register(rd));
+                        writer.SyntaxSpace(',');
+                        writer.AppendFormatted(new Register(rn));
+                        writer.SyntaxSpace(',');
+                        writer.AppendFormatted(new Number(value));
+                        break;
+                }
             }
             else
-                operand = ShiftedRegister(opcode & 0x0FFF);
-
-            return op switch
             {
-                ALUOpARM.ADD or ALUOpARM.SUB when rn == 15 && immediate
-                    => (mnemonic, [_registers[rd], operand]),
+                ShiftedOperand shifted = new(opcode & 0x0FFF);
 
-                ALUOpARM.TST or ALUOpARM.TEQ or ALUOpARM.CMP or ALUOpARM.CMN
-                    => (mnemonic, [_registers[rn], operand]),
+                switch (op)
+                {
+                    case ALUOpARM.TST or ALUOpARM.TEQ or ALUOpARM.CMP or ALUOpARM.CMN:
+                        writer.AppendFormatted(new Register(rn));
+                        writer.SyntaxSpace(',');
+                        writer.AppendFormatted(shifted);
+                        break;
 
-                ALUOpARM.MOV or ALUOpARM.MVN
-                    => (mnemonic, [_registers[rd], operand]),
+                    case ALUOpARM.MOV or ALUOpARM.MVN:
+                        writer.AppendFormatted(new Register(rd));
+                        writer.SyntaxSpace(',');
+                        writer.AppendFormatted(shifted);
+                        break;
 
-                _ => (mnemonic, [_registers[rd], _registers[rn], operand])
-            };
-        }*/
+                    default:
+                        writer.AppendFormatted(new Register(rd));
+                        writer.SyntaxSpace(',');
+                        writer.AppendFormatted(new Register(rn));
+                        writer.SyntaxSpace(',');
+                        writer.AppendFormatted(shifted);
+                        break;
+                }
+            }
+
+            return writer.Finalize();
+        }
         #endregion
 
 
@@ -217,7 +246,7 @@ namespace Trident.Core.Debugging.Disassembly
                     case (true, true):   writer.AppendFormatted(new ShiftedOperand(data)); break;
                     case (true, false):  writer.Syntax('-'); writer.AppendFormatted(new ShiftedOperand(data)); break;
                     case (false, true):  if (data != 0) { writer.AppendFormatted(new Number(data)); } break;
-                    case (false, false): if (data != 0) { writer.Syntax('-'); writer.AppendFormatted(new Number(data)); } break;
+                    case (false, false): if (data != 0) { writer.AppendFormatted(new Number(data, negative: true)); } break;
                 }
             }
 
@@ -277,8 +306,7 @@ namespace Trident.Core.Debugging.Disassembly
                 if (immediate)
                 {
                     int imm = (int)(((opcode >> 4) & 0xF0) | (opcode & 0x0F));
-                    if (!add) writer.Syntax('-');
-                    writer.AppendFormatted(new Number((uint)imm));
+                    writer.AppendFormatted(new Number((uint)imm, negative: !add));
                 }
                 else
                 {

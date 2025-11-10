@@ -1,6 +1,5 @@
-﻿using Trident.Core.CPU;
+﻿using Trident.Core.Global;
 using Trident.Core.Debugging.Disassembly.Tokens;
-using Trident.Core.Global;
 
 using static Trident.Core.CPU.Conditions;
 
@@ -8,7 +7,17 @@ namespace Trident.Core.Debugging.Disassembly
 {
     internal static class DisassemblerUtilities
     {
-        internal readonly static string[] _registers = ["r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "sp", "lr", "pc"];
+        internal static WriteResult EmitUnknownInstruction(Span<byte> buffer)
+        {
+            TokenWriter writer = new(buffer);
+            writer.AppendFormatted(new Mnemonic("???"));
+            writer.BeginOperands();
+            writer.Unknown("???");
+            return writer.Finalize();
+        }
+
+
+        internal static uint RotatedImmediate(uint immData) => (immData & 0xFF).RotateRight((((int)immData >> 8) & 0x0F) << 1);
 
 
         internal static ReadOnlySpan<char> ConditionCodeString(uint condition) => condition switch
@@ -30,6 +39,28 @@ namespace Trident.Core.Debugging.Disassembly
             CondAL => ReadOnlySpan<char>.Empty,
             _ => "??"
         };
+
+        internal static void InsertConditionMnemonic(uint condition, Span<byte> tokenBuffer, ref WriteResult result)
+        {
+            ReadOnlySpan<char> condText = ConditionCodeString(condition);
+            if (condText.IsEmpty)
+                return;
+
+            int condLen = 2 + condText.Length;
+
+            if (result.BytesWritten + condLen > tokenBuffer.Length)
+                throw new InvalidOperationException($"Not enough space in token buffer to insert condition token (need {condLen} bytes).");
+
+            for (int i = result.BytesWritten - 1; i >= result.OperandsStartIndex; i--)
+                tokenBuffer[i + condLen] = tokenBuffer[i];
+
+            var slice  = tokenBuffer.Slice(result.OperandsStartIndex, condLen);
+            var writer = new TokenWriter(slice);
+            writer.AppendFormatted(new Mnemonic(condText, isCondition: true));
+
+            result.BytesWritten += condLen;
+            result.OperandsStartIndex += condLen;
+        }
 
 
         internal static void AppendRegisterList(ref TokenWriter writer, uint rlist, bool userMode)
@@ -89,77 +120,5 @@ namespace Trident.Core.Debugging.Disassembly
             if (userMode)
                 writer.Syntax('^');
         }
-
-
-        internal static string RegisterList(uint rlist)
-        {
-            List<string> parts = [];
-            int? rangeStart = null;
-            int rangeLength = 0;
-
-            for (int i = 0; i <= 16; i++)
-            {
-                bool set = i < 16 && (rlist & (1u << i)) != 0;
-
-                if (set)
-                {
-                    if (!rangeStart.HasValue)
-                    {
-                        rangeStart = i;
-                        rangeLength = 1;
-                    }
-                    else
-                        rangeLength++;
-                }
-                else if (rangeStart.HasValue)
-                {
-                    int start = rangeStart.Value;
-                    int end = i - 1;
-
-                    if (rangeLength >= 3)
-                        parts.Add($"{_registers[start]}-{_registers[end]}");
-                    else
-                        for (int j = start; j <= end; j++)
-                            parts.Add(_registers[j]);
-
-                    rangeStart = null;
-                    rangeLength = 0;
-                }
-            }
-
-            return '{' + string.Join(", ", parts) + '}';
-        }
-
-
-        internal static string ShiftedRegister(uint shiftData)
-        {
-            uint rm = shiftData & 0x0F;
-            bool regShift = shiftData.IsBitSet(4);
-            ShiftType type = (ShiftType)((shiftData >> 5) & 0b11);
-
-            string mnemonic = new[] { "lsl", "lsr", "asr", "ror" }[(int)type];
-
-            if (regShift)
-            {
-                string rs = _registers[(shiftData >> 8) & 0x0F];
-                return $"{_registers[rm]}, {mnemonic} {rs}";
-            }
-
-            uint shamt = (shiftData >> 7) & 0x1F;
-
-            if (shamt == 0 && (type == ShiftType.LSR || type == ShiftType.ASR))
-                shamt = 32;
-
-            if (shamt == 0)
-            {
-                return type == ShiftType.ROR
-                    ? $"{_registers[rm]}, rrx"
-                    : _registers[rm];
-            }
-
-            return $"{_registers[rm]}, {mnemonic} #{shamt}";
-        }
-
-        internal static uint RotatedImmediate(uint immData) => (immData & 0xFF).RotateRight((((int)immData >> 8) & 0x0F) << 1);
     }
 }

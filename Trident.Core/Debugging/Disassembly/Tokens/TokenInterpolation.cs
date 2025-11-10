@@ -22,11 +22,12 @@ namespace Trident.Core.Debugging.Disassembly.Tokens
             _buffer = buffer;
             _offset = 0;
             success = true;
+            OperandsStartIndex = -1;
         }
 
         public TokenWriter(Span<byte> buffer) => _buffer = buffer;
 
-        internal WriteResult Finalize() => new(Written, OperandsStartIndex);
+        internal readonly WriteResult Finalize() => new(Written, OperandsStartIndex);
 
 
 
@@ -112,8 +113,9 @@ namespace Trident.Core.Debugging.Disassembly.Tokens
 
             Write((byte)
             (
-                (num.Negative ? 1 : 0) |
-                ((num.IsLabel ? 1 : 0) << 1)
+                (num.Negative   ? 1 : 0)       |
+                ((num.IsLabel   ? 1 : 0) << 1) |
+                ((num.HexFormat ? 1 : 0) << 2)
             ));
 
             BinaryPrimitives.WriteUInt32LittleEndian(_buffer.Slice(_offset, 4), num.Value);
@@ -175,6 +177,16 @@ namespace Trident.Core.Debugging.Disassembly.Tokens
         }
 
 
+        public void Unknown(ReadOnlySpan<char> text)
+        {
+            if (text.Length > 15)
+                throw new ArgumentException("Token text too long (max 15 chars).");
+
+            Write(MakeHeader(TokenType.Unknown, text.Length, hasFlag: false));
+            for (int i = 0; i < text.Length; i++) Write((byte)text[i]);
+        }
+
+
         public void BeginOperands()
         {
             if (!_inOperands)
@@ -205,7 +217,8 @@ namespace Trident.Core.Debugging.Disassembly.Tokens
         private ReadOnlySpan<byte> _data;
         private int _offset;
 
-        public readonly int Remaining => _data.Length - _offset;
+        public readonly int Position     => _offset;
+        public readonly int Remaining    => _data.Length - _offset;
         public readonly bool EndOfStream => _offset >= _data.Length;
 
         public TokenReader(ReadOnlySpan<byte> data)
@@ -214,17 +227,19 @@ namespace Trident.Core.Debugging.Disassembly.Tokens
             _offset = 0;
         }
 
-        public bool TryRead(out Token token)
+        public bool TryRead(out Token token, out int tokenStartOffset)
         {
+            tokenStartOffset = _offset;
+
             if (_offset >= _data.Length)
             {
                 token = default;
                 return false;
             }
 
-            byte header  = _data[_offset++];
-            var type     = (TokenType)(header & 0x7);
-            int length   = (header >> 3) & 0xF;
+            byte header = _data[_offset++];
+            var type = (TokenType)(header & 0x7);
+            int length = (header >> 3) & 0xF;
             bool hasFlag = (header & 0x80) != 0;
 
             int payloadLen = length + (hasFlag ? 1 : 0);
@@ -243,10 +258,10 @@ namespace Trident.Core.Debugging.Disassembly.Tokens
 
         public readonly ReadOnlySpan<byte> Data { get; }
 
-        public Token(TokenType type, int length, bool hasFlag, ReadOnlySpan<byte> data)
+        public Token(TokenType type, int dataLength, bool hasFlag, ReadOnlySpan<byte> data)
         {
             Type    = type;
-            Length  = length;
+            Length  = dataLength;
             HasFlag = hasFlag;
             Data    = data;
         }
@@ -258,14 +273,15 @@ namespace Trident.Core.Debugging.Disassembly.Tokens
     internal readonly ref struct Mnemonic(ReadOnlySpan<char> text, bool isCondition = false)
     {
         internal readonly ReadOnlySpan<char> Text = text;
-        internal readonly bool IsCondition = isCondition;
+        internal readonly bool IsCondition        = isCondition;
     }
 
-    internal readonly ref struct Number(uint value, bool negative = false, bool isLabel = false)
+    internal readonly ref struct Number(uint value, bool negative = false, bool isLabel = false, bool hexFormat = true)
     {
-        internal readonly uint Value = value;
-        internal readonly bool Negative = negative;
-        internal readonly bool IsLabel = isLabel;
+        internal readonly uint Value     = value;
+        internal readonly bool Negative  = negative;
+        internal readonly bool IsLabel   = isLabel;
+        internal readonly bool HexFormat = hexFormat;
     }
 
 
@@ -277,13 +293,13 @@ namespace Trident.Core.Debugging.Disassembly.Tokens
     internal readonly ref struct Coprocessor(int registerIndex, bool isRegister)
     {
         internal readonly int RegisterIndex = registerIndex;
-        internal readonly bool IsRegister = isRegister;
+        internal readonly bool IsRegister   = isRegister;
     }
 
 
     internal readonly ref struct PSR(bool cpsr, PSRFlags flags)
     {
-        internal readonly bool CPSR = cpsr;
+        internal readonly bool CPSR      = cpsr;
         internal readonly PSRFlags Flags = flags;
     }
 
@@ -326,7 +342,7 @@ namespace Trident.Core.Debugging.Disassembly.Tokens
                     shamt = 32;
 
                 RRX         = (shamt == 0 && Type == ShiftType.ROR);
-                ShiftAmount = new Number(shamt, negative: false);
+                ShiftAmount = new Number(shamt, negative: false, hexFormat: false);
                 Rs          = default;
             }
         }

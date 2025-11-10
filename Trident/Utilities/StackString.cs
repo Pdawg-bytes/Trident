@@ -27,8 +27,17 @@ namespace Trident.Utilities
         {
             int available = _buffer.Length - _length;
             int toCopy = Math.Min(text.Length, available);
-            text[..toCopy].CopyTo(_buffer.Slice(_length));
+            text[..toCopy].CopyTo(_buffer[_length..]);
             _length += toCopy;
+        }
+
+        internal void Append(ReadOnlySpan<byte> asciiBytes)
+        {
+            int available = _buffer.Length - _length;
+            int toCopy = Math.Min(asciiBytes.Length, available);
+
+            for (int i = 0; i < toCopy; i++)
+                _buffer[_length++] = (char)asciiBytes[i];
         }
 
         internal void AppendFormatted<T>(T value, ReadOnlySpan<char> format = default)
@@ -67,6 +76,15 @@ namespace Trident.Utilities
             int missing = totalWidth - _length;
             for (int i = 0; i < missing && _length < _buffer.Length - 1; i++)
                 Append(padChar);
+        }
+
+
+        internal void Repeat(char c, int count)
+        {
+            int available = _buffer.Length - _length;
+            int toWrite = Math.Min(count, available);
+            for (int i = 0; i < toWrite; i++)
+                _buffer[_length++] = c;
         }
 
 

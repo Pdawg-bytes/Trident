@@ -6,25 +6,13 @@ using Trident.Core.Debugging.Snapshots;
 
 namespace Trident.Core.Debugging.Disassembly
 {
-    public sealed class Disassembler
+    public sealed class Disassembler(Func<uint, IDebugMemory?> getRegion, Func<uint> getPC, Func<CPUSnapshot> getSnapshot)
     {
         internal bool Enabled { get; set; }
-
-        private readonly Func<uint, IDebugMemory?> _getRegion;
-
-        private readonly Func<uint> _getPC;
-        private readonly Func<CPUSnapshot> _getSnapshot;
 
         private byte[][] _tokenBuffer = [];
         private DisassembledInstruction[] _disasmBuffer = [];
         private int _disasmCount;
-
-        public Disassembler(Func<uint, IDebugMemory?> getRegion, Func<uint> getPC, Func<CPUSnapshot> getSnapshot)
-        {
-            _getRegion   = getRegion;
-            _getPC       = getPC;
-            _getSnapshot = getSnapshot;
-        }
 
 
         public (uint ActualPC, bool Thumb, ReadOnlyMemory<DisassembledInstruction> Instructions) GetAroundPC(uint before, uint after)
@@ -34,10 +22,10 @@ namespace Trident.Core.Debugging.Disassembly
 
             uint lr = 0;
 
-            uint pc = _getPC();
-            bool thumb = _getSnapshot().CPSR.IsBitSet(5);
+            uint pc    = getPC();
+            bool thumb = getSnapshot().CPSR.IsBitSet(5);
 
-            IDebugMemory? region = _getRegion(pc >> 24);
+            IDebugMemory? region = getRegion(pc >> 24);
             if (region is null)
                 return (0, thumb, ReadOnlyMemory<DisassembledInstruction>.Empty);
 
@@ -65,42 +53,23 @@ namespace Trident.Core.Debugging.Disassembly
 
                 if (thumb)
                 {
-                    /*ushort opcode = region.DebugRead<ushort>(addr);
-                    var (group, cacheable) = ClassifyThumb(opcode);
+                    ushort opcode    = region.DebugRead<ushort>(addr);
+                    ThumbGroup group = ThumbDecoder.DetermineThumbGroup(opcode);
 
-                    DisassembledInstruction instr;
-                    if (cacheable)
-                    {
-                        instr = _thumbCache.Get(opcode);
-                        instr.Address = addr;
-                        instr.Mnemonic = opcode;
-                    }
-                    else
-                        instr = ThumbDisassembler.Disassemble(addr, lr, opcode, group);
-
+                    DisassembledInstruction instr = ThumbDisassembler.Disassemble(addr, lr, opcode, group, _tokenBuffer[i]);
                     _disasmBuffer[i] = instr;
 
                     if (group == ThumbGroup.LongBranchWithLink)
                     {
                         uint offset = (uint)((uint)opcode & 0x07FF).ExtendFrom(11) << 12;
                         lr = addr + 4 + offset;
-                    }*/
+                    }
                 }
                 else
                 {
                     uint opcode = region.DebugRead<uint>(addr);
-                    var (group, cacheable) = ClassifyARM(opcode);
 
-                    DisassembledInstruction instr;
-                    /*if (cacheable)
-                    {
-                        instr = _armCache.Get(opcode);
-                        instr.Address = addr;
-                        instr.Mnemonic = opcode;
-                    }
-                    else*/
-                        instr = ARMDisassembler.Disassemble(addr, opcode, group, _tokenBuffer[i]);
-
+                    DisassembledInstruction instr = ARMDisassembler.Disassemble(addr, opcode, _tokenBuffer[i]);
                     _disasmBuffer[i] = instr;
                 }
             }
@@ -111,7 +80,7 @@ namespace Trident.Core.Debugging.Disassembly
         private static (uint start, uint end) GetDisasmWindow(uint pc, uint before, uint after, uint instrSize, IDebugMemory region)
         {
             before *= instrSize;
-            after *= instrSize;
+            after  *= instrSize;
 
             uint min = region.BaseAddress;
             uint max = region.EndAddress;
@@ -123,43 +92,6 @@ namespace Trident.Core.Debugging.Disassembly
             if (end > max) end = max;
 
             return (start, end);
-        }
-
-
-        private static (ThumbGroup group, bool cacheable) ClassifyThumb(ushort opcode)
-        {
-            ThumbGroup group = ThumbDecoder.DetermineThumbGroup(opcode);
-            bool cacheable = group switch
-            {
-                ThumbGroup.LoadPCRelative      => false,
-                ThumbGroup.LoadAddress         => false,
-                ThumbGroup.ConditionalBranch   => false,
-                ThumbGroup.UnconditionalBranch => false,
-                ThumbGroup.LongBranchWithLink  => false,
-                _ => true
-            };
-            return (group, cacheable);
-        }
-
-        private static (ARMGroup group, bool cacheable) ClassifyARM(uint opcode)
-        {
-            ARMGroup group = ARMDecoder.DetermineARMGroup(opcode);
-            bool cacheable = group switch
-            {
-                ARMGroup.BranchWithLink => false,
-                ARMGroup.DataProcessing => CachableDataProc(opcode),
-                _ => true
-            };
-            return (group, cacheable);
-        }
-
-        private static bool CachableDataProc(uint opcode)
-        {
-            ALUOpARM op    = (ALUOpARM)((opcode >> 21) & 0x0F);
-            uint rn        = (opcode >> 16) & 0xF;
-            bool immediate = (opcode & (1 << 25)) != 0;
-
-            return !(immediate && rn == 15 && (op == ALUOpARM.ADD || op == ALUOpARM.SUB));
         }
     }
 

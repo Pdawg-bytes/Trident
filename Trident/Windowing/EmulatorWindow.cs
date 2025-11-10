@@ -143,8 +143,8 @@ namespace Trident.Windowing
             InitFramebufferTexture();
             InitWidgets();
 
-            _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, @"C:\Users\pgago\Downloads\gba_bios\gba_bios.bin"));
-            _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"C:\Users\pgago\Downloads\OpenLara_gba\OpenLara.gba"));
+            _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, @"D:\GBA_ROM\gba_bios.bin"));
+            _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"D:\GBA_ROM\OpenLara_gba\OpenLara.gba"));
         }
 
         protected override void OnClosing(CancelEventArgs e)
