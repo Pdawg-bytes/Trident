@@ -206,6 +206,7 @@ namespace Trident.Core.Machine
             if (bios.Length != BIOS.MemorySize)
                 throw new Exception("BIOS image is not the correct size.");
 
+            _bios.Clear();
             _bios.LoadBIOS(bios);
 
             Disassembler.Enabled = true;

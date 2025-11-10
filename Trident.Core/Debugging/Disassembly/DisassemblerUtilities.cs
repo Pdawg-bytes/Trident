@@ -1,4 +1,5 @@
 ﻿using Trident.Core.CPU;
+using Trident.Core.Debugging.Disassembly.Tokens;
 using Trident.Core.Global;
 
 using static Trident.Core.CPU.Conditions;
@@ -10,7 +11,7 @@ namespace Trident.Core.Debugging.Disassembly
         internal readonly static string[] _registers = ["r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "sp", "lr", "pc"];
 
 
-        internal static string ConditionCodeString(uint condition) => condition switch
+        internal static ReadOnlySpan<char> ConditionCodeString(uint condition) => condition switch
         {
             CondEQ => "eq",
             CondNE => "ne",
@@ -26,9 +27,68 @@ namespace Trident.Core.Debugging.Disassembly
             CondLT => "lt",
             CondGT => "gt",
             CondLE => "le",
-            CondAL => "",
+            CondAL => ReadOnlySpan<char>.Empty,
             _ => "??"
         };
+
+
+        internal static void AppendRegisterList(ref TokenWriter writer, uint rlist, bool userMode)
+        {
+            writer.Syntax('{');
+
+            uint? rangeStart = null;
+            uint rangeLength = 0;
+            bool first = true;
+
+            for (uint i = 0; i <= 16; i++)
+            {
+                bool set = i < 16 && rlist.IsBitSet((int)i);
+
+                if (set)
+                {
+                    if (!rangeStart.HasValue)
+                    {
+                        rangeStart = i;
+                        rangeLength = 1;
+                    }
+                    else
+                        rangeLength++;
+                }
+                else if (rangeStart.HasValue)
+                {
+                    uint start = rangeStart.Value;
+                    uint end = i - 1;
+
+                    if (!first)
+                        writer.SyntaxSpace(',');
+                    
+                    if (rangeLength >= 3)
+                    {
+                        writer.AppendFormatted(new Register(start));
+                        writer.Syntax('-');
+                        writer.AppendFormatted(new Register(end));
+                    }
+                    else
+                    {
+                        for (uint j = start; j <= end; j++)
+                        {
+                            if (j > start)
+                                writer.SyntaxSpace(',');
+
+                            writer.AppendFormatted(new Register(j));
+                        }
+                    }
+
+                    first = false;
+                    rangeStart = null;
+                    rangeLength = 0;
+                }
+            }
+
+            writer.Syntax('}');
+            if (userMode)
+                writer.Syntax('^');
+        }
 
 
         internal static string RegisterList(uint rlist)
@@ -101,24 +161,5 @@ namespace Trident.Core.Debugging.Disassembly
         }
 
         internal static uint RotatedImmediate(uint immData) => (immData & 0xFF).RotateRight((((int)immData >> 8) & 0x0F) << 1);
-
-
-        internal static string BuildFSXC(uint maskBits)
-        {
-            if (maskBits == 0) return "";
-
-            const string flags = "fsxc";
-            Span<char> buffer = stackalloc char[5];
-            buffer[0] = '_';
-            int index = 1;
-
-            for (int i = 0; i < 4; i++)
-            {
-                if ((maskBits & (1 << i)) != 0)
-                    buffer[index++] = flags[i];
-            }
-
-            return new string(buffer[..index]);
-        }
     }
 }

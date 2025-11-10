@@ -16,6 +16,7 @@ namespace Trident.Core.Memory
 
 
         internal void LoadBIOS(byte[] bios) => _memory.WriteBytes(0, bios);
+        internal void Clear() => _memory.Clear();
 
 
         public byte Read8(uint address, PipelineAccess access)    => (byte)Read(address);

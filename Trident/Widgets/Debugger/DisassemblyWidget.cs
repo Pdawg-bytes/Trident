@@ -1,10 +1,11 @@
 ﻿using ImGuiNET;
-using System.Buffers;
+using System.Buffers.Binary;
 using System.Numerics;
-using System.Text.RegularExpressions;
+using System.Text;
 using Trident.Core.Debugging.Disassembly;
-
-using OperandToken = (System.ReadOnlyMemory<char> Text, Trident.Widgets.Debugger.OperandTokenType Type);
+using Trident.Core.Debugging.Disassembly.Tokens;
+using Trident.Utilities;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Trident.Widgets.Debugger
 {
@@ -15,15 +16,16 @@ namespace Trident.Widgets.Debugger
         private readonly Disassembler _disassembler;
 
         private readonly uint _currentInstructionHighlight = ImGui.ColorConvertFloat4ToU32(new(0.20f, 0.18f, 0.24f, 1.0f));
-        private readonly Vector4 _colorAddress   = new(0.50f, 0.65f, 0.80f, 1.0f);
-        private readonly Vector4 _colorOpcode    = new(0.70f, 0.85f, 0.90f, 1.0f);
-        private readonly Vector4 _colorMnemonic  = new(0.55f, 0.95f, 0.85f, 1.0f);
+        private readonly Vector4 _colorAddress = new(0.50f, 0.65f, 0.80f, 1.0f);
+        private readonly Vector4 _colorOpcode = new(0.70f, 0.85f, 0.90f, 1.0f);
         private readonly Vector4 _colorCondition = new(0.95f, 0.75f, 0.45f, 1.0f);
         private const float LeftMargin = 8f;
 
         private bool _showAddress = true;
         private bool _showOpcode = true;
         private bool _followPC = true;
+
+        internal readonly static string[] _registers = ["r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "sp", "lr", "pc"];
 
         internal DisassemblyWidget(ImFontPtr monoFont, Disassembler disassembler)
         {
@@ -65,6 +67,9 @@ namespace Trident.Widgets.Debugger
                 var (actualAddress, isThumb, instructions) = _disassembler.GetAroundPC(30, 30);
                 var instructionsSpan = instructions.Span;
 
+                Span<char> addrBuf = stackalloc char[16];
+                Span<char> opBuf = stackalloc char[16];
+
                 for (int i = 0; i < instructions.Length; i++)
                 {
                     var instr = instructionsSpan[i];
@@ -83,52 +88,74 @@ namespace Trident.Widgets.Debugger
 
                     if (_showAddress)
                     {
+                        addrBuf.Clear();
+
+                        var addrStr = StackString.Interpolate(addrBuf, $"{instr.Address:X8}");
+
                         ImGui.PushStyleColor(ImGuiCol.Text, _colorAddress);
-                        ImGui.Text($"{instr.Address:X8}");
+                        ImGui.Text(addrStr.AsSpan());
                         ImGui.PopStyleColor();
                         ImGui.SameLine(0f, 10f);
                     }
 
                     if (_showOpcode)
                     {
+                        opBuf.Clear();
+
+                        var opStr = isThumb
+                            ? StackString.Interpolate(opBuf, $"{instr.Opcode:X4}")
+                            : StackString.Interpolate(opBuf, $"{instr.Opcode:X8}");
+
                         ImGui.PushStyleColor(ImGuiCol.Text, _colorOpcode);
-                        ImGui.Text(isThumb ? $"{instr.Opcode:X4}" : $"{instr.Opcode:X8}");
+                        ImGui.Text(opStr.AsSpan());
                         ImGui.PopStyleColor();
                         ImGui.SameLine(0f, 10f);
                     }
 
-
-                    /*string mnemonic = instr.MnemonicBase;
-                    string cond = instr.ConditionCode;
+                    int mnemonicChars = 0;
+                    var reader = new TokenReader(instr.Tokens.Span[..instr.OperandsStartIndex]);
+                    while (reader.TryRead(out var tok))
+                    {
+                        mnemonicChars += tok.Type switch
+                        {
+                            TokenType.Mnemonic => tok.Length,
+                            TokenType.Syntax => 1,
+                            _ => tok.Data.Length,
+                        };
+                    }
 
                     const int targetColumn = 8;
-                    string padding = new(' ', Math.Max(0, targetColumn - (mnemonic.Length + cond.Length)));
+                    int padding = Math.Max(0, targetColumn - mnemonicChars);
 
-                    ImGui.TextColored(_colorMnemonic, mnemonic);
-                    ImGui.SameLine(0f, 0f);
-
-                    ImGui.TextColored(_colorCondition, cond + padding);
-                    ImGui.SameLine(0f, 0f);
-
-                    for (int j = 0; j < instr.Operands.Count; j++)
+                    reader = new TokenReader(instr.Tokens.Span[..instr.OperandsStartIndex]);
+                    while (reader.TryRead(out var tok))
                     {
-                        string operand = instr.Operands[j];
+                        Vector4 color;
 
-                        using var tokens = OperandTokenizer.GetTokens(operand);
-                        foreach (var tok in tokens.Span)
+                        if (tok.Type == TokenType.Mnemonic && tok.Data[0] == 1)
+                            color = _colorCondition;
+                        else
+                            color = GetColorForToken(tok.Type);
+
+                        ImGui.TextColored(color, DecodeTokenText(tok));
+                        ImGui.SameLine(0f, 0f);
+
+                        if (reader.Remaining == 0 && padding > 0)
                         {
-                            ImGui.TextColored(GetColorForToken(tok.Type), tok.Text.Span);
+                            ImGui.TextUnformatted(new string(' ', padding));
                             ImGui.SameLine(0f, 0f);
-                        }
-
-                        if (j < instr.Operands.Count - 1)
-                        {
-                            ImGui.TextColored(new Vector4(1f), ", ");
-                            ImGui.SameLine(0.0f, 0.0f);
                         }
                     }
 
-                    ImGui.Unindent(LeftMargin);*/
+                    reader = new TokenReader(instr.Tokens.Span[instr.OperandsStartIndex..]);
+                    while (reader.TryRead(out var tok))
+                    {
+                        var color = GetColorForToken(tok.Type);
+                        ImGui.TextColored(color, DecodeTokenText(tok));
+                        ImGui.SameLine(0f, 0f);
+                    }
+
+                    ImGui.Unindent(LeftMargin);
                 }
 
                 if (_followPC && currentRowIndex >= 0)
@@ -149,161 +176,69 @@ namespace Trident.Widgets.Debugger
         }
 
 
-        private Vector4 GetColorForToken(OperandTokenType type) => type switch
+        private Vector4 GetColorForToken(TokenType type) => type switch
         {
-            OperandTokenType.Register       => new Vector4(0.65f, 0.80f, 1.00f, 1.0f),
-            OperandTokenType.StatusRegister => new Vector4(0.50f, 0.90f, 0.60f, 1.0f),
-            OperandTokenType.Immediate      => new Vector4(0.95f, 0.65f, 0.80f, 1.0f),
-            OperandTokenType.ShiftType      => new Vector4(0.60f, 0.90f, 1.00f, 1.0f),
-            OperandTokenType.Bracket        => new Vector4(1f),
-            OperandTokenType.Comma          => new Vector4(1f),
-            OperandTokenType.Symbol         => new Vector4(0.75f, 0.55f, 0.95f, 1.0f),
-            OperandTokenType.Label          => new Vector4(0.90f, 0.80f, 0.55f, 1.0f),
-            OperandTokenType.Unknown        => new Vector4(0.80f, 0.30f, 0.30f, 1.0f),
+            TokenType.Register => new Vector4(0.65f, 0.80f, 1.00f, 1.0f),
+            TokenType.PSR      => new Vector4(0.50f, 0.90f, 0.60f, 1.0f),
+            TokenType.Number   => new Vector4(0.95f, 0.65f, 0.80f, 1.0f),
+            TokenType.Mnemonic => new Vector4(0.55f, 0.95f, 0.85f, 1.0f),
+            TokenType.Syntax   => new Vector4(1f),
+            //TokenType.Label  => new Vector4(0.90f, 0.80f, 0.55f, 1.0f),
+            TokenType.Unknown  => new Vector4(0.80f, 0.30f, 0.30f, 1.0f),
             _ => new Vector4(1f)
         };
-    }
 
 
-    internal static partial class OperandTokenizer
-    {
-        private static readonly Regex TokenRegex     = GenerateTokenRegex();
-        private static readonly Regex RegisterRegex  = GenerateRegisterRegex();
-        private static readonly Regex PSRRegex       = GeneratePSRRegex();
-        private static readonly Regex ImmediateRegex = GenerateImmediateRegex();
-        private static readonly Regex LabelRegex     = GenerateLabelRegex();
-
-        [GeneratedRegex(@"(spsr(?:_[a-z]+)?|cpsr(?:_[a-z]+)?|lsl|lsr|asr|ror|rrx|r\d+|lr|sp|pc|#[-+]?(?:0x[0-9A-Fa-f]+|\d+)|0x[0-9A-Fa-f]+|[\[\]\{\},!^]|[-+]| )", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
-        private static partial Regex GenerateTokenRegex();
-
-        [GeneratedRegex(@"^(r\d+|lr|pc|sp)$", RegexOptions.Compiled)]
-        private static partial Regex GenerateRegisterRegex();
-
-        [GeneratedRegex(@"^(spsr|cpsr)(_[a-z]+)?$", RegexOptions.Compiled | RegexOptions.IgnoreCase)]
-        private static partial Regex GeneratePSRRegex();
-
-        [GeneratedRegex(@"^#[-+]?(?:0x[0-9A-Fa-f]+|\d+)$", RegexOptions.Compiled)]
-        private static partial Regex GenerateImmediateRegex();
-
-        [GeneratedRegex(@"^0x[0-9A-Fa-f]+$", RegexOptions.Compiled)]
-        private static partial Regex GenerateLabelRegex();
-
-
-        internal static PooledTokens GetTokens(string operand)
+        string DecodeTokenText(Token tok)
         {
-            OperandToken[] buffer = ArrayPool<OperandToken>.Shared.Rent(32);
-            int count = FillTokens(operand, buffer);
-            return new PooledTokens(buffer, count);
-        }
-
-        private static int FillTokens(string operand, OperandToken[] buffer)
-        {
-            int count = 0;
-            ReadOnlyMemory<char> mem = operand.AsMemory();
-            var matches = TokenRegex.Matches(operand);
-
-            int lastIndex = 0;
-            foreach (Match match in matches)
+            switch (tok.Type)
             {
-                int index = match.Index;
-                int length = match.Length;
+                case TokenType.Mnemonic:
+                    {
+                        bool cond = tok.Data[0] != 0;
+                        return Encoding.ASCII.GetString(tok.Data.Slice(1, tok.Length));
+                    }
 
-                if (index > lastIndex)
-                {
-                    var between = mem[lastIndex..index].Trim();
-                    if (!between.IsEmpty)
-                        buffer[count++] = new OperandToken(between, OperandTokenType.Unknown);
-                }
+                case TokenType.Register: return _registers[tok.Data[0]];
 
-                var tokenMem = mem.Slice(index, length);
-                buffer[count++] = new OperandToken(tokenMem, ClassifyToken(tokenMem.Span));
-                lastIndex = index + length;
-            }
+                case TokenType.Number:
+                    byte flag = tok.Data[0];
+                    bool neg = (flag & 1) != 0;
+                    bool lbl = (flag & 2) != 0;
+                    uint val = BinaryPrimitives.ReadUInt32LittleEndian(tok.Data.Slice(1, 4));
+                    return $"{(lbl ? "" : "#")}{(neg ? "-" : "")}0x{val:X}";
 
-            if (lastIndex < mem.Length)
-            {
-                var remaining = mem[lastIndex..].Trim();
-                if (!remaining.IsEmpty)
-                    buffer[count++] = new OperandToken(remaining, OperandTokenType.Unknown);
-            }
+                case TokenType.PSR:
+                    byte b = tok.Data[0];
+                    bool cpsr = (b & 0x80) != 0;
+                    PSRFlags flags = (PSRFlags)(b & 0x7F);
+                    return flags == PSRFlags.None
+                        ? (cpsr ? "cpsr" : "spsr")
+                        : $"{(cpsr ? "cpsr" : "spsr")}_{FormatFlags(flags)}";
 
-            return count;
-        }
+                case TokenType.Coprocessor:
+                    {
+                        byte f = tok.Data[0];
+                        bool isReg = (f & 0x80) != 0;
+                        byte idx = (byte)(f & 0x0F);
+                        return $"{(isReg ? 'c' : 'p')}{idx}";
+                    }
 
-        private static OperandTokenType ClassifyToken(ReadOnlySpan<char> token)
-        {
-            if (RegisterRegex.IsMatch(token)) return OperandTokenType.Register;
-            if (ImmediateRegex.IsMatch(token)) return OperandTokenType.Immediate;
+                case TokenType.Syntax:
+                    return ((char)tok.Data[0]).ToString();
 
-            if (token.Length == 1)
-            {
-                switch (token[0])
-                {
-                    case '[':
-                    case ']':
-                    case '{':
-                    case '}':
-                        return OperandTokenType.Bracket;
-                    case ',':
-                        return OperandTokenType.Comma;
-                    case '!':
-                    case '-':
-                    case '+':
-                    case '^':
-                    case ' ':
-                        return OperandTokenType.Symbol;
-                }
-            }
-
-            if (token.Equals("lsl".AsSpan(), StringComparison.OrdinalIgnoreCase) ||
-                token.Equals("lsr".AsSpan(), StringComparison.OrdinalIgnoreCase) ||
-                token.Equals("asr".AsSpan(), StringComparison.OrdinalIgnoreCase) ||
-                token.Equals("ror".AsSpan(), StringComparison.OrdinalIgnoreCase) ||
-                token.Equals("rrx".AsSpan(), StringComparison.OrdinalIgnoreCase))
-            {
-                return OperandTokenType.ShiftType;
-            }
-
-            if (LabelRegex.IsMatch(token)) return OperandTokenType.Label;
-            if (PSRRegex.IsMatch(token)) return OperandTokenType.StatusRegister;
-
-            return OperandTokenType.Unknown;
-        }
-    }
-
-    internal sealed class PooledTokens : IDisposable
-    {
-        private OperandToken[]? _buffer;
-        internal int Count { get; }
-        internal ReadOnlySpan<OperandToken> Span => _buffer.AsSpan(0, Count);
-
-        internal PooledTokens(OperandToken[] buffer, int count)
-        {
-            _buffer = buffer;
-            Count = count;
-        }
-
-        public void Dispose()
-        {
-            if (_buffer != null)
-            {
-                ArrayPool<OperandToken>.Shared.Return(_buffer, clearArray: true);
-                _buffer = null;
+                default: return Encoding.ASCII.GetString(tok.Data);
             }
         }
-    }
 
-
-    enum OperandTokenType
-    {
-        Register,
-        StatusRegister,
-        Immediate,
-        ShiftType,
-        Bracket,
-        Comma,
-        Symbol,
-        Label,
-        Unknown
+        string FormatFlags(PSRFlags flags)
+        {
+            const string flagStr = "fsxc";
+            var sb = new StringBuilder();
+            for (int j = 0; j < 4; j++)
+                if (((int)flags & (1 << j)) != 0)
+                    sb.Append(flagStr[j]);
+            return sb.ToString();
+        }
     }
 }

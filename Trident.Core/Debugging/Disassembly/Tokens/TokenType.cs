@@ -2,13 +2,13 @@
 {
     public enum TokenType : byte
     {
-        Opcode,
+        Mnemonic,
         Condition,
         Register,
-        Shift,
         Number,
         PSR,
         Coprocessor,
-        Syntax
+        Syntax,
+        Unknown
     }
 }

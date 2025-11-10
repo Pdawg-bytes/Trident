@@ -1,7 +1,6 @@
 ﻿using System.Text;
 using Trident.Core.Global;
 using Trident.Core.Hardware.IO;
-using Trident.Core.CPU.Pipeline;
 using Trident.Core.Memory.GamePak;
 using System.Runtime.InteropServices;
 using Trident.Core.Memory.GamePak.Backup;

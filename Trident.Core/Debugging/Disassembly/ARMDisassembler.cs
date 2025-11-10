@@ -1,11 +1,9 @@
 ﻿using Trident.Core.Global;
-using Trident.Core.CPU.Decoding;
 using Trident.CodeGeneration.Shared;
 using System.Runtime.CompilerServices;
+using Trident.Core.Debugging.Disassembly.Tokens;
 
 using static Trident.Core.Debugging.Disassembly.DisassemblerUtilities;
-
-using InstructionData = (string Mnemonic, System.Collections.Generic.List<string> Operands);
 
 namespace Trident.Core.Debugging.Disassembly
 {
@@ -16,64 +14,77 @@ namespace Trident.Core.Debugging.Disassembly
         private static readonly string[] _blockTransferModes      = ["da", "ia", "db", "ib"];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static DisassembledInstruction Disassemble(uint address, uint opcode) =>
-            Disassemble(address, opcode, ARMDecoder.DetermineARMGroup(opcode));
+        internal static DisassembledInstruction Disassemble(uint address, uint opcode, byte[] tokenBuffer) =>
+            Disassemble(address, opcode, ARMDecoder.DetermineARMGroup(opcode), tokenBuffer);
 
-        internal static DisassembledInstruction Disassemble(uint address, uint opcode, ARMGroup group)
+        internal static DisassembledInstruction Disassemble(uint address, uint opcode, ARMGroup group, byte[] tokenBuffer)
         {
-            /*var instr = new DisassembledInstruction
+            WriteResult result = group switch
             {
-                Address = address,
-                Opcode = opcode,
-                MnemonicBase = "??",
-                ConditionCode = ConditionCodeString(opcode >> 28),
-                Operands = ["??"]
+                ARMGroup.BranchExchange      => BranchExchange(opcode, tokenBuffer),
+                ARMGroup.BranchWithLink      => BranchWithLink(opcode, address, tokenBuffer),
+                //ARMGroup.DataProcessing      => DataProcessing(opcode, address, tokenBuffer),
+                ARMGroup.PSRTransfer         => PSRTransfer(opcode, tokenBuffer),
+                ARMGroup.Multiply            => Multiply(opcode, tokenBuffer),
+                ARMGroup.MultiplyLong        => MultiplyLong(opcode, tokenBuffer),
+                ARMGroup.SingleDataTrasnfer  => SingleDataTransfer(opcode, tokenBuffer),
+                ARMGroup.SmallSignedTransfer => SignedDataTransfer(opcode, tokenBuffer),
+                ARMGroup.BlockDataTransfer   => BlockDataTransfer(opcode, tokenBuffer),
+                ARMGroup.Swap                => Swap(opcode, tokenBuffer),
+                ARMGroup.SoftwareInterrupt   => SoftwareInterrupt(opcode, tokenBuffer),
+                _ => default
             };
 
-            InstructionData data = group switch
-            {
-                ARMGroup.BranchExchange      => BranchExchange(opcode),
-                ARMGroup.BranchWithLink      => BranchWithLink(opcode, address),
-                ARMGroup.DataProcessing      => DataProcessing(opcode, address),
-                ARMGroup.PSRTransfer         => PSRTransfer(opcode),
-                ARMGroup.Multiply            => Multiply(opcode),
-                ARMGroup.MultiplyLong        => MultiplyLong(opcode),
-                ARMGroup.SingleDataTrasnfer  => SingleDataTransfer(opcode),
-                ARMGroup.SmallSignedTransfer => SignedDataTransfer(opcode),
-                ARMGroup.BlockDataTransfer   => BlockDataTransfer(opcode),
-                ARMGroup.Swap                => Swap(opcode),
-                ARMGroup.SoftwareInterrupt   => SoftwareInterrupt(opcode),
-                _ => new InstructionData { Opcode = "??", Operands = ["??"] }
-            };
 
-            instr.MnemonicBase = data.Opcode;
-            instr.Operands = data.Operands;
-            return instr;
-            */
+            ReadOnlySpan<char> condText = ConditionCodeString(opcode >> 28);
+            if (!condText.IsEmpty)
+            {
+                int condLen = 2 + condText.Length;
+
+                if (result.BytesWritten + condLen > tokenBuffer.Length)
+                    throw new InvalidOperationException($"Not enough space in token buffer to insert condition token (need {condLen} bytes).");
+
+                for (int i = result.BytesWritten - 1; i >= result.OperandsStartIndex; i--)
+                    tokenBuffer[i + condLen] = tokenBuffer[i];
+
+                var slice = tokenBuffer.AsSpan(result.OperandsStartIndex);
+                var dummyWriter = new TokenWriter(slice);
+                dummyWriter.AppendFormatted(new Mnemonic(condText, isCondition: true));
+
+                result.BytesWritten += condLen;
+                result.OperandsStartIndex += condLen;
+            }
 
             return new DisassembledInstruction
             {
                 Address = address,
                 Opcode = opcode,
+
+                Tokens = new ReadOnlyMemory<byte>(tokenBuffer, 0, result.BytesWritten),
+                OperandsStartIndex = result.OperandsStartIndex
             };
         }
 
         
         #region Branch
-        private static InstructionData BranchExchange(uint opcode) => ("bx", [_registers[opcode & 0x0F]]);
+        private static WriteResult BranchExchange(uint opcode, Span<byte> buffer) =>
+            WriterHost.Write(buffer, $"{new Mnemonic("bx")} | {new Register(opcode & 0x0F)}");
 
-        private static InstructionData BranchWithLink(uint opcode, uint address)
+        private static WriteResult BranchWithLink(uint opcode, uint address, Span<byte> buffer)
         {
             int offset = ((opcode & 0xFFFFFF).ExtendFrom(24)) << 2;
             bool link  = opcode.IsBitSet(24);
 
-            return (link ? "bl" : "b", [$"0x{((address + (uint)offset) + 8):X8}"]);
+            Mnemonic mnemonic = new(link ? "bl" : "b");
+            Number target     = new((address + (uint)offset) + 8, isLabel: true);
+
+            return WriterHost.Write(buffer, $"{mnemonic} | {target}");
         }
         #endregion
 
 
         #region Data processing
-        private static InstructionData DataProcessing(uint opcode, uint address)
+        /*private static WriteResult DataProcessing(uint opcode, uint address, Span<byte> buffer)
         {
             uint rd         = (opcode >> 12) & 0x0F;
             uint rn         = (opcode >> 16) & 0x0F;
@@ -110,128 +121,197 @@ namespace Trident.Core.Debugging.Disassembly
 
                 _ => (mnemonic, [_registers[rd], _registers[rn], operand])
             };
-        }
+        }*/
         #endregion
 
 
         #region PSR
-        private static InstructionData PSRTransfer(uint opcode)
+        private static WriteResult PSRTransfer(uint opcode, Span<byte> buffer)
         {
-            bool toPSR = opcode.IsBitSet(21);
-            bool useSpsr = opcode.IsBitSet(22);
+            bool toPSR     = opcode.IsBitSet(21);
+            bool useSpsr   = opcode.IsBitSet(22);
             bool immediate = opcode.IsBitSet(25);
 
-            string psrName = useSpsr ? "spsr" : "cpsr";
+            PSR psr = new(!useSpsr, toPSR ? (PSRFlags)((opcode >> 16) & 0x0F) : PSRFlags.None);
 
             if (!toPSR)
             {
-                string rd = _registers[(opcode >> 12) & 0x0F];
-                return ("mrs", [rd, psrName]);
+                Register rd = new((opcode >> 12) & 0x0F);
+                return WriterHost.Write(buffer, $"{new Mnemonic("mrs")} | {rd}, {psr}");
             }
             else
             {
-                string operand = immediate
-                    ? $"#0x{RotatedImmediate(opcode):X}"
-                    : _registers[opcode & 0x0F];
+                Mnemonic mnemonic = new("msr");
 
-                return ("msr", [psrName + BuildFSXC((opcode >> 16) & 0x0F), operand]);
+                return immediate ?
+                    WriterHost.Write(buffer, $"{mnemonic} | {psr}, {new Number(RotatedImmediate(opcode))}") :
+                    WriterHost.Write(buffer, $"{mnemonic} | {psr}, {new Register(opcode & 0x0F)}");
             }
         }
         #endregion
 
 
         #region Multiply
-        private static InstructionData Multiply(uint opcode)
+        private static WriteResult Multiply(uint opcode, Span<byte> buffer)
         {
-            string rm       = _registers[opcode & 0x0F];
-            string rs       = _registers[(opcode >> 8) & 0x0F];
-            string rn       = _registers[(opcode >> 12) & 0x0F];
-            string rd       = _registers[(opcode >> 16) & 0x0F];
-            string setFlags = opcode.IsBitSet(20) ? "s": "";
-            bool accumulate = opcode.IsBitSet(21);
+            Mnemonic mnemonic = new(opcode.IsBitSet(21) ? "mla" : "mul");
+            Mnemonic flags    = new(opcode.IsBitSet(20) ? "s" : "");
 
-            string mnemonic =
-                (accumulate ? "mla" : "mul") +
-                setFlags;
+            Register rm = new(opcode & 0x0F);
+            Register rs = new((opcode >> 8) & 0x0F);
+            Register rn = new((opcode >> 12) & 0x0F);
+            Register rd = new((opcode >> 16) & 0x0F);
 
-            return (mnemonic, [rd, rm, rs, (accumulate ? rn : "")]);
+            if (opcode.IsBitSet(21))
+                return WriterHost.Write(buffer, $"{mnemonic}{flags} | {rd}, {rm}, {rs}, {rn}");
+            else
+                return WriterHost.Write(buffer, $"{mnemonic}{flags} | {rd}, {rm}, {rs}");
         }
 
-        private static InstructionData MultiplyLong(uint opcode)
+        private static WriteResult MultiplyLong(uint opcode, Span<byte> buffer)
         {
-            string rm       = _registers[opcode & 0x0F];
-            string rs       = _registers[(opcode >> 8) & 0x0F];
-            string rdLo     = _registers[(opcode >> 12) & 0x0F];
-            string rdHi     = _registers[(opcode >> 16) & 0x0F];
-            string setFlags = opcode.IsBitSet(20) ? "s" : "";
-            bool accumulate = opcode.IsBitSet(21);
+            Mnemonic mnemonic = new(_multiplyLongMnemonics[(opcode >> 21) & 0b11]);
+            Mnemonic flags    = new(opcode.IsBitSet(20) ? "s" : "");
 
-            string mnemonic = _multiplyLongMnemonics[(opcode >> 21) & 0b11] + setFlags;
-            return (mnemonic, [rdLo, rdHi, rm, rs]);
+            Register rm   = new(opcode & 0x0F);
+            Register rs   = new((opcode >> 8) & 0x0F);
+            Register rdLo = new((opcode >> 12) & 0x0F);
+            Register rdHi = new((opcode >> 16) & 0x0F);
+            
+            return WriterHost.Write(buffer, $"{mnemonic}{flags} | {rdLo}, {rdHi}, {rm}, {rs}");
         }
         #endregion
 
 
         #region Data transfer
-        private static InstructionData SingleDataTransfer(uint opcode)
+        private static WriteResult SingleDataTransfer(uint opcode, Span<byte> buffer)
         {
-            uint data        = opcode & 0x0FFF;
-            uint rd          = (opcode >> 12) & 0x0F;
-            uint rn          = (opcode >> 16) & 0x0F;
-            bool load        = opcode.IsBitSet(20);
-            string writeback = opcode.IsBitSet(21) ? "!" : "";
-            bool byteMode    = opcode.IsBitSet(22);
-            bool add         = opcode.IsBitSet(23);
-            bool preIndex    = opcode.IsBitSet(24);
-            bool immediate   = opcode.IsBitSet(25);
+            uint data      = opcode & 0x0FFF;
+            uint rd        = (opcode >> 12) & 0x0F;
+            uint rn        = (opcode >> 16) & 0x0F;
+            bool load      = opcode.IsBitSet(20);
+            bool writeback = opcode.IsBitSet(21);
+            bool byteMode  = opcode.IsBitSet(22);
+            bool add       = opcode.IsBitSet(23);
+            bool preIndex  = opcode.IsBitSet(24);
+            bool immediate = opcode.IsBitSet(25);
 
-            string offset = immediate
-                ? (add ? ShiftedRegister(data) : $"-{ShiftedRegister(data)}")
-                : (add ? $"#0x{data:X}" : $"#-0x{data:X}");
+            TokenWriter writer = new(buffer);
 
-            string mnemonic =
-                (load ? "ldr" : "str") +
-                (byteMode ? "b" : "");
+            writer.AppendFormatted(new Mnemonic(load ? "ldr" : "str"));
+            if (byteMode) writer.AppendFormatted(new Mnemonic("b"));
+
+            writer.BeginOperands();
+            writer.AppendFormatted(new Register(rd));
+            writer.SyntaxSpace(',');
+
+            writer.Syntax('[');
+            writer.AppendFormatted(new Register(rn));
+
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            void AppendOffset(ref TokenWriter writer)
+            {
+                switch (immediate, add)
+                {
+                    case (true, true):   writer.AppendFormatted(new ShiftedOperand(data)); break;
+                    case (true, false):  writer.Syntax('-'); writer.AppendFormatted(new ShiftedOperand(data)); break;
+                    case (false, true):  if (data != 0) { writer.AppendFormatted(new Number(data)); } break;
+                    case (false, false): if (data != 0) { writer.Syntax('-'); writer.AppendFormatted(new Number(data)); } break;
+                }
+            }
 
             if (preIndex)
-                return (mnemonic, [_registers[rd], $"[{_registers[rn]}, {offset}]{writeback}"]);
-            else
-                return (mnemonic, [_registers[rd], $"[{_registers[rn]}]{writeback}", offset]);
-        }
-
-        private static InstructionData SignedDataTransfer(uint opcode)
-        {
-            bool halfWord    = opcode.IsBitSet(5);
-            bool signed      = opcode.IsBitSet(6);
-            uint rd          = (opcode >> 12) & 0x0F;
-            uint rn          = (opcode >> 16) & 0x0F;
-            bool load        = opcode.IsBitSet(20);
-            string writeback = opcode.IsBitSet(21) ? "!" : "";
-            bool immediate   = opcode.IsBitSet(22);
-            bool add         = opcode.IsBitSet(23);
-            bool preIndex    = opcode.IsBitSet(24);
-
-            string offset;
-            if (immediate)
             {
-                int imm = (int)(((opcode >> 4) & 0xF0) | (opcode & 0x0F));
-                offset = $"#{(add ? "" : "-")}0x{imm:X}";
+                writer.SyntaxSpace(',');
+                AppendOffset(ref writer);
+                writer.Syntax(']');
+
+                if (writeback)
+                    writer.Syntax('!');
             }
             else
-                offset = $"{(add ? "" : "-")}{_registers[opcode & 0x0F]}";
+            {
+                writer.Syntax(']');
 
-            string mnemonic =
-                (load     ? "ldr" : "str") +
-                (signed   ? 's'   : "") +
-                (halfWord ? 'h'   : 'b');
+                if (writeback)
+                    writer.SyntaxSpace('!');
 
-            if (preIndex)
-                return (mnemonic, [_registers[rd], $"[{_registers[rn]}, {offset}]{writeback}"]);
-            else
-                return (mnemonic, [_registers[rd], $"[{_registers[rn]}]", offset]);
+                writer.SyntaxSpace(',');
+                AppendOffset(ref writer);
+            }
+
+            return writer.Finalize();
         }
 
-        private static InstructionData BlockDataTransfer(uint opcode)
+        private static WriteResult SignedDataTransfer(uint opcode, Span<byte> buffer)
+        {
+            bool halfWord  = opcode.IsBitSet(5);
+            bool signed    = opcode.IsBitSet(6);
+            uint rd        = (opcode >> 12) & 0x0F;
+            uint rn        = (opcode >> 16) & 0x0F;
+            bool load      = opcode.IsBitSet(20);
+            bool writeback = opcode.IsBitSet(21);
+            bool immediate = opcode.IsBitSet(22);
+            bool add       = opcode.IsBitSet(23);
+            bool preIndex  = opcode.IsBitSet(24);
+
+            TokenWriter writer = new(buffer);
+
+            writer.AppendFormatted(new Mnemonic(load ? "ldr" : "str"));
+            if (signed)   writer.AppendFormatted(new Mnemonic("s"));
+            if (halfWord) writer.AppendFormatted(new Mnemonic("h"));
+            else          writer.AppendFormatted(new Mnemonic("b"));
+
+            writer.BeginOperands();
+            writer.AppendFormatted(new Register(rd));
+            writer.SyntaxSpace(',');
+
+            writer.Syntax('[');
+            writer.AppendFormatted(new Register(rn));
+
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            void AppendOffset(ref TokenWriter writer)
+            {
+                if (immediate)
+                {
+                    int imm = (int)(((opcode >> 4) & 0xF0) | (opcode & 0x0F));
+                    if (!add) writer.Syntax('-');
+                    writer.AppendFormatted(new Number((uint)imm));
+                }
+                else
+                {
+                    uint rm = opcode & 0x0F;
+                    if (!add) writer.Syntax('-');
+                    writer.AppendFormatted(new Register(rm));
+                }
+            }
+
+            if (preIndex)
+            {
+                writer.SyntaxSpace(',');
+                AppendOffset(ref writer);
+                writer.Syntax(']');
+
+                if (writeback)
+                    writer.Syntax('!');
+            }
+            else
+            {
+                writer.Syntax(']');
+
+                if (writeback)
+                    writer.SyntaxSpace('!');
+
+                writer.SyntaxSpace(',');
+                AppendOffset(ref writer);
+            }
+
+            return writer.Finalize();
+        }
+
+        private static WriteResult BlockDataTransfer(uint opcode, Span<byte> buffer)
         {
             uint regList   = (ushort)opcode;
             uint rn        = (opcode >> 16) & 0x0F;
@@ -239,34 +319,42 @@ namespace Trident.Core.Debugging.Disassembly
             bool userMode  = opcode.IsBitSet(22);
             uint addrMode  = (opcode >> 23) & 0b11;
 
-            string mnemonic = opcode.IsBitSet(20) ? "ldm" : "stm";
-            string suffix   = _blockTransferModes[addrMode];
+            TokenWriter writer = new(buffer);
 
-            List<string> operands = [];
+            writer.AppendFormatted(new Mnemonic(opcode.IsBitSet(20) ? "ldm" : "stm"));
+            writer.AppendFormatted(new Mnemonic(_blockTransferModes[addrMode]));
 
-            operands.Add(_registers[rn] + (writeback ? '!' : ""));
-            operands.Add(RegisterList(regList) + (userMode ? '^' : ""));
+            writer.BeginOperands();
+            writer.AppendFormatted(new Register(rn));
+            if (writeback)
+                writer.Syntax('!');
 
-            return (mnemonic + suffix, operands);
+            writer.SyntaxSpace(',');
+
+            AppendRegisterList(ref writer, regList, userMode);
+
+            return writer.Finalize();
         }
         #endregion
-
+        
 
         #region Data swap
-        private static InstructionData Swap(uint opcode)
+        private static WriteResult Swap(uint opcode, Span<byte> buffer)
         {
-            uint rm       = opcode & 0x0F;
-            uint rd       = (opcode >> 12) & 0x0F;
-            uint rn       = (opcode >> 16) & 0x0F;
-            bool byteMode = opcode.IsBitSet(22);
+            Mnemonic mnemonic = new(opcode.IsBitSet(22) ? "swpb" : "swp");
 
-            return (byteMode ? "swpb" : "swp", [_registers[rd], _registers[rm], $"[{_registers[rn]}]"]);
+            Register rm = new(opcode & 0x0F);
+            Register rd = new((opcode >> 12) & 0x0F);
+            Register rn = new((opcode >> 16) & 0x0F);
+
+            return WriterHost.Write(buffer, $"{mnemonic} | {rd}, {rm}, [{rn}]");
         }
         #endregion
 
 
         #region Software interrupt
-        private static InstructionData SoftwareInterrupt(uint opcode) => ("swi", [$"#0x{opcode & 0x00FFFFFF:X}"]);
+        private static WriteResult SoftwareInterrupt(uint opcode, Span<byte> buffer) =>
+            WriterHost.Write(buffer, $"{new Mnemonic("swi")} | {new Number(opcode & 0x00FFFFFF)}");
         #endregion
     }
 }

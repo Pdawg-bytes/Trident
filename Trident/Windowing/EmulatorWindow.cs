@@ -184,7 +184,7 @@ namespace Trident.Windowing
                 throw new InvalidOperationException("Fira Code was not loaded correctly.");
 
             AddWidget(new CPUStateWidget(monoFont, () => _gba.CPUSnapshot));
-            //AddWidget(new DisassemblyWidget(monoFont, _gba.Disassembler));
+            AddWidget(new DisassemblyWidget(monoFont, _gba.Disassembler));
             AddWidget(new IRQStateWidget(monoFont, () => _gba.IRQSnapshot));
 
             MemoryViewer memView = new(monoFont);

@@ -27,7 +27,7 @@ namespace Trident.Core.Debugging.Disassembly
             /*var instr = new DisassembledInstruction
             {
                 Address = address,
-                Opcode = opcode,
+                Mnemonic = opcode,
                 MnemonicBase = "??",
                 ConditionCode = "",
                 Operands = ["??"]
@@ -55,10 +55,10 @@ namespace Trident.Core.Debugging.Disassembly
                 ThumbGroup.UnconditionalBranch => UnconditionalBranch(opcode, address),
                 ThumbGroup.LongBranchWithLink  => LongBranchWithLink(opcode, lr),
                 ThumbGroup.BranchExchange      => BranchExchange(opcode),
-                _ => new InstructionData { Opcode = "??", Operands = ["??"] }
+                _ => new InstructionData { Mnemonic = "??", Operands = ["??"] }
             };
 
-            instr.MnemonicBase = data.Opcode;
+            instr.MnemonicBase = data.Mnemonic;
             instr.Operands = data.Operands;
             return instr;*/
 

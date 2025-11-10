@@ -54,7 +54,7 @@ namespace Trident.Core.Debugging.Disassembly
                 _tokenBuffer  = new byte[length][];
 
                 for (int i = 0; i < length; i++)
-                    _tokenBuffer[i] = new byte[32];
+                    _tokenBuffer[i] = new byte[96];
             }
 
             _disasmCount = length;
@@ -65,17 +65,17 @@ namespace Trident.Core.Debugging.Disassembly
 
                 if (thumb)
                 {
-                    ushort opcode = region.DebugRead<ushort>(addr);
+                    /*ushort opcode = region.DebugRead<ushort>(addr);
                     var (group, cacheable) = ClassifyThumb(opcode);
 
                     DisassembledInstruction instr;
-                    /*if (cacheable)
+                    if (cacheable)
                     {
                         instr = _thumbCache.Get(opcode);
                         instr.Address = addr;
-                        instr.Opcode = opcode;
+                        instr.Mnemonic = opcode;
                     }
-                    else*/
+                    else
                         instr = ThumbDisassembler.Disassemble(addr, lr, opcode, group);
 
                     _disasmBuffer[i] = instr;
@@ -84,7 +84,7 @@ namespace Trident.Core.Debugging.Disassembly
                     {
                         uint offset = (uint)((uint)opcode & 0x07FF).ExtendFrom(11) << 12;
                         lr = addr + 4 + offset;
-                    }
+                    }*/
                 }
                 else
                 {
@@ -96,10 +96,10 @@ namespace Trident.Core.Debugging.Disassembly
                     {
                         instr = _armCache.Get(opcode);
                         instr.Address = addr;
-                        instr.Opcode = opcode;
+                        instr.Mnemonic = opcode;
                     }
                     else*/
-                        instr = ARMDisassembler.Disassemble(addr, opcode, group);
+                        instr = ARMDisassembler.Disassemble(addr, opcode, group, _tokenBuffer[i]);
 
                     _disasmBuffer[i] = instr;
                 }
@@ -164,10 +164,13 @@ namespace Trident.Core.Debugging.Disassembly
     }
 
 
-    public struct DisassembledInstruction(uint address, uint opcode, ReadOnlyMemory<byte> tokens)
+    public struct DisassembledInstruction()
     {
-        public uint Address = address;
-        public uint Opcode = opcode;
-        public ReadOnlyMemory<byte> Tokens = tokens;
+        public uint Address { get; set; }
+        public readonly uint Opcode { get; init; }
+
+        public readonly ReadOnlyMemory<byte> Tokens { get; init; }
+
+        public readonly int OperandsStartIndex { get; init; }
     }
 }
