@@ -13,6 +13,7 @@ namespace Trident.Widgets.Debugger
         private uint _gotoAddress;
         private bool _gotoRequested;
 
+        private bool _regionChanged = false;
         private uint _baseAddress = 0x0000;
         private int _selectedRegionIndex = 0;
         private readonly (string Name, uint BaseAddress)[] _regions =
@@ -69,6 +70,7 @@ namespace Trident.Widgets.Debugger
                     {
                         _selectedRegionIndex = i;
                         _baseAddress = _regions[i].BaseAddress;
+                        _regionChanged = true;
                     }
                     if (isSelected)
                         ImGui.SetItemDefaultFocus();
@@ -129,7 +131,17 @@ namespace Trident.Widgets.Debugger
             float rowHeight   = ImGui.GetFontSize() + ImGui.GetStyle().ItemSpacing.Y;
             ImGui.Dummy(new Vector2(1, rowHeight * totalRows));
 
-            uint firstVisibleRow = (uint)(ImGui.GetScrollY() / rowHeight);
+
+            uint firstVisibleRow;
+            if (_regionChanged)
+            {
+                ImGui.SetScrollY(0);
+                _regionChanged = false;
+                firstVisibleRow = 0;
+            }
+            else
+                firstVisibleRow = (uint)(ImGui.GetScrollY() / rowHeight);
+
             uint visibleRowCount = (uint)(ImGui.GetWindowHeight() / rowHeight) + 1;
             uint lastVisibleRow  = Math.Min(firstVisibleRow + visibleRowCount, totalRows);
 

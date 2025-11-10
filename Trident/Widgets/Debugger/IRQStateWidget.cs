@@ -98,12 +98,13 @@ namespace Trident.Widgets.Debugger
             ushort mask = (ushort)(1 << bit);
             bool enabled = (snapshot.InterruptEnable & mask) != 0;
             bool pending = (snapshot.InterruptFlag & mask) != 0;
-            bool active = enabled && pending && snapshot.GlobalInterruptEnable;
 
             Vector4 color;
-            if (active)       color = _lavender;
-            else if (enabled) color = Vector4.One;
-            else              color = new(0.4f, 0.4f, 0.4f, 1f);
+
+            if (enabled && pending) color = _lavender;
+            else if (enabled)       color = new Vector4(1f);
+            else if (pending)       color = new Vector4(1.0f, 1.0f, 0.71f, 1f);
+            else                    color = new Vector4(0.4f, 0.4f, 0.4f, 1f);
 
             ImGui.TextColored(color, label);
         }
