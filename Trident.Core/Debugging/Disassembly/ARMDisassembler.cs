@@ -237,40 +237,41 @@ namespace Trident.Core.Debugging.Disassembly
             writer.Syntax('[');
             writer.AppendFormatted(new Register(rn));
 
+            bool hasOffset = HasOffset();
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            void AppendOffset(ref TokenWriter writer)
-            {
-                switch (immediate, add)
-                {
-                    case (true, true):   writer.AppendFormatted(new ShiftedOperand(data)); break;
-                    case (true, false):  writer.Syntax('-'); writer.AppendFormatted(new ShiftedOperand(data)); break;
-                    case (false, true):  if (data != 0) { writer.AppendFormatted(new Number(data)); } break;
-                    case (false, false): if (data != 0) { writer.AppendFormatted(new Number(data, negative: true)); } break;
-                }
-            }
+            if (preIndex && hasOffset)
+                WriteOffset(ref writer);
 
-            if (preIndex)
-            {
-                writer.SyntaxSpace(',');
-                AppendOffset(ref writer);
-                writer.Syntax(']');
+            writer.Syntax(']');
+            if (writeback) writer.Syntax('!');
 
-                if (writeback)
-                    writer.Syntax('!');
-            }
-            else
-            {
-                writer.Syntax(']');
-
-                if (writeback)
-                    writer.SyntaxSpace('!');
-
-                writer.SyntaxSpace(',');
-                AppendOffset(ref writer);
-            }
+            if (!preIndex && hasOffset)
+                WriteOffset(ref writer);
 
             return writer.Finalize();
+
+
+            bool HasOffset()
+            {
+                if (immediate)
+                    return new ShiftedOperand(data).IsMeaningful;
+                else
+                    return data != 0;
+            }
+
+            void WriteOffset(ref TokenWriter writer)
+            {
+                writer.SyntaxSpace(',');
+
+                if (immediate)
+                {
+                    ShiftedOperand shifted = new(data);
+                    if (!add) writer.Syntax('-');
+                    writer.AppendFormatted(shifted);
+                }
+                else
+                    writer.AppendFormatted(new Number(data, negative: !add));
+            }
         }
 
         private static WriteResult SignedDataTransfer(uint opcode, Span<byte> buffer)
@@ -288,21 +289,44 @@ namespace Trident.Core.Debugging.Disassembly
             TokenWriter writer = new(buffer);
 
             writer.AppendFormatted(new Mnemonic(load ? "ldr" : "str"));
-            if (signed)   writer.AppendFormatted(new Mnemonic("s"));
-            if (halfWord) writer.AppendFormatted(new Mnemonic("h"));
-            else          writer.AppendFormatted(new Mnemonic("b"));
+            if (signed) writer.AppendFormatted(new Mnemonic("s"));
+            writer.AppendFormatted(new Mnemonic(halfWord ? "h" : "b"));
 
             writer.BeginOperands();
             writer.AppendFormatted(new Register(rd));
             writer.SyntaxSpace(',');
-
             writer.Syntax('[');
             writer.AppendFormatted(new Register(rn));
 
+            bool hasOffset = HasOffset();
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            void AppendOffset(ref TokenWriter writer)
+            if (preIndex && hasOffset)
+                WriteOffset(ref writer);
+
+            writer.Syntax(']');
+            if (writeback) writer.Syntax('!');
+
+            if (!preIndex && hasOffset)
+                WriteOffset(ref writer);
+
+            return writer.Finalize();
+
+
+            bool HasOffset()
             {
+                if (immediate)
+                {
+                    int imm = (int)(((opcode >> 4) & 0xF0) | (opcode & 0x0F));
+                    return imm != 0;
+                }
+                else
+                    return true;
+            }
+
+            void WriteOffset(ref TokenWriter writer)
+            {
+                writer.SyntaxSpace(',');
+
                 if (immediate)
                 {
                     int imm = (int)(((opcode >> 4) & 0xF0) | (opcode & 0x0F));
@@ -315,28 +339,6 @@ namespace Trident.Core.Debugging.Disassembly
                     writer.AppendFormatted(new Register(rm));
                 }
             }
-
-            if (preIndex)
-            {
-                writer.SyntaxSpace(',');
-                AppendOffset(ref writer);
-                writer.Syntax(']');
-
-                if (writeback)
-                    writer.Syntax('!');
-            }
-            else
-            {
-                writer.Syntax(']');
-
-                if (writeback)
-                    writer.SyntaxSpace('!');
-
-                writer.SyntaxSpace(',');
-                AppendOffset(ref writer);
-            }
-
-            return writer.Finalize();
         }
 
         private static WriteResult BlockDataTransfer(uint opcode, Span<byte> buffer)

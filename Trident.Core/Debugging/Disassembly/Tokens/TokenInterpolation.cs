@@ -323,6 +323,10 @@ namespace Trident.Core.Debugging.Disassembly.Tokens
         internal readonly Number ShiftAmount;
         internal readonly bool RRX;
 
+        internal bool IsMeaningful =>
+            ByRegister || RRX || ShiftAmount.Value != 0 || Type != ShiftType.LSL;
+
+
         public ShiftedOperand(uint shiftData)
         {
             Rm         = new Register(shiftData & 0xF);

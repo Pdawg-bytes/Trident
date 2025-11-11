@@ -66,12 +66,12 @@ namespace Trident.Core.Machine
             _postHalt = new(() => CPU.Halted = true, getPC);
 
 
-            _bios = new(getPC, Scheduler.Step);
+            _bios  = new(getPC, Scheduler.Step);
             _eWRAM = new(Scheduler.Step);
             _iWRAM = new(Scheduler.Step);
-            _pram = new(Scheduler.Step);
-            _vram = new(Scheduler.Step, () => _ppuRegisters.DisplayControl.BackgroundMode);
-            _oam = new(Scheduler.Step);
+            _pram  = new(Scheduler.Step);
+            _vram  = new(Scheduler.Step, () => _ppuRegisters.DisplayControl.BackgroundMode);
+            _oam   = new(Scheduler.Step);
 
 
             BusBuilder builder = new();

@@ -1,5 +1,4 @@
 ﻿using Trident.Core.Global;
-using Trident.Core.CPU.Decoding;
 using Trident.Core.Memory.Region;
 using Trident.CodeGeneration.Shared;
 using Trident.Core.Debugging.Snapshots;
