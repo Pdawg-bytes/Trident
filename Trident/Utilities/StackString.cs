@@ -127,12 +127,12 @@ namespace Trident.Utilities
         public readonly StackString GetResult() => _target;
 
 
-        public void AppendLiteral(string s) => _target.Append(s);
+        public void AppendLiteral(ReadOnlySpan<char> s) => _target.Append(s);
 
         public void AppendFormatted<T>(T value) where T : ISpanFormattable =>
             _target.AppendFormatted(value);
 
-        public void AppendFormatted<T>(T value, string format) where T : ISpanFormattable =>
+        public void AppendFormatted<T>(T value, ReadOnlySpan<char> format) where T : ISpanFormattable =>
             _target.AppendFormatted(value, format);
     }
 }

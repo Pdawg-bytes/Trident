@@ -93,7 +93,7 @@ namespace Trident.Windowing
             fonts.Add(("Fira Sans", firaSans.Pointer, firaSans.Size, firaSans.SizePixels));
             handles.Add(firaSans.Handle);
 
-            FontData firaCode = LoadFont("Trident.Fonts.FiraCode-Medium.ttf", 17f);
+            FontData firaCode = LoadFont("Trident.Fonts.FiraCode-Medium.ttf", 16f);
             fonts.Add(("Fira Code", firaCode.Pointer, firaCode.Size, firaCode.SizePixels));
             handles.Add(firaCode.Handle);
 
@@ -186,6 +186,7 @@ namespace Trident.Windowing
             AddWidget(new CPUStateWidget(monoFont, () => _gba.CPUSnapshot));
             AddWidget(new DisassemblyWidget(monoFont, _gba.Disassembler));
             AddWidget(new IRQStateWidget(monoFont, () => _gba.IRQSnapshot));
+            AddWidget(new DMAControllerWidget(monoFont, () => _gba.DMASnapshot));
 
             MemoryViewer memView = new(monoFont);
             memView.SetReadFunction(address => _gba.DebugRead<byte>(address));

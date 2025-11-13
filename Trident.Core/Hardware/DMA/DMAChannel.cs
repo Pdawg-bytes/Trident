@@ -13,6 +13,8 @@
         internal uint Destination;
         internal ushort TransferLength;
 
+        internal TransferLatch Latch;
+
         internal DMATransferSize TransferSize;
 
         internal AddressingMode SourceControl;
@@ -21,8 +23,17 @@
         internal DMAStartTiming StartTiming;
     }
 
+    internal struct TransferLatch
+    {
+        internal uint Source;
+        internal uint Destination;
+        internal ushort TransferLength;
 
-    internal enum AddressingMode
+        internal uint BusValue;
+    }
+
+
+    public enum AddressingMode
     {
         Increment = 0b00,
         Decrement = 0b01,
@@ -30,7 +41,7 @@
         Reload    = 0b11
     }
 
-    internal enum DMAStartTiming
+    public enum DMAStartTiming
     {
         Immediate = 0b00,
         VBlank    = 0b01,
@@ -38,7 +49,7 @@
         Special   = 0b11
     }
 
-    internal enum DMATransferSize
+    public enum DMATransferSize
     {
         Half = 0b00,
         Word = 0b01

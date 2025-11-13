@@ -152,6 +152,7 @@ namespace Trident.Core.Machine
 
             CPU.Reset();
             _irqController.Reset();
+            _dmaManager.Reset();
 
             PPU.Reset();
             Framebuffer.Clear();

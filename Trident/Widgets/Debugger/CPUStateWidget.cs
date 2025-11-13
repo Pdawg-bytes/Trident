@@ -16,7 +16,7 @@ namespace Trident.Widgets.Debugger
         private readonly ImFontPtr _monoFont;
 
         private readonly Vector4 _lavender = new(0.87f, 0.82f, 0.97f, 1f);
-        private readonly uint _tableHighlight = ImGui.ColorConvertFloat4ToU32(new(0.20f, 0.18f, 0.28f, 0.90f));
+        private readonly uint _tableHighlight = ImGui.ColorConvertFloat4ToU32(new(0.25f, 0.11f, 0.43f, 0.50f));
 
         private readonly (char Label, int Bit)[] _flags =
         [

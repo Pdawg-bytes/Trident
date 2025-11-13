@@ -128,7 +128,7 @@ namespace Trident.Widgets.Debugger
             uint totalBytes  = regionEnd - regionStart;
             uint totalRows   = totalBytes / bytesPerRow;
 
-            float rowHeight   = ImGui.GetFontSize() + ImGui.GetStyle().ItemSpacing.Y;
+            float rowHeight  = 16 + ImGui.GetStyle().ItemSpacing.Y;
             ImGui.Dummy(new Vector2(1, rowHeight * totalRows));
 
 
@@ -193,7 +193,7 @@ namespace Trident.Widgets.Debugger
                             ? (char)result.Value
                             : '.';
                     }
-                    ImGui.SameLine(450);
+                    ImGui.SameLine(430);
                     ImGui.TextUnformatted(asciiStr.AsSpan());
                 }
             }
