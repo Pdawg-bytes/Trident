@@ -74,7 +74,8 @@ namespace Trident.Widgets.Debugger
 
                         var regStr = StackString.Interpolate(regBuf, $"R{regIndex}");
 
-                        HighlightChange(
+                        HighlightChange
+                        (
                             regStr,
                             snapshot.Registers[regIndex],
                             _previousSnapshot?.Registers[regIndex],
