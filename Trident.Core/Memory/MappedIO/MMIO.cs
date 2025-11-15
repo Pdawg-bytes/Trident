@@ -8,7 +8,6 @@ using System.Runtime.CompilerServices;
 using Trident.Core.Hardware.Controller;
 using Trident.Core.Hardware.Interrupts;
 
-
 namespace Trident.Core.Memory.MappedIO
 {
     internal partial class MMIO : IMemoryRegion

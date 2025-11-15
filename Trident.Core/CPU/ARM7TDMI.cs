@@ -9,6 +9,7 @@ using Trident.Core.CPU.Decoding.Thumb;
 using System.Runtime.CompilerServices;
 using Trident.Core.Debugging.Snapshots;
 using Trident.Core.Hardware.Interrupts;
+using Trident.Core.Debugging.Breakpoints;
 
 using static Trident.Core.CPU.Conditions;
 
@@ -22,6 +23,7 @@ namespace Trident.Core.CPU
 
         public bool Halted;
         private InterruptController _irqController = new(() => { }, () => false);
+        private BreakpointManager _breakpointManager;
         private readonly Scheduler _scheduler;
 
         private readonly ARMDispatcher<TBus> _armDispatcher;
@@ -40,6 +42,7 @@ namespace Trident.Core.CPU
 
         public void AttachBus(TBus bus) => Bus = bus;
         internal void AttachIRQController(InterruptController controller) => _irqController = controller;
+        internal void AttachBreakpoints(BreakpointManager breakpoints) => _breakpointManager = breakpoints;
 
         public void Reset()
         {
@@ -67,9 +70,10 @@ namespace Trident.Core.CPU
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void StepDebug()
+        public bool StepDebug()
         {
-            // TODO: check breakpoints
+            if (_breakpointManager.IsBreakpoint(CurrentInstructionAddress()))
+                return false;
 
             if (_irqController.IRQAvailable) RaiseIRQ();
 
@@ -81,6 +85,8 @@ namespace Trident.Core.CPU
                 StepThumb((ushort)opcode);
             else
                 StepARM(opcode);
+
+            return true;
         }
 
 
@@ -126,6 +132,10 @@ namespace Trident.Core.CPU
             Pipeline.Access = PipelineAccess.Code | PipelineAccess.Sequential;
             Registers.PC += 8;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private uint CurrentInstructionAddress() =>
+            Registers.PC - (Registers.IsFlagSet(Flags.T) ? 4u : 8u);
 
 
         internal void RaiseIRQ()

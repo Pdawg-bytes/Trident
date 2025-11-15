@@ -7,13 +7,13 @@ using Trident.Core.Debugging.Snapshots;
 
 namespace Trident.Widgets.Debugger
 {
-    internal class CPUStateWidget : IWidget
+    internal class CPUStateWidget(ImFontPtr monoFont, Func<CPUSnapshot> getSnapshot) : IWidget
     {
-        private readonly Func<CPUSnapshot> _getSnapshot;
+        private readonly Func<CPUSnapshot> _getSnapshot = getSnapshot;
         private CPUSnapshot? _previousSnapshot;
         private uint _previousSPSR;
 
-        private readonly ImFontPtr _monoFont;
+        private readonly ImFontPtr _monoFont = monoFont;
 
         private readonly Vector4 _lavender = new(0.87f, 0.82f, 0.97f, 1f);
         private readonly uint _tableHighlight = ImGui.ColorConvertFloat4ToU32(new(0.25f, 0.11f, 0.43f, 0.50f));
@@ -24,11 +24,6 @@ namespace Trident.Widgets.Debugger
             ('I', 7), ('F', 6), ('T', 5)
         ];
 
-        internal CPUStateWidget(ImFontPtr monoFont, Func<CPUSnapshot> getSnapshot)
-        {
-            _getSnapshot = getSnapshot;
-            _monoFont = monoFont;
-        }
 
         public bool IsVisible { get; set; } = true;
 

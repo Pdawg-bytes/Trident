@@ -7,11 +7,11 @@ using Trident.Core.Debugging.Disassembly.Tokens;
 
 namespace Trident.Widgets.Debugger
 {
-    internal class DisassemblyWidget : IWidget
+    internal class DisassemblyWidget(ImFontPtr monoFont, Disassembler disassembler) : IWidget
     {
-        private readonly ImFontPtr _monoFont;
+        private readonly ImFontPtr _monoFont = monoFont;
 
-        private readonly Disassembler _disassembler;
+        private readonly Disassembler _disassembler = disassembler;
 
         private readonly uint _currentInstructionHighlight = ImGui.ColorConvertFloat4ToU32(new(0.20f, 0.18f, 0.24f, 1.0f));
         private readonly Vector4 _colorAddress = new(0.50f, 0.65f, 0.80f, 1.0f);
@@ -25,11 +25,6 @@ namespace Trident.Widgets.Debugger
 
         internal readonly static string[] _registers = ["r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "sp", "lr", "pc"];
 
-        internal DisassemblyWidget(ImFontPtr monoFont, Disassembler disassembler)
-        {
-            _monoFont = monoFont;
-            _disassembler = disassembler;
-        }
 
         public bool IsVisible { get; set; } = true;
 
@@ -156,7 +151,7 @@ namespace Trident.Widgets.Debugger
 
                 if (_followPC && currentRowIndex >= 0)
                 {
-                    float scrollWindowHeight = ImGui.GetWindowHeight();
+                    float scrollWindowHeight = ImGui.GetWindowHeight() + 12;
                     float rowHeight = ImGui.GetTextLineHeightWithSpacing() + (2.2f * ImGui.GetWindowDpiScale());
                     float scrollTarget = rowHeight * currentRowIndex - scrollWindowHeight / 2 + rowHeight / 2;
                     scrollTarget = Math.Clamp(scrollTarget, 0, ImGui.GetScrollMaxY());

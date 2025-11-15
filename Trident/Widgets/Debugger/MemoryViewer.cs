@@ -5,7 +5,7 @@ using Trident.Core.Memory;
 
 namespace Trident.Widgets.Debugger
 {
-    internal class MemoryViewer : IWidget
+    internal class MemoryViewer(ImFontPtr monoFont) : IWidget
     {
         private Func<uint, DebugMemoryRead<byte>> _readFunc;
 
@@ -27,7 +27,7 @@ namespace Trident.Widgets.Debugger
             ("GamePak", 0x08000000)
         };
 
-        private readonly ImFontPtr _monoFont;
+        private readonly ImFontPtr _monoFont = monoFont;
 
         private readonly Vector4 _addressColor = new(0.7f, 0.7f, 0.7f, 1f);
 
@@ -36,10 +36,6 @@ namespace Trident.Widgets.Debugger
         private readonly DebugMemoryRead<byte>[] _rowBytes = new DebugMemoryRead<byte>[BytesPerRow];
         internal static readonly string[] _columnHeaders = Enumerable.Range(0, 16).Select(i => i.ToString("X2")).ToArray();
 
-        internal MemoryViewer(ImFontPtr monoFont)
-        {
-            _monoFont = monoFont;
-        }
 
         public bool IsVisible { get; set; } = true;
 

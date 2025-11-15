@@ -1,11 +1,19 @@
 ﻿using Trident.Core.Memory;
 using Trident.Core.Memory.Region;
 using Trident.Core.Debugging.Snapshots;
+using Trident.Core.Debugging.Disassembly;
+using Trident.Core.Debugging.Breakpoints;
 
 namespace Trident.Core.Machine
 {
     public sealed partial class GBA
     {
+        internal bool IsDebuggingEnabled => Breakpoints.Enabled;
+
+        public Disassembler Disassembler;
+        public BreakpointManager Breakpoints = new();
+
+
         public CPUSnapshot CPUSnapshot => CPU.GetSnapshot();
 
         public IRQSnapshot IRQSnapshot => _irqController.GetSnapshot();

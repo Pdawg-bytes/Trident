@@ -6,22 +6,17 @@ using Trident.Core.Debugging.Snapshots;
 
 namespace Trident.Widgets.Debugger
 {
-    internal class DMAControllerWidget : IWidget
+    internal class DMAControllerWidget(ImFontPtr monoFont, Func<DMASnapshot> getSnapshot) : IWidget
     {
-        private readonly Func<DMASnapshot> _getSnapshot;
+        private readonly Func<DMASnapshot> _getSnapshot = getSnapshot;
 
-        private readonly ImFontPtr _monoFont;
+        private readonly ImFontPtr _monoFont = monoFont;
 
         private readonly Vector4 _lavender = new(0.87f, 0.82f, 0.97f, 1f);
         private readonly uint _tableHighlight = ImGui.ColorConvertFloat4ToU32(new(0.25f, 0.11f, 0.43f, 0.50f));
 
         private static readonly string[] _headers = [ "DMA Channel 0", "DMA Channel 1", "DMA Channel 2", "DMA Channel 3" ];
 
-        internal DMAControllerWidget(ImFontPtr monoFont, Func<DMASnapshot> getSnapshot)
-        {
-            _getSnapshot = getSnapshot;
-            _monoFont = monoFont;
-        }
 
         public bool IsVisible { get; set; } = true;
 

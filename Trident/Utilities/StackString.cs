@@ -88,6 +88,9 @@ namespace Trident.Utilities
         }
 
 
+        internal void Reset() => _length = 0;
+
+
         public static StackString operator +(StackString s, char c)
         {
             s.Append(c);

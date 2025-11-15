@@ -21,7 +21,6 @@ namespace Trident.Core.Machine
     {
         internal ARM7TDMI<GBABus> CPU;
         private GBABusView? _busView;
-        public Disassembler Disassembler;
 
         private readonly InterruptController _irqController;
         private readonly DMAManager _dmaManager;
@@ -59,6 +58,7 @@ namespace Trident.Core.Machine
 
             _irqController = new(() => CPU.Halted = false, () => CPU.Halted);
             CPU.AttachIRQController(_irqController);
+            CPU.AttachBreakpoints(Breakpoints);
 
             _dmaManager = new(_irqController.Raise, Scheduler);
 
@@ -101,6 +101,14 @@ namespace Trident.Core.Machine
 
         public void RunFor(ulong cycles)
         {
+            if (IsDebuggingEnabled)
+                DebugRun(cycles);
+            else
+                Run(cycles);
+        }
+
+        private void Run(ulong cycles)
+        {
             ulong runTarget = Scheduler.CurrentTimestamp + cycles;
 
             while (runTarget > Scheduler.CurrentTimestamp)
@@ -112,14 +120,17 @@ namespace Trident.Core.Machine
             }
         }
 
-        public void DebugRunFor(ulong cycles)
+        private void DebugRun(ulong cycles)
         {
             ulong runTarget = Scheduler.CurrentTimestamp + cycles;
 
             while (runTarget > Scheduler.CurrentTimestamp)
             {
                 if (!CPU.Halted)
-                    CPU.StepDebug();
+                {
+                    if (!CPU.StepDebug())
+                        break;
+                }
                 else
                     HandleHalt();
             }

@@ -5,18 +5,13 @@ using Trident.Core.Debugging.Snapshots;
 
 namespace Trident.Widgets.Debugger
 {
-    internal class IRQStateWidget : IWidget
+    internal class IRQStateWidget(ImFontPtr monoFont, Func<IRQSnapshot> getSnapshot) : IWidget
     {
-        private readonly Func<IRQSnapshot> _getSnapshot;
+        private readonly Func<IRQSnapshot> _getSnapshot = getSnapshot;
 
-        private readonly ImFontPtr _monoFont;
+        private readonly ImFontPtr _monoFont = monoFont;
         private readonly Vector4 _lavender = new(0.87f, 0.82f, 0.97f, 1f);
 
-        internal IRQStateWidget(ImFontPtr monoFont, Func<IRQSnapshot> getSnapshot)
-        {
-            _getSnapshot = getSnapshot;
-            _monoFont = monoFont;
-        }
 
         public bool IsVisible { get; set; } = true;
 
