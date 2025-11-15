@@ -80,6 +80,11 @@ namespace Trident.Core.Hardware.DMA
                         address = (address & ~0xFF000000u) | (hi << 16);
                     break;
             }
+
+            address &= source ? DmaSrcMask(id) : DmaDstMask(id);
         }
+
+        private static uint DmaSrcMask(uint id) => id == 0 ? 0x07FFFFFFu : 0x0FFFFFFFu;
+        private static uint DmaDstMask(uint id) => id == 3 ? 0x0FFFFFFFu : 0x07FFFFFFu;
     }
 }
