@@ -2,22 +2,26 @@
 using System.Numerics;
 using Trident.Utilities;
 using System.Buffers.Binary;
+using Trident.Core.Debugging.Breakpoints;
 using Trident.Core.Debugging.Disassembly;
 using Trident.Core.Debugging.Disassembly.Tokens;
 
 namespace Trident.Widgets.Debugger
 {
-    internal class DisassemblyWidget(ImFontPtr monoFont, Disassembler disassembler) : IWidget
+    internal class DisassemblyWidget(ImFontPtr monoFont, Disassembler disassembler, BreakpointManager breakpoints) : IWidget
     {
         private readonly ImFontPtr _monoFont = monoFont;
 
         private readonly Disassembler _disassembler = disassembler;
+        private readonly BreakpointManager _breakpoints = breakpoints;
 
         private readonly uint _currentInstructionHighlight = ImGui.ColorConvertFloat4ToU32(new(0.20f, 0.18f, 0.24f, 1.0f));
-        private readonly Vector4 _colorAddress = new(0.50f, 0.65f, 0.80f, 1.0f);
-        private readonly Vector4 _colorOpcode = new(0.70f, 0.85f, 0.90f, 1.0f);
+        private readonly Vector4 _colorArrow     = new(0.58f, 0.87f, 0.70f, 1.0f);
+        private readonly Vector4 _colorBreak     = new(0.90f, 0.35f, 0.35f, 1.0f);
+        private readonly Vector4 _colorAddress   = new(0.50f, 0.65f, 0.80f, 1.0f);
+        private readonly Vector4 _colorOpcode    = new(0.70f, 0.85f, 0.90f, 1.0f);
         private readonly Vector4 _colorCondition = new(0.95f, 0.75f, 0.45f, 1.0f);
-        private const float LeftMargin = 8f;
+        private const float LeftMargin = 6f;
 
         private bool _showAddress = true;
         private bool _showOpcode = true;
@@ -70,16 +74,38 @@ namespace Trident.Widgets.Debugger
                     var instr = instructionsSpan[i];
 
                     ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.Indent(LeftMargin);
 
                     if (instr.Address == actualAddress)
                     {
                         ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg0, _currentInstructionHighlight);
                         currentRowIndex = i;
+
+                        ImGui.PushStyleColor(ImGuiCol.Button, 0);
+                        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0);
+                        ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0);
+                        ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 0f);
+                        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(0, 0));
+
+                        Vector4 arrowColor = _breakpoints.IsLastHit(instr.Address) ?
+                            _colorBreak : _colorArrow;
+
+                        ImGui.PushStyleColor(ImGuiCol.Text, arrowColor);
+                        ImGui.BeginDisabled(true);
+                        ImGui.ArrowButton($"##pc_indicator", ImGuiDir.Right);
+                        ImGui.EndDisabled();
+                        ImGui.PopStyleColor();
+
+                        ImGui.PopStyleVar(2);
+                        ImGui.PopStyleColor(3);
+                    }
+                    else
+                    {
+                        ImGui.Dummy(new Vector2(16f, 1f));
                     }
 
-                    ImGui.TableNextColumn();
-
-                    ImGui.Indent(LeftMargin);
+                    ImGui.SameLine(0f, 4f);
 
                     if (_showAddress)
                     {

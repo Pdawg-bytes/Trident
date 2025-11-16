@@ -1,134 +1,132 @@
 ﻿using ImGuiNET;
+using System.Numerics;
+using Trident.Widgets;
 using Trident.Utilities;
 using Trident.Core.Debugging.Breakpoints;
 
-namespace Trident.Widgets.Debugger
+
+internal class BreakpointWidget(ImFontPtr monoFont, BreakpointManager breakpoints, Action<bool> pauseGBA) : IWidget
 {
-    internal class BreakpointWidget(ImFontPtr monoFont, BreakpointManager breakpoints) : IWidget
+    private readonly ImFontPtr _monoFont = monoFont;
+    private readonly BreakpointManager _breakpoints = breakpoints;
+    private readonly Action<bool> _pauseGBA = pauseGBA;
+    private readonly uint[] _bpBuffer = new uint[breakpoints.MaxBreakpoints];
+
+    private int _selectedDeleteIndex = -1;
+    private string _newBreakpointText = string.Empty;
+
+
+    public bool IsVisible { get; set; } = true;
+
+    public string Name => "Breakpoints";
+    public string Group => "CPU";
+
+    public void Render()
     {
-        private readonly ImFontPtr _monoFont = monoFont;
+        if (!IsVisible) return;
 
-        private readonly BreakpointManager _breakpoints = breakpoints;
-        private readonly uint[] _bpBuffer = new uint[breakpoints.MaxBreakpoints];
-
-        private uint? _lastHitBreakpoint = null;
-        private int _selectedDeleteIndex = -1;
-        private string _newBreakpointText = string.Empty;
-
-
-        public bool IsVisible { get; set; } = true;
-
-        public string Name => "Breakpoints";
-        public string Group => "CPU";
-
-        public void Render()
+        if (!ImGui.Begin("Breakpoints"))
         {
-            if (!IsVisible) return;
+            ImGui.End();
+            return;
+        }
 
-            if (!ImGui.Begin("Breakpoints"))
+        ImGui.PushFont(_monoFont);
+        ImGui.InputTextWithHint("##bpAdd", "Address (hex)", ref _newBreakpointText, 16, ImGuiInputTextFlags.CharsHexadecimal);
+        ImGui.PopFont();
+
+        ImGui.SameLine();
+        if (ImGui.Button("Add"))
+        {
+            if (uint.TryParse(_newBreakpointText,
+                              System.Globalization.NumberStyles.HexNumber,
+                              null,
+                              out uint parsed))
             {
-                ImGui.End();
-                return;
+                if (_breakpoints.Add(parsed))
+                    _newBreakpointText = string.Empty;
             }
-            
+        }
 
-            ImGui.PushFont(_monoFont);
-            ImGui.InputTextWithHint("##bpAdd", "Address (hex)", ref _newBreakpointText, 16, ImGuiInputTextFlags.CharsHexadecimal);
-            ImGui.PopFont();
-
-            ImGui.SameLine();
-            if (ImGui.Button("Add"))
+        int count = _breakpoints.CopyTo(_bpBuffer);
+        if (_breakpoints.TryGetLastHit(out var hit))
+        {
+            for (int i = 0; i < count; i++)
             {
-                if (uint.TryParse(_newBreakpointText,
-                                  System.Globalization.NumberStyles.HexNumber,
-                                  null,
-                                  out uint addr))
+                if (_bpBuffer[i] == hit)
                 {
-                    if (_breakpoints.Add(addr))
-                        _newBreakpointText = string.Empty;
+                    _selectedDeleteIndex = i;
+                    break;
                 }
             }
+        }
 
+        if (_breakpoints.Enabled)
+        {
+            Span<char> addrBuf = stackalloc char[16];
+            StackString addrStr = new(addrBuf);
 
-            while (_breakpoints.TryDequeueHit(out var addr))
-                _lastHitBreakpoint = addr;
+            if (_selectedDeleteIndex >= 0 && _selectedDeleteIndex < count)
+            {
+                addrStr.Append("0x");
+                addrStr.AppendFormatted(_bpBuffer[_selectedDeleteIndex], "X8");
+            }
+            else
+            {
+                addrStr.Append("<select>");
+            }
 
-            int count = _breakpoints.CopyTo(_bpBuffer);
-            if (_lastHitBreakpoint.HasValue)
+            if (ImGui.BeginCombo("##bpDelete", addrStr.AsSpan()))
             {
                 for (int i = 0; i < count; i++)
                 {
-                    if (_bpBuffer[i] == _lastHitBreakpoint.Value)
-                    {
-                        _selectedDeleteIndex = i;
-                        break;
-                    }
-                }
-            }
+                    bool isSelected = (_selectedDeleteIndex == i);
 
-            if (_breakpoints.Enabled)
-            {
-                Span<char> addrBuf = stackalloc char[16];
-                StackString addrStr = new(addrBuf);
-
-                if (_selectedDeleteIndex >= 0 && _selectedDeleteIndex < count)
-                {
+                    addrBuf.Clear();
+                    addrStr.Reset();
                     addrStr.Append("0x");
-                    addrStr.AppendFormatted(_bpBuffer[_selectedDeleteIndex], "X8");
+                    addrStr.AppendFormatted(_bpBuffer[i], "X8");
+
+                    if (ImGui.Selectable(addrStr.AsSpan(), isSelected))
+                        _selectedDeleteIndex = i;
+
+                    if (isSelected)
+                        ImGui.SetItemDefaultFocus();
                 }
-                else
-                    addrStr.Append("<select>");
-
-                if (ImGui.BeginCombo("##bpDelete", addrStr.AsSpan()))
-                {
-                    for (int i = 0; i < count; i++)
-                    {
-                        bool isSelected = (_selectedDeleteIndex == i);
-
-                        addrBuf.Clear();
-                        addrStr.Reset();
-                        addrStr.Append("0x");
-                        addrStr.AppendFormatted(_bpBuffer[i], "X8");
-
-                        if (ImGui.Selectable(addrStr.AsSpan(), isSelected))
-                            _selectedDeleteIndex = i;
-
-                        if (isSelected)
-                            ImGui.SetItemDefaultFocus();
-                    }
-                    ImGui.EndCombo();
-                }
-
-                ImGui.SameLine();
-                if (ImGui.Button("Delete") && _selectedDeleteIndex >= 0 && _selectedDeleteIndex < count)
-                {
-                    _breakpoints.Remove(_bpBuffer[_selectedDeleteIndex]);
-
-                    if (_bpBuffer[_selectedDeleteIndex] == _lastHitBreakpoint)
-                        _lastHitBreakpoint = null;
-
-                    _selectedDeleteIndex = -1;
-                }
+                ImGui.EndCombo();
             }
-            else
-                ImGui.TextDisabled("No breakpoints set");
 
-            if (_lastHitBreakpoint.HasValue)
+            ImGui.SameLine();
+            if (ImGui.Button("Delete") && _selectedDeleteIndex >= 0 && _selectedDeleteIndex < count)
             {
-                Span<char> bannerBuf = stackalloc char[32];
-                StackString bannerStr = StackString.Interpolate(bannerBuf, $"Breakpoint hit at 0x{_lastHitBreakpoint.Value:X8}");
+                _breakpoints.Remove(_bpBuffer[_selectedDeleteIndex]);
 
-                ImGui.TextColored(new System.Numerics.Vector4(1f, 0.8f, 0f, 1f), bannerStr.AsSpan());
+                if (_breakpoints.IsLastHit(_bpBuffer[_selectedDeleteIndex]))
+                    _breakpoints.ClearLastHit();
 
-                ImGui.SameLine();
-                if (ImGui.SmallButton("Continue"))
-                {
-                    _breakpoints.Continue(_lastHitBreakpoint.Value);
-                    _lastHitBreakpoint = null;
-                }
+                _selectedDeleteIndex = -1;
             }
-
-            ImGui.End();
         }
+        else
+            ImGui.TextDisabled("No breakpoints set");
+
+        if (_breakpoints.TryGetLastHit(out var addr))
+        {
+            _pauseGBA(true);
+
+            Span<char> bannerBuf = stackalloc char[32];
+            StackString bannerStr = StackString.Interpolate(bannerBuf, $"Breakpoint hit at 0x{addr:X8}");
+            ImGui.TextColored(new Vector4(1f, 0.8f, 0f, 1f), bannerStr.AsSpan());
+
+            ImGui.SameLine();
+            if (ImGui.SmallButton("Continue"))
+            {
+                _pauseGBA(false);
+                _breakpoints.Continue(addr);
+                _breakpoints.ClearLastHit();
+            }
+        }
+
+        ImGui.End();
     }
 }

@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Debugging.Breakpoints
 {
@@ -7,7 +6,7 @@ namespace Trident.Core.Debugging.Breakpoints
     {
         private uint? _suppressOnce;
         private readonly HashSet<uint> _breakpoints = [];
-        private readonly ConcurrentQueue<uint> _hitQueue = new();
+        private uint? _lastHit;
         private readonly int _maxBreakpoints = maxBreakpoints;
 
         public bool Enabled { get; private set; }
@@ -50,15 +49,27 @@ namespace Trident.Core.Debugging.Breakpoints
 
             if (_breakpoints.Contains(pc))
             {
-                _hitQueue.Enqueue(pc);
+                _lastHit = pc;
                 return true;
             }
             return false;
         }
 
 
-        public bool TryDequeueHit(out uint addr) => _hitQueue.TryDequeue(out addr);
-        public bool HasHits => !_hitQueue.IsEmpty;
+        public bool TryGetLastHit(out uint addr)
+        {
+            if (_lastHit.HasValue)
+            {
+                addr = _lastHit.Value;
+                return true;
+            }
+            addr = default;
+            return false;
+        }
+
+        public void ClearLastHit() => _lastHit = null;
+
+        public bool IsLastHit(uint addr) => _lastHit.HasValue && _lastHit.Value == addr;
 
 
         public int CopyTo(Span<uint> destination)

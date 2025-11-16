@@ -13,28 +13,24 @@ namespace Trident.Core.Hardware.DMA
         private readonly Scheduler _scheduler;
 
         private readonly DMAChannel[] _channels = new DMAChannel[4];
+        private readonly DMASet _hblankDMA = new();
+        private readonly DMASet _vblankDMA = new();
 
         internal DMAManager(Action<InterruptSource, int> raiseIRQ, Scheduler scheduler)
         {
             _raiseIRQ = raiseIRQ;
             _scheduler = scheduler;
 
+            _scheduler.Register(EventType.DMA_Activate, ActivateDMA);
             Reset();
         }
 
         internal void SetBusView(GBABusView busView) => _busView = busView;
 
 
-        // worlds worst DMA award
-        private void RunDMA(uint id)
+        private void ActivateDMA(ulong id)
         {
             DMAChannel ch = _channels[id];
-
-            uint transferAlignment = (ch.TransferSize == DMATransferSize.Word ? ~3u : ~1u);
-            ch.Latch.Source        = (ch.Source      & transferAlignment) & (id >  0 ? 0x0FFFFFFFu : 0x07FFFFFFu);
-            ch.Latch.Destination   = (ch.Destination & transferAlignment) & (id == 3 ? 0x0FFFFFFFu : 0x07FFFFFFu);
-
-            ch.TransferLength &= (id == 3) ? (ushort)0xFFFF : (ushort)0x3FFF;
 
             if (ch.StartTiming == DMAStartTiming.Immediate)
             {
@@ -53,7 +49,7 @@ namespace Trident.Core.Hardware.DMA
                     else
                         _busView.Write16(ch.Latch.Destination, (ushort)value, PipelineAccess.NonSequential | PipelineAccess.DMA);
 
-                    ch.Latch.Source      = UpdateAddress(ch.Latch.Source, ch.SourceControl, unitSize);
+                    ch.Latch.Source = UpdateAddress(ch.Latch.Source, ch.SourceControl, unitSize);
                     ch.Latch.Destination = UpdateAddress(ch.Latch.Destination, ch.DestinationControl, unitSize);
                 }
 
@@ -73,6 +69,50 @@ namespace Trident.Core.Hardware.DMA
                 AddressingMode.Fixed => addr,
                 _ => addr
             };
+        }
+
+
+        private void InitializeDMA(uint id)
+        {
+            DMAChannel ch = _channels[id];
+
+            uint transferMask    = (ch.TransferSize == DMATransferSize.Word) ? ~3u : ~1u;
+            ch.Latch.Source      = ch.Source & transferMask;
+            ch.Latch.Destination = ch.Destination & transferMask;
+
+            uint lengthMask         = (id == 3) ? (ushort)0xFFFF : (ushort)0x3FFF;
+            ch.Latch.TransferLength = (ushort)(ch.TransferLength & lengthMask);
+
+            if (ch.Latch.TransferLength == 0)
+                ch.Latch.TransferLength = (ushort)(lengthMask + 1);
+
+            if (ch.StartTiming == DMAStartTiming.Immediate)
+                ScheduleNextDMA(id);
+            else
+                EnqueueDMA(ch);
+        }
+
+        private void ScheduleNextDMA(uint id)
+        {
+            // TONC: "[...] it works as soon as you enable the DMA.
+            //        Well actually it takes 2 cycles before it'll set in [...]"
+            
+            // TODO: later handle priority
+            _scheduler.Schedule(EventType.DMA_Activate, 2, ctx: id);
+        }
+
+        private void EnqueueDMA(DMAChannel ch)
+        {
+            // TODO: handle "special" timing
+            switch (ch.StartTiming)
+            {
+                case DMAStartTiming.VBlank:
+                    _vblankDMA.Set(ch.ID, true);
+                    break;
+                case DMAStartTiming.HBlank:
+                    _hblankDMA.Set(ch.ID, true);
+                    break;
+            }
         }
 
 
@@ -113,5 +153,27 @@ namespace Trident.Core.Hardware.DMA
             ch.DestinationControl,
             ch.StartTiming
         );
+    }
+
+
+    internal struct DMASet
+    {
+        private byte _bits;
+        internal readonly byte Raw => _bits;
+
+        internal readonly bool AllSet  => _bits == byte.MaxValue;
+        internal readonly bool NoneSet => _bits == 0;
+
+        internal void Set(uint index, bool value)
+        {
+            if (value)
+                _bits |= (byte)(1 << (int)index);
+            else
+                _bits &= (byte)~(1 << (int)index);
+        }
+
+        internal bool Get(int index) => (_bits & (1u << index)) != 0;
+
+        internal void Clear() => _bits = 0;
     }
 }

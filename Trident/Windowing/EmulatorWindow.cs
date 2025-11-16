@@ -184,8 +184,8 @@ namespace Trident.Windowing
                 throw new InvalidOperationException("Fira Code was not loaded correctly.");
 
             AddWidget(new CPUStateWidget(monoFont, () => _gba.CPUSnapshot));
-            AddWidget(new BreakpointWidget(monoFont, _gba.Breakpoints));
-            AddWidget(new DisassemblyWidget(monoFont, _gba.Disassembler));
+            AddWidget(new BreakpointWidget(monoFont, _gba.Breakpoints, _emulatorThread.SetPause));
+            AddWidget(new DisassemblyWidget(monoFont, _gba.Disassembler, _gba.Breakpoints));
             AddWidget(new IRQStateWidget(monoFont, () => _gba.IRQSnapshot));
             AddWidget(new DMAControllerWidget(monoFont, () => _gba.DMASnapshot));
 
@@ -427,7 +427,12 @@ namespace Trident.Windowing
         private void StepGBA(ulong cycles)
         {
             if (_emulatorThread.IsPaused())
+            {
+                if (_gba.Breakpoints.TryGetLastHit(out uint addr))
+                    _gba.Breakpoints.Continue(addr);
+
                 _emulatorThread.EnqueueCommand(new StepCommand(cycles));
+            }    
         }
 
 

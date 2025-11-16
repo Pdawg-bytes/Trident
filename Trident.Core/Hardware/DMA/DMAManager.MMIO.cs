@@ -41,7 +41,7 @@ namespace Trident.Core.Hardware.DMA
                 channel.Enabled        = (value & (1 << 15)) != 0;
 
                 if (channel.Enabled && channel.StartTiming == DMAStartTiming.Immediate)
-                    RunDMA(id);
+                    InitializeDMA(id);
             }
         }
 

@@ -6,7 +6,7 @@ namespace Trident.Core.Scheduling
     {
         private const int DefaultCapacity = 64;
         private readonly SchedulerHeap _heap;
-        private readonly Dictionary<EventType, Action<ulong>> _callbacks = [];
+        private readonly Action<ulong>[] _callbacks = new Action<ulong>[(int)EventType.Count];
 
         private ulong _nextId = 1;
 
@@ -16,14 +16,14 @@ namespace Trident.Core.Scheduling
 
         public Scheduler(int capacity = DefaultCapacity)
         {
-            if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
 
             _heap = new SchedulerHeap(capacity);
 
             foreach (EventType type in Enum.GetValues(typeof(EventType)))
             {
                 if (type == EventType.Count) continue;
-                _callbacks[type] = (data) => Debug.Assert(false, $"Scheduler: unhandled event type: {type}");
+                _callbacks[(int)type] = (data) => Debug.Assert(false, $"Scheduler: unhandled event type: {type}");
             }
 
             Register(EventType.EndOfQueue, () => Debug.Assert(false, "Scheduler: reached end of event queue"));
@@ -42,8 +42,8 @@ namespace Trident.Core.Scheduling
             #endif
         }
 
-        internal void Register(EventType eventType, Action callback) => _callbacks[eventType] = _ => callback();
-        internal void Register(EventType eventType, Action<ulong> callback) => _callbacks[eventType] = callback;
+        internal void Register(EventType eventType, Action callback) => _callbacks[(int)eventType] = _ => callback();
+        internal void Register(EventType eventType, Action<ulong> callback) => _callbacks[(int)eventType] = callback;
 
         internal SchedulerEvent? EventByUID(ulong uid)
         {
@@ -69,7 +69,7 @@ namespace Trident.Core.Scheduling
                 CurrentTimestamp = nextEvent.Timestamp;
 
                 _heap.Pop();
-                _callbacks[nextEvent.EventType](nextEvent.Context);
+                _callbacks[(int)nextEvent.EventType](nextEvent.Context);
             }
 
             CurrentTimestamp = timestampNext;
