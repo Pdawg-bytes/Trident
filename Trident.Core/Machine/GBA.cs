@@ -92,7 +92,7 @@ namespace Trident.Core.Machine
             Disassembler = new(GetDebugRegion, getPC, () => CPUSnapshot);
 
 
-            PPU = new(Framebuffer, _ppuRegisters, _pram, _vram, _oam, Scheduler, _irqController.Raise);
+            PPU = new(Framebuffer, _ppuRegisters, _pram, _vram, _oam, Scheduler, _irqController.Raise, _dmaManager.Trigger);
         }
 
         public T? GetGPIODevice<T>() where T : GPIODevice

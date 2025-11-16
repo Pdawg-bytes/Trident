@@ -1,6 +1,8 @@
-﻿using Trident.Core.Bus;
+﻿using System.Numerics;
+using Trident.Core.Bus;
 using Trident.Core.Scheduling;
 using Trident.Core.CPU.Pipeline;
+using System.Runtime.CompilerServices;
 using Trident.Core.Debugging.Snapshots;
 using Trident.Core.Hardware.Interrupts;
 
@@ -15,6 +17,8 @@ namespace Trident.Core.Hardware.DMA
         private readonly DMAChannel[] _channels = new DMAChannel[4];
         private readonly DMASet _hblankDMA = new();
         private readonly DMASet _vblankDMA = new();
+        private readonly DMASet _runnableDMA = new();
+        private bool _endVideoDMA = false;
 
         internal DMAManager(Action<InterruptSource, int> raiseIRQ, Scheduler scheduler)
         {
@@ -26,6 +30,43 @@ namespace Trident.Core.Hardware.DMA
         }
 
         internal void SetBusView(GBABusView busView) => _busView = busView;
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void Trigger(DMATrigger trigger) => Trigger(trigger, 0);
+        internal void Trigger(DMATrigger trigger, uint scanline)
+        {
+            switch (trigger)
+            {
+                case DMATrigger.HBlank:
+                    if (scanline < 160)
+                        Schedule(_hblankDMA.Raw);
+
+                    DMAChannel ch3 = _channels[3];
+                    if (ch3.Enabled && ch3.StartTiming == DMAStartTiming.Special)
+                    {
+                        if (scanline >= 2 && scanline < 162)
+                        {
+                            _endVideoDMA = scanline == 161;
+                            Schedule(1u << 3);
+                        }
+                    }
+                    break;
+                case DMATrigger.VBlank:
+                    Schedule(_vblankDMA.Raw);
+                    break;
+                case DMATrigger.FIFO0:
+                case DMATrigger.FIFO1:
+                    {
+                        int id = trigger == DMATrigger.FIFO0 ? 1 : 2;
+                        DMAChannel ch = _channels[id];
+
+                        if (ch.Enabled && ch.StartTiming == DMAStartTiming.Special)
+                            Schedule(1u << id);
+                    }
+                    break;
+            }
+        }
 
 
         private void ActivateDMA(ulong id)
@@ -49,13 +90,14 @@ namespace Trident.Core.Hardware.DMA
                     else
                         _busView.Write16(ch.Latch.Destination, (ushort)value, PipelineAccess.NonSequential | PipelineAccess.DMA);
 
-                    ch.Latch.Source = UpdateAddress(ch.Latch.Source, ch.SourceControl, unitSize);
+                    ch.Latch.Source      = UpdateAddress(ch.Latch.Source, ch.SourceControl, unitSize);
                     ch.Latch.Destination = UpdateAddress(ch.Latch.Destination, ch.DestinationControl, unitSize);
                 }
 
-                ch.Source = ch.Latch.Source;
+                ch.Source      = ch.Latch.Source;
                 ch.Destination = ch.Latch.Destination;
 
+                DequeueDMA(ch);
                 ch.Enabled = false;
             }
         }
@@ -87,18 +129,23 @@ namespace Trident.Core.Hardware.DMA
                 ch.Latch.TransferLength = (ushort)(lengthMask + 1);
 
             if (ch.StartTiming == DMAStartTiming.Immediate)
-                ScheduleNextDMA(id);
+                Schedule(1u << (int)id);
             else
                 EnqueueDMA(ch);
         }
 
-        private void ScheduleNextDMA(uint id)
+
+        private void Schedule(uint mask)
         {
             // TONC: "[...] it works as soon as you enable the DMA.
             //        Well actually it takes 2 cycles before it'll set in [...]"
-            
-            // TODO: later handle priority
-            _scheduler.Schedule(EventType.DMA_Activate, 2, ctx: id);
+            while (mask != 0)
+            {
+                uint id = (uint)BitOperations.TrailingZeroCount(mask);
+                mask &= ~(1u << (int)id);
+
+                _scheduler.Schedule(EventType.DMA_Activate, 2, ctx: id);
+            }
         }
 
         private void EnqueueDMA(DMAChannel ch)
@@ -115,11 +162,22 @@ namespace Trident.Core.Hardware.DMA
             }
         }
 
+        private void DequeueDMA(DMAChannel ch)
+        {
+            _hblankDMA.Set(ch.ID, false);
+            _vblankDMA.Set(ch.ID, false);
+        }
+
 
         internal void Reset()
         {
             for (uint i = 0; i < _channels.Length; i++)
                 _channels[i] = new(i);
+
+            _hblankDMA.Clear();
+            _vblankDMA.Clear();
+            _runnableDMA.Clear();
+            _endVideoDMA = false;
         }
 
 
@@ -161,7 +219,8 @@ namespace Trident.Core.Hardware.DMA
         private byte _bits;
         internal readonly byte Raw => _bits;
 
-        internal readonly bool AllSet  => _bits == byte.MaxValue;
+        // All DMAs (bits 0-3) set
+        internal readonly bool AllSet  => _bits == 0xF;
         internal readonly bool NoneSet => _bits == 0;
 
         internal void Set(uint index, bool value)

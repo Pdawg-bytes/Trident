@@ -23,8 +23,8 @@ namespace Trident.Core.CPU.Registers
         private readonly BankParameters[] _bankParams = new BankParameters[32];
         private static readonly BankParameters UsrSysPartialBank = new(13, 5, 2, 0);
 
-        private uint[] _bankStore = new uint[22];   // USR/SYS (7 regs, default set), FIQ (7 regs), other 4 modes (2 regs ea.)
-        private Flags[] _bankedSpsr = new Flags[6]; // 6 distinct modes, usr/sys don't use SPSR, but our bank switch relies on it anyways.
+        private readonly uint[] _bankStore = new uint[22];   // USR/SYS (7 regs, default set), FIQ (7 regs), other 4 modes (2 regs ea.)
+        private readonly Flags[] _bankedSpsr = new Flags[6]; // 6 distinct modes, usr/sys don't use SPSR, but our bank switch relies on it anyways.
         private RegisterArray _registers = new();
 
         public ProcessorMode CurrentMode { get; private set; }
@@ -44,7 +44,6 @@ namespace Trident.Core.CPU.Registers
             _bankParams[(uint)ProcessorMode.UND] = new(13, 20, 2, 5);
 
             ResetRegisters();
-            CurrentMode = ProcessorMode.SYS;
             SwitchMode(ProcessorMode.SYS);
         }
 
@@ -193,7 +192,8 @@ namespace Trident.Core.CPU.Registers
 
         public ReadOnlySpan<uint> AsSpan()
         {
-            return MemoryMarshal.CreateReadOnlySpan(
+            return MemoryMarshal.CreateReadOnlySpan
+            (
                 ref Unsafe.As<RegisterArray, uint>(ref Unsafe.AsRef(ref _registers)),
                 RegisterArray.Length
             );

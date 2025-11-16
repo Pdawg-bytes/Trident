@@ -1,5 +1,5 @@
-﻿using Trident.Core.Bus;
-using Trident.Core.Scheduling;
+﻿using Trident.Core.Scheduling;
+using Trident.Core.Hardware.DMA;
 using Trident.Core.Memory.Graphics;
 using Trident.Core.Hardware.Interrupts;
 using Trident.Core.Hardware.Graphics.Registers;
@@ -24,8 +24,9 @@ namespace Trident.Core.Hardware.Graphics
         private readonly Scheduler _scheduler;
 
         private readonly Action<InterruptSource> _raiseIRQ;
+        private readonly Action<DMATrigger, uint> _triggerDMA;
 
-        internal PPU(Framebuffer framebuffer, PPURegisters registers, PRAM pram, VRAM vram, OAM oam, Scheduler scheduler, Action<InterruptSource> raiseIRQ)
+        internal PPU(Framebuffer framebuffer, PPURegisters registers, PRAM pram, VRAM vram, OAM oam, Scheduler scheduler, Action<InterruptSource> raiseIRQ, Action<DMATrigger, uint> triggerDMA)
         {
             _framebuffer = framebuffer;
             _registers = registers;
@@ -34,6 +35,7 @@ namespace Trident.Core.Hardware.Graphics
             _oam = oam;
             _scheduler = scheduler;
             _raiseIRQ = raiseIRQ;
+            _triggerDMA = triggerDMA;
 
             _scheduler.Register(EventType.PPU_HBlankStart,   OnHBlankStart);
             _scheduler.Register(EventType.PPU_HBlankEnd,     OnHBlankEnd);
@@ -74,6 +76,8 @@ namespace Trident.Core.Hardware.Graphics
                 }
             }
 
+            _triggerDMA(DMATrigger.HBlank, _registers.VCount);
+
             _scheduler.Schedule(EventType.PPU_HBlankEnd, HBlankEndDelay);
             _scheduler.Schedule(EventType.PPU_SetHBlankFlag, HBlankFlagDelay);
         }
@@ -110,6 +114,8 @@ namespace Trident.Core.Hardware.Graphics
         {
             if (_registers.DisplayStatus.VBlankIrq)
                 _raiseIRQ(InterruptSource.LCD_VBlank);
+
+            _triggerDMA(DMATrigger.VBlank, 0);
         }
 
         private void OnVBlankEnd()
