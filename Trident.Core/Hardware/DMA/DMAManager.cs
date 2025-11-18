@@ -123,10 +123,10 @@ namespace Trident.Core.Hardware.DMA
             ch.Latch.Destination = ch.Destination & transferMask;
 
             uint lengthMask         = (id == 3) ? (ushort)0xFFFF : (ushort)0x3FFF;
-            ch.Latch.TransferLength = (ushort)(ch.TransferLength & lengthMask);
+            ch.Latch.TransferLength = ch.TransferLength & lengthMask;
 
             if (ch.Latch.TransferLength == 0)
-                ch.Latch.TransferLength = (ushort)(lengthMask + 1);
+                ch.Latch.TransferLength = lengthMask + 1;
 
             if (ch.StartTiming == DMAStartTiming.Immediate)
                 Schedule(1u << (int)id);

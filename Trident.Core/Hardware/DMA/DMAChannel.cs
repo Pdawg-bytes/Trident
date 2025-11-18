@@ -27,7 +27,9 @@
     {
         internal uint Source;
         internal uint Destination;
-        internal ushort TransferLength;
+        
+        // The internal latch can exceed 16-bit values when initialized from 0.
+        internal uint TransferLength;
 
         internal uint BusValue;
     }
