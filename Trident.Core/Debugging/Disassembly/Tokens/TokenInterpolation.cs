@@ -203,11 +203,7 @@ namespace Trident.Core.Debugging.Disassembly.Tokens
             new(handler.Written, handler.OperandsStartIndex);
     }
 
-    internal struct WriteResult(int bytesWritten, int operandsStartIndex)
-    {
-        internal int BytesWritten = bytesWritten;
-        internal int OperandsStartIndex = operandsStartIndex;
-    }
+    internal record struct WriteResult(int BytesWritten, int OperandsStartIndex);
     #endregion
 
 

@@ -95,7 +95,7 @@ namespace Trident.Core.Debugging.Disassembly
     }
 
 
-    public struct DisassembledInstruction()
+    public struct DisassembledInstruction
     {
         public uint Address { get; set; }
         public readonly uint Opcode { get; init; }
