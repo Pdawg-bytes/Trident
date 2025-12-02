@@ -89,7 +89,7 @@ namespace Trident.Core.Machine
             CPU.AttachBus(builder.Build(Scheduler.Step));
             _busView = new(ref CPU.Bus);
             _dmaManager.SetBusView(_busView);
-            Disassembler = new(GetDebugRegion, getPC, () => CPUSnapshot);
+            Disassembler = new(GetDebugRegion, getPC, GetCPUSnapshot);
 
 
             PPU = new(Framebuffer, _ppuRegisters, _pram, _vram, _oam, Scheduler, _irqController.Raise, _dmaManager.Trigger);

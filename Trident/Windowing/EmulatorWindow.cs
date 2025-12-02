@@ -183,11 +183,11 @@ namespace Trident.Windowing
             if (monoFont.NativePtr == null)
                 throw new InvalidOperationException("Fira Code was not loaded correctly.");
 
-            AddWidget(new CPUStateWidget(monoFont, () => _gba.CPUSnapshot));
+            AddWidget(new CPUStateWidget(monoFont, _gba.GetCPUSnapshot));
             AddWidget(new BreakpointWidget(monoFont, _gba.Breakpoints, _emulatorThread.SetPause));
             AddWidget(new DisassemblyWidget(monoFont, _gba.Disassembler, _gba.Breakpoints));
-            AddWidget(new IRQStateWidget(monoFont, () => _gba.IRQSnapshot));
-            AddWidget(new DMAControllerWidget(monoFont, () => _gba.DMASnapshot));
+            AddWidget(new IRQStateWidget(monoFont, _gba.GetIRQSnapshot));
+            AddWidget(new DMAControllerWidget(monoFont, _gba.GetDMASnapshot));
 
             MemoryViewer memView = new(monoFont);
             memView.SetReadFunction(address => _gba.DebugRead<byte>(address));

@@ -14,11 +14,11 @@ namespace Trident.Core.Machine
         public BreakpointManager Breakpoints = new();
 
 
-        public CPUSnapshot CPUSnapshot => CPU.GetSnapshot();
+        public CPUSnapshot GetCPUSnapshot() => CPU.GetSnapshot();
 
-        public IRQSnapshot IRQSnapshot => _irqController.GetSnapshot();
+        public IRQSnapshot GetIRQSnapshot() => _irqController.GetSnapshot();
 
-        public DMASnapshot DMASnapshot => _dmaManager.GetSnapshot();
+        public DMASnapshot GetDMASnapshot() => _dmaManager.GetSnapshot();
 
 
         private IDebugMemory? GetDebugRegion(uint region) => CPU.Bus.GetRegionAsDebug(region);
