@@ -10,8 +10,8 @@ namespace Trident.Core.Machine
     {
         internal bool IsDebuggingEnabled => Breakpoints.Enabled;
 
-        public Disassembler Disassembler;
-        public BreakpointManager Breakpoints = new();
+        public readonly Disassembler Disassembler;
+        public readonly BreakpointManager Breakpoints = new();
 
 
         public CPUSnapshot GetCPUSnapshot() => CPU.GetSnapshot();
