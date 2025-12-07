@@ -49,11 +49,11 @@ namespace Trident.Core.CPU
             if (immediateShift && shiftAmount == 0)
                 shiftAmount = 32;
 
-            int shamt = Math.Min(shiftAmount, (byte)33);
-            uint result = (uint)((ulong)value >> shamt);
+            shiftAmount = Math.Min(shiftAmount, (byte)33);
+            uint result = (uint)((ulong)value >> shiftAmount);
 
             if (shiftAmount != 0)
-                carry = (((ulong)value >> (shamt - 1)) & 1) != 0;
+                carry = (((ulong)value >> (shiftAmount - 1)) & 1) != 0;
 
             return result;
         }
@@ -76,13 +76,13 @@ namespace Trident.Core.CPU
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private uint RotateRight(uint value, byte shiftAmount, ref bool carry, bool immediateShift)
         {
-            uint result = value;
+            uint result;
 
             if (immediateShift && shiftAmount == 0)
             {
                 uint oldLsb = value & 1;
-                result = (value >> 1) | ((carry ? (uint)1 : 0) << 31);
-                carry = oldLsb != 0;
+                result      = (value >> 1) | ((carry ? (uint)1 : 0) << 31);
+                carry       = oldLsb != 0;
             }
             else
             {
@@ -90,8 +90,8 @@ namespace Trident.Core.CPU
                     return value;
 
                 shiftAmount &= 31;
-                result = value.RotateRight(shiftAmount);
-                carry = (result >> 31) != 0;
+                result       = value.RotateRight(shiftAmount);
+                carry        = (result >> 31) != 0;
             }
 
             return result;
