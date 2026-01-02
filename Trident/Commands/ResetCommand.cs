@@ -1,10 +1,9 @@
 ﻿using Trident.Emulation;
 using Trident.Core.Machine;
 
-namespace Trident.Commands
+namespace Trident.Commands;
+
+internal readonly struct ResetCommand : IEmulatorCommand
 {
-    internal readonly struct ResetCommand : IEmulatorCommand
-    {
-        public void Execute(GBA gba, EmulatorThread thread) => gba.Reset();
-    }
+    public void Execute(GBA gba, EmulatorThread thread) => gba.Reset();
 }

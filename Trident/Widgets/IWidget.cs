@@ -1,12 +1,11 @@
-﻿namespace Trident.Widgets
+﻿namespace Trident.Widgets;
+
+internal interface IWidget
 {
-    internal interface IWidget
-    {
-        public void Render();
+    public void Render();
 
-        public bool IsVisible { get; set; }
+    public bool IsVisible { get; set; }
 
-        public string Name { get; }
-        public string Group { get; }
-    }
+    public string Name { get; }
+    public string Group { get; }
 }

@@ -1,17 +1,16 @@
-﻿namespace Trident.Core.Memory.GamePak
+﻿namespace Trident.Core.Memory.GamePak;
+
+internal interface IAccess
 {
-    internal interface IAccess
-    {
-        static abstract bool IsLower { get; }
-    }
+    static abstract bool IsLower { get; }
+}
 
-    internal struct LowerAccess : IAccess
-    {
-        public static bool IsLower => true;
-    }
+internal struct LowerAccess : IAccess
+{
+    public static bool IsLower => true;
+}
 
-    internal struct UpperAccess : IAccess
-    {
-        public static bool IsLower => false;
-    }
+internal struct UpperAccess : IAccess
+{
+    public static bool IsLower => false;
 }

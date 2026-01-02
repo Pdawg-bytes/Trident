@@ -1,21 +1,20 @@
-﻿namespace Trident.CodeGeneration.Shared
+﻿namespace Trident.CodeGeneration.Shared;
+
+public enum ARMGroup
 {
-    public enum ARMGroup
-    {
-        Multiply,
-        MultiplyLong,
-        BranchExchange,
-        BranchWithLink,
-        Swap,
-        SmallSignedTransfer,
-        DataProcessing,
-        PSRTransfer,
-        SingleDataTrasnfer,
-        BlockDataTransfer,
-        Undefined,
-        SoftwareInterrupt,
-        CoprocDataOperation,
-        CoprocDataTransfer,
-        CoprocRegisterTransfer
-    }
+    Multiply,
+    MultiplyLong,
+    BranchExchange,
+    BranchWithLink,
+    Swap,
+    SmallSignedTransfer,
+    DataProcessing,
+    PSRTransfer,
+    SingleDataTrasnfer,
+    BlockDataTransfer,
+    Undefined,
+    SoftwareInterrupt,
+    CoprocDataOperation,
+    CoprocDataTransfer,
+    CoprocRegisterTransfer
 }

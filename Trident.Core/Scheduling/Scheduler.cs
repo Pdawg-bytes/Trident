@@ -1,106 +1,105 @@
 ﻿using System.Diagnostics;
 
-namespace Trident.Core.Scheduling
+namespace Trident.Core.Scheduling;
+
+public class Scheduler
 {
-    public class Scheduler
+    private const int DefaultCapacity = 64;
+    private readonly SchedulerHeap _heap;
+    private readonly Action<ulong>[] _callbacks = new Action<ulong>[(int)EventType.Count];
+
+    private ulong _nextId = 1;
+
+    internal ulong CurrentTimestamp { get; private set; }
+    internal ulong NextTimestamp => _heap.Count > 0 ? _heap.Min.Timestamp : ulong.MaxValue;
+    internal ulong CyclesToNextEvent => NextTimestamp - CurrentTimestamp;
+
+    public Scheduler(int capacity = DefaultCapacity)
     {
-        private const int DefaultCapacity = 64;
-        private readonly SchedulerHeap _heap;
-        private readonly Action<ulong>[] _callbacks = new Action<ulong>[(int)EventType.Count];
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
 
-        private ulong _nextId = 1;
+        _heap = new SchedulerHeap(capacity);
 
-        internal ulong CurrentTimestamp { get; private set; }
-        internal ulong NextTimestamp => _heap.Count > 0 ? _heap.Min.Timestamp : ulong.MaxValue;
-        internal ulong CyclesToNextEvent => NextTimestamp - CurrentTimestamp;
-
-        public Scheduler(int capacity = DefaultCapacity)
+        foreach (EventType type in Enum.GetValues(typeof(EventType)))
         {
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
+            if (type == EventType.Count) continue;
+            _callbacks[(int)type] = (data) => Debug.Assert(false, $"Scheduler: unhandled event type: {type}");
+        }
 
-            _heap = new SchedulerHeap(capacity);
+        Register(EventType.EndOfQueue, () => Debug.Assert(false, "Scheduler: reached end of event queue"));
 
-            foreach (EventType type in Enum.GetValues(typeof(EventType)))
+        Reset();
+    }
+
+    internal void Reset()
+    {
+        _heap.Clear();
+        CurrentTimestamp = 0;
+        _nextId = 1;
+
+        #if DEBUG
+        Schedule(EventType.EndOfQueue, ulong.MaxValue);
+        #endif
+    }
+
+    internal void Register(EventType eventType, Action callback) => _callbacks[(int)eventType] = _ => callback();
+    internal void Register(EventType eventType, Action<ulong> callback) => _callbacks[(int)eventType] = callback;
+
+    internal SchedulerEvent? EventByUID(ulong uid)
+    {
+        for (int i = 0; i < _heap.Count; i++)
+            if (_heap.GetAt(i).UniqueID == uid)
+                return _heap.GetAt(i);
+
+        return null;
+    }
+
+
+    internal void Step(uint cycles) => Step((ulong)cycles);
+    internal void Step(ulong cycles)
+    {
+        ulong timestampNext = CurrentTimestamp + cycles;
+
+        while (_heap.Count > 0)
+        {
+            SchedulerEvent nextEvent = _heap.Min;
+            if (nextEvent.Timestamp > timestampNext)
+                break;
+
+            CurrentTimestamp = nextEvent.Timestamp;
+
+            _heap.Pop();
+            _callbacks[(int)nextEvent.EventType](nextEvent.Context);
+        }
+
+        CurrentTimestamp = timestampNext;
+    }
+
+    internal void SkipToNextEvent() => Step(NextTimestamp - CurrentTimestamp);
+
+
+    internal void Schedule(EventType eventType, ulong delay, uint priority = 0, ulong ctx = 0)
+    {
+        var evt = new SchedulerEvent(
+            timestamp: CurrentTimestamp + delay,
+            priority: priority,
+            uid: _nextId++,
+            ctx: ctx,
+            eventType: eventType
+        );
+
+        _heap.Insert(evt);
+    }
+
+    internal void Remove(SchedulerEvent evt) => Remove(evt.UniqueID);
+    internal void Remove(ulong uid)
+    {
+        for (int i = 0; i < _heap.Count; i++)
+        {
+            if (_heap.GetAt(i).UniqueID == uid)
             {
-                if (type == EventType.Count) continue;
-                _callbacks[(int)type] = (data) => Debug.Assert(false, $"Scheduler: unhandled event type: {type}");
-            }
-
-            Register(EventType.EndOfQueue, () => Debug.Assert(false, "Scheduler: reached end of event queue"));
-
-            Reset();
-        }
-
-        internal void Reset()
-        {
-            _heap.Clear();
-            CurrentTimestamp = 0;
-            _nextId = 1;
-
-            #if DEBUG
-            Schedule(EventType.EndOfQueue, ulong.MaxValue);
-            #endif
-        }
-
-        internal void Register(EventType eventType, Action callback) => _callbacks[(int)eventType] = _ => callback();
-        internal void Register(EventType eventType, Action<ulong> callback) => _callbacks[(int)eventType] = callback;
-
-        internal SchedulerEvent? EventByUID(ulong uid)
-        {
-            for (int i = 0; i < _heap.Count; i++)
-                if (_heap.GetAt(i).UniqueID == uid)
-                    return _heap.GetAt(i);
-
-            return null;
-        }
-
-
-        internal void Step(uint cycles) => Step((ulong)cycles);
-        internal void Step(ulong cycles)
-        {
-            ulong timestampNext = CurrentTimestamp + cycles;
-
-            while (_heap.Count > 0)
-            {
-                SchedulerEvent nextEvent = _heap.Min;
-                if (nextEvent.Timestamp > timestampNext)
-                    break;
-
-                CurrentTimestamp = nextEvent.Timestamp;
-
-                _heap.Pop();
-                _callbacks[(int)nextEvent.EventType](nextEvent.Context);
-            }
-
-            CurrentTimestamp = timestampNext;
-        }
-
-        internal void SkipToNextEvent() => Step(NextTimestamp - CurrentTimestamp);
-
-
-        internal void Schedule(EventType eventType, ulong delay, uint priority = 0, ulong ctx = 0)
-        {
-            var evt = new SchedulerEvent(
-                timestamp: CurrentTimestamp + delay,
-                priority: priority,
-                uid: _nextId++,
-                ctx: ctx,
-                eventType: eventType
-            );
-
-            _heap.Insert(evt);
-        }
-
-        internal void Remove(SchedulerEvent evt) => Remove(evt.UniqueID);
-        internal void Remove(ulong uid)
-        {
-            for (int i = 0; i < _heap.Count; i++)
-            {
-                if (_heap.GetAt(i).UniqueID == uid)
-                {
-                    _heap.RemoveAt(i);
-                    return;
-                }
+                _heap.RemoveAt(i);
+                return;
             }
         }
     }

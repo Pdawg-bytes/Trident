@@ -1,28 +1,27 @@
 ﻿using Trident.Emulation;
 using Trident.Core.Machine;
 
-namespace Trident.Commands
+namespace Trident.Commands;
+
+internal enum LoadType { BIOS, GamePak }
+
+internal readonly struct LoadCommand(LoadType loadType, string path) : IEmulatorCommand
 {
-    internal enum LoadType { BIOS, GamePak }
+    private readonly LoadType _loadType = loadType;
+    private readonly string _path = path;
 
-    internal readonly struct LoadCommand(LoadType loadType, string path) : IEmulatorCommand
+    public void Execute(GBA gba, EmulatorThread thread)
     {
-        private readonly LoadType _loadType = loadType;
-        private readonly string _path = path;
+        thread.SetPause(true);
 
-        public void Execute(GBA gba, EmulatorThread thread)
+        switch (_loadType)
         {
-            thread.SetPause(true);
-
-            switch (_loadType)
-            {
-                case LoadType.BIOS:
-                    gba.AttachBIOS(_path); break;
-                case LoadType.GamePak:
-                    gba.AttachGamePak(_path); break;
-            }
-
-            gba.Reset();
+            case LoadType.BIOS:
+                gba.AttachBIOS(_path); break;
+            case LoadType.GamePak:
+                gba.AttachGamePak(_path); break;
         }
+
+        gba.Reset();
     }
 }

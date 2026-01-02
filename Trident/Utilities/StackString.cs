@@ -1,141 +1,140 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace Trident.Utilities
+namespace Trident.Utilities;
+
+internal ref struct StackString
 {
-    internal ref struct StackString
+    private Span<char> _buffer;
+    private int _length;
+
+    internal StackString(Span<char> buffer)
     {
-        private Span<char> _buffer;
-        private int _length;
+        _buffer = buffer;
+        _length = 0;
+    }
 
-        internal StackString(Span<char> buffer)
-        {
-            _buffer = buffer;
-            _length = 0;
-        }
-
-        internal readonly int Length => _length;
-        internal ReadOnlySpan<char> AsSpan() => _buffer.Slice(0, _length);
+    internal readonly int Length => _length;
+    internal ReadOnlySpan<char> AsSpan() => _buffer.Slice(0, _length);
 
 
-        internal void Append(char c)
-        {
-            if (_length < _buffer.Length - 1)
-                _buffer[_length++] = c;
-        }
+    internal void Append(char c)
+    {
+        if (_length < _buffer.Length - 1)
+            _buffer[_length++] = c;
+    }
 
-        internal void Append(ReadOnlySpan<char> text)
-        {
-            int available = _buffer.Length - _length;
-            int toCopy = Math.Min(text.Length, available);
-            text[..toCopy].CopyTo(_buffer[_length..]);
-            _length += toCopy;
-        }
+    internal void Append(ReadOnlySpan<char> text)
+    {
+        int available = _buffer.Length - _length;
+        int toCopy = Math.Min(text.Length, available);
+        text[..toCopy].CopyTo(_buffer[_length..]);
+        _length += toCopy;
+    }
 
-        internal void Append(ReadOnlySpan<byte> asciiBytes)
-        {
-            int available = _buffer.Length - _length;
-            int toCopy = Math.Min(asciiBytes.Length, available);
+    internal void Append(ReadOnlySpan<byte> asciiBytes)
+    {
+        int available = _buffer.Length - _length;
+        int toCopy = Math.Min(asciiBytes.Length, available);
 
-            for (int i = 0; i < toCopy; i++)
-                _buffer[_length++] = (char)asciiBytes[i];
-        }
+        for (int i = 0; i < toCopy; i++)
+            _buffer[_length++] = (char)asciiBytes[i];
+    }
 
-        internal void AppendFormatted<T>(T value, ReadOnlySpan<char> format = default)
-            where T : ISpanFormattable
-        {
-            if (value.TryFormat(_buffer.Slice(_length, _buffer.Length - _length - 1), out int written, format, null))
-                _length += written;
-        }
+    internal void AppendFormatted<T>(T value, ReadOnlySpan<char> format = default)
+        where T : ISpanFormattable
+    {
+        if (value.TryFormat(_buffer.Slice(_length, _buffer.Length - _length - 1), out int written, format, null))
+            _length += written;
+    }
 
-        internal void AppendBinary(uint value, int width = 32)
-        {
-            for (int i = width - 1; i >= 0; i--)
-                Append(((value >> i) & 1) == 1 ? '1' : '0');
-        }
-
-
-        internal void PadLeft(int totalWidth, char padChar = ' ')
-        {
-            int missing = totalWidth - _length;
-            if (missing <= 0) return;
-
-            if (_length + missing >= _buffer.Length)
-                missing = _buffer.Length - _length - 1;
-
-            for (int i = _length - 1; i >= 0; i--)
-                _buffer[i + missing] = _buffer[i];
-
-            for (int i = 0; i < missing; i++)
-                _buffer[i] = padChar;
-
-            _length += missing;
-        }
-
-        internal void PadRight(int totalWidth, char padChar = ' ')
-        {
-            int missing = totalWidth - _length;
-            for (int i = 0; i < missing && _length < _buffer.Length - 1; i++)
-                Append(padChar);
-        }
-
-
-        internal void Repeat(char c, int count)
-        {
-            int available = _buffer.Length - _length;
-            int toWrite = Math.Min(count, available);
-            for (int i = 0; i < toWrite; i++)
-                _buffer[_length++] = c;
-        }
-
-
-        internal void Reset() => _length = 0;
-
-
-        public static StackString operator +(StackString s, char c)
-        {
-            s.Append(c);
-            return s;
-        }
-
-        public static StackString operator +(StackString s, ReadOnlySpan<char> text)
-        {
-            s.Append(text);
-            return s;
-        }
-
-        public static StackString From(ReadOnlySpan<char> text, Span<char> buffer)
-        {
-            var s = new StackString(buffer);
-            s.Append(text);
-            return s;
-        }
-
-
-        public static StackString Interpolate(Span<char> buffer, [InterpolatedStringHandlerArgument("buffer")] StackStringHandler handler) =>
-            handler.GetResult();
+    internal void AppendBinary(uint value, int width = 32)
+    {
+        for (int i = width - 1; i >= 0; i--)
+            Append(((value >> i) & 1) == 1 ? '1' : '0');
     }
 
 
-    [InterpolatedStringHandler]
-    internal ref struct StackStringHandler
+    internal void PadLeft(int totalWidth, char padChar = ' ')
     {
-        private StackString _target;
+        int missing = totalWidth - _length;
+        if (missing <= 0) return;
 
-        public StackStringHandler(int literalLength, int formattedCount, Span<char> buffer, out bool shouldAppend)
-        {
-            _target = new StackString(buffer);
-            shouldAppend = true;
-        }
+        if (_length + missing >= _buffer.Length)
+            missing = _buffer.Length - _length - 1;
 
-        public readonly StackString GetResult() => _target;
+        for (int i = _length - 1; i >= 0; i--)
+            _buffer[i + missing] = _buffer[i];
 
+        for (int i = 0; i < missing; i++)
+            _buffer[i] = padChar;
 
-        public void AppendLiteral(ReadOnlySpan<char> s) => _target.Append(s);
-
-        public void AppendFormatted<T>(T value) where T : ISpanFormattable =>
-            _target.AppendFormatted(value);
-
-        public void AppendFormatted<T>(T value, ReadOnlySpan<char> format) where T : ISpanFormattable =>
-            _target.AppendFormatted(value, format);
+        _length += missing;
     }
+
+    internal void PadRight(int totalWidth, char padChar = ' ')
+    {
+        int missing = totalWidth - _length;
+        for (int i = 0; i < missing && _length < _buffer.Length - 1; i++)
+            Append(padChar);
+    }
+
+
+    internal void Repeat(char c, int count)
+    {
+        int available = _buffer.Length - _length;
+        int toWrite = Math.Min(count, available);
+        for (int i = 0; i < toWrite; i++)
+            _buffer[_length++] = c;
+    }
+
+
+    internal void Reset() => _length = 0;
+
+
+    public static StackString operator +(StackString s, char c)
+    {
+        s.Append(c);
+        return s;
+    }
+
+    public static StackString operator +(StackString s, ReadOnlySpan<char> text)
+    {
+        s.Append(text);
+        return s;
+    }
+
+    public static StackString From(ReadOnlySpan<char> text, Span<char> buffer)
+    {
+        var s = new StackString(buffer);
+        s.Append(text);
+        return s;
+    }
+
+
+    public static StackString Interpolate(Span<char> buffer, [InterpolatedStringHandlerArgument("buffer")] StackStringHandler handler) =>
+        handler.GetResult();
+}
+
+
+[InterpolatedStringHandler]
+internal ref struct StackStringHandler
+{
+    private StackString _target;
+
+    public StackStringHandler(int literalLength, int formattedCount, Span<char> buffer, out bool shouldAppend)
+    {
+        _target = new StackString(buffer);
+        shouldAppend = true;
+    }
+
+    public readonly StackString GetResult() => _target;
+
+
+    public void AppendLiteral(ReadOnlySpan<char> s) => _target.Append(s);
+
+    public void AppendFormatted<T>(T value) where T : ISpanFormattable =>
+        _target.AppendFormatted(value);
+
+    public void AppendFormatted<T>(T value, ReadOnlySpan<char> format) where T : ISpanFormattable =>
+        _target.AppendFormatted(value, format);
 }

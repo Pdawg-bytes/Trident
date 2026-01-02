@@ -4,60 +4,59 @@ using Trident.CodeGeneration.CodeGen;
 using Trident.CodeGeneration.Helpers;
 using Trident.CodeGeneration.CodeGen.Metadata;
 
-namespace Trident.CodeGeneration.Decoding
+namespace Trident.CodeGeneration.Decoding;
+
+internal static class TraitDecoder
 {
-    internal static class TraitDecoder
+    internal static Dictionary<string, object> DecodeTraitValues(
+        uint opcode,
+        EquatableArray<TemplateTrait> traits)
     {
-        internal static Dictionary<string, object> DecodeTraitValues(
-            uint opcode,
-            EquatableArray<TemplateTrait> traits)
+        var results = new Dictionary<string, object>();
+
+        foreach (var (name, type, size, bit, hi, lo) in traits)
         {
-            var results = new Dictionary<string, object>();
-
-            foreach (var (name, type, size, bit, hi, lo) in traits)
-            {
-                object value = DecodeTrait(type, opcode, bit, hi, lo, size);
-                results[name] = value;
-            }
-
-            return results;
+            object value = DecodeTrait(type, opcode, bit, hi, lo, size);
+            results[name] = value;
         }
 
-        private static object DecodeTrait(
-            string type,
-            uint opcode,
-            int bit,
-            int hi,
-            int lo,
-            int size)
+        return results;
+    }
+
+    private static object DecodeTrait(
+        string type,
+        uint opcode,
+        int bit,
+        int hi,
+        int lo,
+        int size)
+    {
+        return type switch
         {
-            return type switch
-            {
-                "bool" => DecodeBool(opcode, bit),
-                "int" => (int)DecodeNumeric(opcode, hi, lo, size),
-                "uint" => (uint)DecodeNumeric(opcode, hi, lo, size),
-                "byte" => (byte)DecodeNumeric(opcode, hi, lo, size),
-                "ushort" => (ushort)DecodeNumeric(opcode, hi, lo, size),
-                _ => throw new NotSupportedException($"Unsupported trait type: {type}")
-            };
-        }
+            "bool" => DecodeBool(opcode, bit),
+            "int" => (int)DecodeNumeric(opcode, hi, lo, size),
+            "uint" => (uint)DecodeNumeric(opcode, hi, lo, size),
+            "byte" => (byte)DecodeNumeric(opcode, hi, lo, size),
+            "ushort" => (ushort)DecodeNumeric(opcode, hi, lo, size),
+            _ => throw new NotSupportedException($"Unsupported trait type: {type}")
+        };
+    }
 
-        private static bool DecodeBool(uint opcode, int bit)
-        {
-            if (bit == -1)
-                throw new ArgumentException("Missing 'bit' for bool trait.");
+    private static bool DecodeBool(uint opcode, int bit)
+    {
+        if (bit == -1)
+            throw new ArgumentException("Missing 'bit' for bool trait.");
 
-            return opcode.IsBitSet(bit);
-        }
+        return opcode.IsBitSet(bit);
+    }
 
-        private static uint DecodeNumeric(uint opcode, int hi, int lo, int size)
-        {
-            uint value = opcode.Extract(hi, lo);
+    private static uint DecodeNumeric(uint opcode, int hi, int lo, int size)
+    {
+        uint value = opcode.Extract(hi, lo);
 
-            if (size > 0 && size < 32)
-                value &= (uint)((1 << size) - 1);
+        if (size > 0 && size < 32)
+            value &= (uint)((1 << size) - 1);
 
-            return value;
-        }
+        return value;
     }
 }

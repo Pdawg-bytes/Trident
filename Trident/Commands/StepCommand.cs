@@ -1,10 +1,9 @@
 ﻿using Trident.Emulation;
 using Trident.Core.Machine;
 
-namespace Trident.Commands
+namespace Trident.Commands;
+
+internal readonly struct StepCommand(ulong cycles) : IEmulatorCommand
 {
-    internal readonly struct StepCommand(ulong cycles) : IEmulatorCommand
-    {
-        public void Execute(GBA gba, EmulatorThread thread) => gba.RunFor(cycles);
-    }
+    public void Execute(GBA gba, EmulatorThread thread) => gba.RunFor(cycles);
 }

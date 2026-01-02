@@ -1,76 +1,75 @@
 ﻿using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace Trident.CodeGeneration.Shared
+namespace Trident.CodeGeneration.Shared;
+
+internal static class ARMDecoder
 {
-    internal static class ARMDecoder
+    internal static ARMGroup DetermineARMGroup(uint instruction)
     {
-        internal static ARMGroup DetermineARMGroup(uint instruction)
+        uint opcode = instruction & 0x0FFFFFFF;
+        int subOp = (int)(instruction >> 21 & 0xF);
+
+        return (opcode >> 26) switch
         {
-            uint opcode = instruction & 0x0FFFFFFF;
-            int subOp = (int)(instruction >> 21 & 0xF);
-
-            return (opcode >> 26) switch
+            0b00 => instruction switch
             {
-                0b00 => instruction switch
-                {
-                    _ when instruction.IsBitSet(25) =>
-                        !instruction.IsBitSet(20) && subOp >= 0b1000 && subOp <= 0b1011
-                            ? ARMGroup.PSRTransfer : ARMGroup.DataProcessing,
+                _ when instruction.IsBitSet(25) =>
+                    !instruction.IsBitSet(20) && subOp >= 0b1000 && subOp <= 0b1011
+                        ? ARMGroup.PSRTransfer : ARMGroup.DataProcessing,
 
-                    _ when (instruction & 0xFF000F0) == 0x1200010 => ARMGroup.BranchExchange,
+                _ when (instruction & 0xFF000F0) == 0x1200010 => ARMGroup.BranchExchange,
 
-                    _ when (instruction & 0x10000F0) == 0x0000090 =>
-                        instruction.IsBitSet(23) ? ARMGroup.MultiplyLong : ARMGroup.Multiply,
+                _ when (instruction & 0x10000F0) == 0x0000090 =>
+                    instruction.IsBitSet(23) ? ARMGroup.MultiplyLong : ARMGroup.Multiply,
 
-                    _ when (instruction & 0x10000F0) == 0x1000090 => ARMGroup.Swap,
+                _ when (instruction & 0x10000F0) == 0x1000090 => ARMGroup.Swap,
 
-                    _ when (instruction & 0xF0) == 0xB0 || (instruction & 0xD0) == 0xD0 =>
-                        ARMGroup.SmallSignedTransfer,
+                _ when (instruction & 0xF0) == 0xB0 || (instruction & 0xD0) == 0xD0 =>
+                    ARMGroup.SmallSignedTransfer,
 
-                    _ =>
-                        !instruction.IsBitSet(20) && subOp >= 0b1000 && subOp <= 0b1011
-                            ? ARMGroup.PSRTransfer : ARMGroup.DataProcessing,
-                },
+                _ =>
+                    !instruction.IsBitSet(20) && subOp >= 0b1000 && subOp <= 0b1011
+                        ? ARMGroup.PSRTransfer : ARMGroup.DataProcessing,
+            },
 
-                0b01 => (instruction & 0x2000010) == 0x2000010
-                    ? ARMGroup.Undefined : ARMGroup.SingleDataTrasnfer,
+            0b01 => (instruction & 0x2000010) == 0x2000010
+                ? ARMGroup.Undefined : ARMGroup.SingleDataTrasnfer,
 
-                0b10 => instruction.IsBitSet(25)
-                    ? ARMGroup.BranchWithLink : ARMGroup.BlockDataTransfer,
+            0b10 => instruction.IsBitSet(25)
+                ? ARMGroup.BranchWithLink : ARMGroup.BlockDataTransfer,
 
-                0b11 => instruction switch
-                {
-                    _ when instruction.IsBitSet(25) && instruction.IsBitSet(24) =>
-                        ARMGroup.SoftwareInterrupt,
-
-                    _ when instruction.IsBitSet(25) =>
-                        instruction.IsBitSet(4)
-                            ? ARMGroup.CoprocRegisterTransfer : ARMGroup.CoprocDataOperation,
-
-                    _ => ARMGroup.CoprocDataTransfer,
-                },
-
-                _ => ARMGroup.Undefined
-            };
-        }
-
-
-        internal static Dictionary<ARMGroup, List<uint>> BuildGroupOpcodeMap()
-        {
-            var map = new Dictionary<ARMGroup, List<uint>>();
-            for (uint opcode = 0; opcode < 4096; opcode++)
+            0b11 => instruction switch
             {
-                uint expanded = (opcode & 0xFF0) << 16 | (opcode & 0x00F) << 4;
-                ARMGroup group = DetermineARMGroup(expanded);
-                if (!map.TryGetValue(group, out var list))
-                    map[group] = list = new List<uint>();
-                list.Add(expanded);
-            }
-            return map;
-        }
+                _ when instruction.IsBitSet(25) && instruction.IsBitSet(24) =>
+                    ARMGroup.SoftwareInterrupt,
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool IsBitSet(this uint value, int bit) => (value >> bit & 1) != 0;
+                _ when instruction.IsBitSet(25) =>
+                    instruction.IsBitSet(4)
+                        ? ARMGroup.CoprocRegisterTransfer : ARMGroup.CoprocDataOperation,
+
+                _ => ARMGroup.CoprocDataTransfer,
+            },
+
+            _ => ARMGroup.Undefined
+        };
     }
+
+
+    internal static Dictionary<ARMGroup, List<uint>> BuildGroupOpcodeMap()
+    {
+        var map = new Dictionary<ARMGroup, List<uint>>();
+        for (uint opcode = 0; opcode < 4096; opcode++)
+        {
+            uint expanded = (opcode & 0xFF0) << 16 | (opcode & 0x00F) << 4;
+            ARMGroup group = DetermineARMGroup(expanded);
+            if (!map.TryGetValue(group, out var list))
+                map[group] = list = new List<uint>();
+            list.Add(expanded);
+        }
+        return map;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsBitSet(this uint value, int bit) => (value >> bit & 1) != 0;
 }

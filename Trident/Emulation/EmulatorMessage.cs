@@ -1,9 +1,8 @@
 ﻿using Trident.Core.Machine;
 
-namespace Trident.Emulation
+namespace Trident.Emulation;
+
+public interface IEmulatorCommand
 {
-    public interface IEmulatorCommand
-    {
-        void Execute(GBA gba, EmulatorThread thread);
-    }
+    void Execute(GBA gba, EmulatorThread thread);
 }

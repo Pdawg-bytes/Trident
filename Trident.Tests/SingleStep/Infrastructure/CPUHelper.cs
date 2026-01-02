@@ -4,159 +4,158 @@ using Trident.Core.CPU.Registers;
 using System.Runtime.InteropServices;
 using Trident.Tests.SingleStep.Models;
 
-namespace Trident.Tests.SingleStep.Infrastructure
+namespace Trident.Tests.SingleStep.Infrastructure;
+
+internal static class CPUHelper
 {
-    internal static class CPUHelper
+    internal static void ApplyInitialState(ARM7TDMI<TransactionalMemory> cpu, RegisterState state)
     {
-        internal static void ApplyInitialState(ARM7TDMI<TransactionalMemory> cpu, RegisterState state)
+        cpu.Registers.ResetRegisters();
+        cpu.Registers.SwitchMode(ProcessorMode.USR);
+
+        for (uint i = 0; i < 16; i++)
+            cpu.Registers[i] = state.R[(int)i];
+
+        SetBankAndSpsrForMode(cpu, ProcessorMode.FIQ, state);
+        SetBankAndSpsrForMode(cpu, ProcessorMode.IRQ, state);
+        SetBankAndSpsrForMode(cpu, ProcessorMode.SVC, state);
+        SetBankAndSpsrForMode(cpu, ProcessorMode.ABT, state);
+        SetBankAndSpsrForMode(cpu, ProcessorMode.UND, state);
+
+        cpu.Registers.CPSR = (Flags)state.Cpsr;
+        cpu.Registers.SwitchMode((ProcessorMode)(state.Cpsr & 0x1F));
+
+        cpu.Pipeline.Prefetch[0] = state.Pipeline[0];
+        cpu.Pipeline.Prefetch[1] = state.Pipeline[1];
+        cpu.Pipeline.Access = (PipelineAccess)state.Access;
+    }
+
+    internal static void AssertState(ARM7TDMI<TransactionalMemory> cpu, SystemState testCase)
+    {
+        RegisterState state = testCase.Final;
+        var errors = new List<string>();
+
+        void AddError(string label, object expected, object actual) =>
+            errors.Add($"    {label} mismatch: expected <{expected}>, actual <{actual}>");
+
+
+        if (state.Cpsr != (uint)cpu.Registers.CPSR)
         {
-            cpu.Registers.ResetRegisters();
-            cpu.Registers.SwitchMode(ProcessorMode.USR);
-
-            for (uint i = 0; i < 16; i++)
-                cpu.Registers[i] = state.R[(int)i];
-
-            SetBankAndSpsrForMode(cpu, ProcessorMode.FIQ, state);
-            SetBankAndSpsrForMode(cpu, ProcessorMode.IRQ, state);
-            SetBankAndSpsrForMode(cpu, ProcessorMode.SVC, state);
-            SetBankAndSpsrForMode(cpu, ProcessorMode.ABT, state);
-            SetBankAndSpsrForMode(cpu, ProcessorMode.UND, state);
-
-            cpu.Registers.CPSR = (Flags)state.Cpsr;
-            cpu.Registers.SwitchMode((ProcessorMode)(state.Cpsr & 0x1F));
-
-            cpu.Pipeline.Prefetch[0] = state.Pipeline[0];
-            cpu.Pipeline.Prefetch[1] = state.Pipeline[1];
-            cpu.Pipeline.Access = (PipelineAccess)state.Access;
+            uint expected = state.Cpsr;
+            uint actual = (uint)cpu.Registers.CPSR;
+            string flagDiff = FormatPSRDiff(expected, actual);
+            errors.Add($"    CPSR mismatch: expected <0x{expected:X8}>, actual <0x{actual:X8}>");
+            errors.Add(string.Join("\n", flagDiff.Split('\n').Select(line => "        " + line)));
         }
 
-        internal static void AssertState(ARM7TDMI<TransactionalMemory> cpu, SystemState testCase)
+        cpu.Registers.SwitchMode(ProcessorMode.USR);
+
+        for (int i = 0; i < 16; i++)
         {
-            RegisterState state = testCase.Final;
-            var errors = new List<string>();
-
-            void AddError(string label, object expected, object actual) =>
-                errors.Add($"    {label} mismatch: expected <{expected}>, actual <{actual}>");
-
-
-            if (state.Cpsr != (uint)cpu.Registers.CPSR)
-            {
-                uint expected = state.Cpsr;
-                uint actual = (uint)cpu.Registers.CPSR;
-                string flagDiff = FormatPSRDiff(expected, actual);
-                errors.Add($"    CPSR mismatch: expected <0x{expected:X8}>, actual <0x{actual:X8}>");
-                errors.Add(string.Join("\n", flagDiff.Split('\n').Select(line => "        " + line)));
-            }
-
-            cpu.Registers.SwitchMode(ProcessorMode.USR);
-
-            for (int i = 0; i < 16; i++)
-            {
-                if (state.R[i] != cpu.Registers[i])
-                    AddError($"R{i}", $"0x{state.R[i]:X8}", $"0x{cpu.Registers[i]:X8}");
-            }
-
-            CompareBank(cpu, ProcessorMode.FIQ, state, errors);
-            CompareBank(cpu, ProcessorMode.IRQ, state, errors);
-            CompareBank(cpu, ProcessorMode.SVC, state, errors);
-            CompareBank(cpu, ProcessorMode.ABT, state, errors);
-            CompareBank(cpu, ProcessorMode.UND, state, errors);
-
-            if (state.Pipeline[0] != cpu.Pipeline.Prefetch[0])
-                AddError("Pipeline[0]", $"0x{state.Pipeline[0]:X8}", $"0x{cpu.Pipeline.Prefetch[0]:X8}");
-
-            if (state.Pipeline[1] != cpu.Pipeline.Prefetch[1])
-                AddError("Pipeline[1]", $"0x{state.Pipeline[1]:X8}", $"0x{cpu.Pipeline.Prefetch[1]:X8}");
-
-            if (((PipelineAccess)state.Access != cpu.Pipeline.Access) && !testCase.IgnoreAccessMismatch)
-                AddError("Pipeline access", (PipelineAccess)state.Access, cpu.Pipeline.Access);
-
-            if (errors.Count > 0)
-            {
-                var message = "State assertion failed with the following mismatches:\n" + string.Join("\n", errors);
-                Assert.Fail(message);
-            }
+            if (state.R[i] != cpu.Registers[i])
+                AddError($"R{i}", $"0x{state.R[i]:X8}", $"0x{cpu.Registers[i]:X8}");
         }
 
+        CompareBank(cpu, ProcessorMode.FIQ, state, errors);
+        CompareBank(cpu, ProcessorMode.IRQ, state, errors);
+        CompareBank(cpu, ProcessorMode.SVC, state, errors);
+        CompareBank(cpu, ProcessorMode.ABT, state, errors);
+        CompareBank(cpu, ProcessorMode.UND, state, errors);
 
-        private static void SetBankAndSpsrForMode(ARM7TDMI<TransactionalMemory> cpu, ProcessorMode mode, RegisterState state)
+        if (state.Pipeline[0] != cpu.Pipeline.Prefetch[0])
+            AddError("Pipeline[0]", $"0x{state.Pipeline[0]:X8}", $"0x{cpu.Pipeline.Prefetch[0]:X8}");
+
+        if (state.Pipeline[1] != cpu.Pipeline.Prefetch[1])
+            AddError("Pipeline[1]", $"0x{state.Pipeline[1]:X8}", $"0x{cpu.Pipeline.Prefetch[1]:X8}");
+
+        if (((PipelineAccess)state.Access != cpu.Pipeline.Access) && !testCase.IgnoreAccessMismatch)
+            AddError("Pipeline access", (PipelineAccess)state.Access, cpu.Pipeline.Access);
+
+        if (errors.Count > 0)
         {
-            (List<uint> bank, Flags spsr) = mode switch
-            {
-                ProcessorMode.FIQ => (state.RFiq, (Flags)state.Spsr[0]),
-                ProcessorMode.IRQ => (state.RIrq, (Flags)state.Spsr[3]),
-                ProcessorMode.SVC => (state.RSvc, (Flags)state.Spsr[1]),
-                ProcessorMode.ABT => (state.RAbt, (Flags)state.Spsr[2]),
-                ProcessorMode.UND => (state.RUnd, (Flags)state.Spsr[4]),
-                _ => throw new InvalidOperationException($"Unsupported mode for bank/SPSR setting: {mode}")
-            };
+            var message = "State assertion failed with the following mismatches:\n" + string.Join("\n", errors);
+            Assert.Fail(message);
+        }
+    }
 
-            cpu.Registers.SetBankForMode(mode, CollectionsMarshal.AsSpan(bank));
-            cpu.Registers.SetSPSRForMode(mode, spsr);
+
+    private static void SetBankAndSpsrForMode(ARM7TDMI<TransactionalMemory> cpu, ProcessorMode mode, RegisterState state)
+    {
+        (List<uint> bank, Flags spsr) = mode switch
+        {
+            ProcessorMode.FIQ => (state.RFiq, (Flags)state.Spsr[0]),
+            ProcessorMode.IRQ => (state.RIrq, (Flags)state.Spsr[3]),
+            ProcessorMode.SVC => (state.RSvc, (Flags)state.Spsr[1]),
+            ProcessorMode.ABT => (state.RAbt, (Flags)state.Spsr[2]),
+            ProcessorMode.UND => (state.RUnd, (Flags)state.Spsr[4]),
+            _ => throw new InvalidOperationException($"Unsupported mode for bank/SPSR setting: {mode}")
+        };
+
+        cpu.Registers.SetBankForMode(mode, CollectionsMarshal.AsSpan(bank));
+        cpu.Registers.SetSPSRForMode(mode, spsr);
+    }
+
+    private static void CompareBank(ARM7TDMI<TransactionalMemory> cpu, ProcessorMode mode, RegisterState expected, List<string> errors)
+    {
+        (List<uint> expectedBank, Flags spsr) = mode switch
+        {
+            ProcessorMode.USR or ProcessorMode.SYS 
+                              => (expected.R, (Flags)0),
+            ProcessorMode.FIQ => (expected.RFiq, (Flags)expected.Spsr[0]),
+            ProcessorMode.IRQ => (expected.RIrq, (Flags)expected.Spsr[3]),
+            ProcessorMode.SVC => (expected.RSvc, (Flags)expected.Spsr[1]),
+            ProcessorMode.ABT => (expected.RAbt, (Flags)expected.Spsr[2]),
+            ProcessorMode.UND => (expected.RUnd, (Flags)expected.Spsr[4]),
+            _ => throw new InvalidOperationException($"Unexpected mode: {mode} for bank comparison")
+        };
+
+        Span<uint> bank = stackalloc uint[expectedBank.Count];
+        cpu.Registers.GetBankForMode(mode, bank);
+
+        for (int i = 0; i < bank.Length; i++)
+        {
+            if (expectedBank[i] != bank[i])
+                errors.Add($"    R_{mode}_{i} mismatch: expected <0x{expectedBank[i]:X8}>, actual <0x{bank[i]:X8}>");
         }
 
-        private static void CompareBank(ARM7TDMI<TransactionalMemory> cpu, ProcessorMode mode, RegisterState expected, List<string> errors)
+        if (mode != ProcessorMode.USR && mode != ProcessorMode.SYS)
         {
-            (List<uint> expectedBank, Flags spsr) = mode switch
-            {
-                ProcessorMode.USR or ProcessorMode.SYS 
-                                  => (expected.R, (Flags)0),
-                ProcessorMode.FIQ => (expected.RFiq, (Flags)expected.Spsr[0]),
-                ProcessorMode.IRQ => (expected.RIrq, (Flags)expected.Spsr[3]),
-                ProcessorMode.SVC => (expected.RSvc, (Flags)expected.Spsr[1]),
-                ProcessorMode.ABT => (expected.RAbt, (Flags)expected.Spsr[2]),
-                ProcessorMode.UND => (expected.RUnd, (Flags)expected.Spsr[4]),
-                _ => throw new InvalidOperationException($"Unexpected mode: {mode} for bank comparison")
-            };
+            var actualSpsr = (Flags)cpu.Registers.GetSPSRForMode(mode);
+            if (spsr != actualSpsr)
+                errors.Add($"    SPSR_{mode} mismatch: expected <0x{spsr}:X8>, actual <0x{actualSpsr}:X8>");
+        }
+    }
 
-            Span<uint> bank = stackalloc uint[expectedBank.Count];
-            cpu.Registers.GetBankForMode(mode, bank);
 
-            for (int i = 0; i < bank.Length; i++)
-            {
-                if (expectedBank[i] != bank[i])
-                    errors.Add($"    R_{mode}_{i} mismatch: expected <0x{expectedBank[i]:X8}>, actual <0x{bank[i]:X8}>");
-            }
+    private static string FormatPSRDiff(uint expected, uint actual)
+    {
+        var flags = new[]
+        {
+            ("N", 31),
+            ("Z", 30),
+            ("C", 29),
+            ("V", 28),
+            ("I", 7),
+            ("F", 6),
+            ("T", 5)
+        };
 
-            if (mode != ProcessorMode.USR && mode != ProcessorMode.SYS)
-            {
-                var actualSpsr = (Flags)cpu.Registers.GetSPSRForMode(mode);
-                if (spsr != actualSpsr)
-                    errors.Add($"    SPSR_{mode} mismatch: expected <0x{spsr}:X8>, actual <0x{actualSpsr}:X8>");
-            }
+        var result = new List<string>();
+
+        foreach (var (name, bit) in flags)
+        {
+            bool exp = (expected & (1u << bit)) != 0;
+            bool act = (actual & (1u << bit)) != 0;
+
+            if (exp != act)
+                result.Add($"{name}: {(exp ? "1" : "0")} -> {(act ? "1" : "0")}");
         }
 
+        uint expectedMode = expected & 0b11111;
+        uint actualMode = actual & 0b11111;
+        if (expectedMode != actualMode)
+            result.Add($"Mode: 0b{Convert.ToString(expectedMode, 2).PadLeft(5, '0')} -> 0b{Convert.ToString(actualMode, 2).PadLeft(5, '0')}\n");
 
-        private static string FormatPSRDiff(uint expected, uint actual)
-        {
-            var flags = new[]
-            {
-                ("N", 31),
-                ("Z", 30),
-                ("C", 29),
-                ("V", 28),
-                ("I", 7),
-                ("F", 6),
-                ("T", 5)
-            };
-
-            var result = new List<string>();
-
-            foreach (var (name, bit) in flags)
-            {
-                bool exp = (expected & (1u << bit)) != 0;
-                bool act = (actual & (1u << bit)) != 0;
-
-                if (exp != act)
-                    result.Add($"{name}: {(exp ? "1" : "0")} -> {(act ? "1" : "0")}");
-            }
-
-            uint expectedMode = expected & 0b11111;
-            uint actualMode = actual & 0b11111;
-            if (expectedMode != actualMode)
-                result.Add($"Mode: 0b{Convert.ToString(expectedMode, 2).PadLeft(5, '0')} -> 0b{Convert.ToString(actualMode, 2).PadLeft(5, '0')}\n");
-
-            return string.Join("\n", result);
-        }
+        return string.Join("\n", result);
     }
 }

@@ -1,72 +1,71 @@
 ﻿using Trident.Core.Memory.MappedIO;
 using Trident.Core.Hardware.Interrupts;
 
-namespace Trident.Core.Hardware.Controller
+namespace Trident.Core.Hardware.Controller;
+
+internal class Keypad(Action<InterruptSource> raiseIRQ)
 {
-    internal class Keypad(Action<InterruptSource> raiseIRQ)
+    private readonly Action<InterruptSource> _raiseIRQ = raiseIRQ;
+
+    private ushort _keyInput = 0x03FF; // All keys released
+
+    private ushort _keyCntMask;
+    private IRQCondition _irqMode;
+    private bool _irqEnabled;
+
+
+    internal ushort ReadKeyControl() => (ushort)(_keyCntMask | (_irqEnabled ? (1 << 14) : 0) | ((int)_irqMode << 15));
+
+    internal void WriteKeyControl(ushort value, WriteMask mask)
     {
-        private readonly Action<InterruptSource> _raiseIRQ = raiseIRQ;
-
-        private ushort _keyInput = 0x03FF; // All keys released
-
-        private ushort _keyCntMask;
-        private IRQCondition _irqMode;
-        private bool _irqEnabled;
-
-
-        internal ushort ReadKeyControl() => (ushort)(_keyCntMask | (_irqEnabled ? (1 << 14) : 0) | ((int)_irqMode << 15));
-
-        internal void WriteKeyControl(ushort value, WriteMask mask)
+        if (mask.IsLower())
         {
-            if (mask.IsLower())
-            {
-                _keyCntMask &= 0xFF00;
-                _keyCntMask |= (ushort)(value & 0x00FF);
-            }
-
-            if (mask.IsUpper())
-            {
-                // Only L & R bits (bits 8-9) go in upper byte
-                _keyCntMask &= 0x00FF;
-                _keyCntMask |= (ushort)(value & 0x0300);
-
-                _irqEnabled = (value & 0x4000) != 0;
-                _irqMode = (IRQCondition)((value & 0x8000) >> 15);
-            }
-
-            if (ShouldRaiseIRQ()) _raiseIRQ(InterruptSource.Keypad);
+            _keyCntMask &= 0xFF00;
+            _keyCntMask |= (ushort)(value & 0x00FF);
         }
 
-
-        internal ushort ReadKeyInput() => _keyInput;
-
-        internal void SetKeyState(GBAKey key, bool pressed)
+        if (mask.IsUpper())
         {
-            if (pressed)
-                _keyInput &= (ushort) ~(1 << (int)key);
-            else
-                _keyInput |= (ushort)  (1 << (int)key);
+            // Only L & R bits (bits 8-9) go in upper byte
+            _keyCntMask &= 0x00FF;
+            _keyCntMask |= (ushort)(value & 0x0300);
 
-            if (ShouldRaiseIRQ()) _raiseIRQ(InterruptSource.Keypad);
+            _irqEnabled = (value & 0x4000) != 0;
+            _irqMode = (IRQCondition)((value & 0x8000) >> 15);
         }
 
+        if (ShouldRaiseIRQ()) _raiseIRQ(InterruptSource.Keypad);
+    }
 
-        private bool ShouldRaiseIRQ()
-        {
-            if (!_irqEnabled) return false;
 
-            int negatedInput = ~_keyInput;
+    internal ushort ReadKeyInput() => _keyInput;
 
-            if (_irqMode == IRQCondition.OR)
-                return (negatedInput & _keyCntMask) != 0;
-            else 
-                return (negatedInput & _keyCntMask) == _keyCntMask;
-        }
+    internal void SetKeyState(GBAKey key, bool pressed)
+    {
+        if (pressed)
+            _keyInput &= (ushort) ~(1 << (int)key);
+        else
+            _keyInput |= (ushort)  (1 << (int)key);
 
-        enum IRQCondition
-        {
-            OR,
-            AND
-        }
+        if (ShouldRaiseIRQ()) _raiseIRQ(InterruptSource.Keypad);
+    }
+
+
+    private bool ShouldRaiseIRQ()
+    {
+        if (!_irqEnabled) return false;
+
+        int negatedInput = ~_keyInput;
+
+        if (_irqMode == IRQCondition.OR)
+            return (negatedInput & _keyCntMask) != 0;
+        else 
+            return (negatedInput & _keyCntMask) == _keyCntMask;
+    }
+
+    enum IRQCondition
+    {
+        OR,
+        AND
     }
 }

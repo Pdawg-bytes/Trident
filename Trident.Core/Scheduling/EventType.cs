@@ -1,31 +1,30 @@
-﻿namespace Trident.Core.Scheduling
+﻿namespace Trident.Core.Scheduling;
+
+internal enum EventType
 {
-    internal enum EventType
-    {
-        // PPU Events
-        PPU_HBlankStart,
-        PPU_HBlankEnd,
-        PPU_SetHBlankFlag,
-        PPU_VBlankStart,
-        PPU_VBlankEnd,
-        PPU_VCounterMatch,
+    // PPU Events
+    PPU_HBlankStart,
+    PPU_HBlankEnd,
+    PPU_SetHBlankFlag,
+    PPU_VBlankStart,
+    PPU_VBlankEnd,
+    PPU_VCounterMatch,
 
-        // APU Events
-        APU_PSG1Generate,
-        APU_PSG2Generate, 
-        APU_PSG3Generate, 
-        APU_PSG4Generate,
-        APU_Sample,
+    // APU Events
+    APU_PSG1Generate,
+    APU_PSG2Generate, 
+    APU_PSG3Generate, 
+    APU_PSG4Generate,
+    APU_Sample,
 
-        // DMA Events
-        DMA_Activate,
+    // DMA Events
+    DMA_Activate,
 
-        // Timer Events
-        TMR_T0Overflow,
-        TMR_T1Overflow,
-        TMR_T2Overflow,
+    // Timer Events
+    TMR_T0Overflow,
+    TMR_T1Overflow,
+    TMR_T2Overflow,
 
-        EndOfQueue,
-        Count
-    }
+    EndOfQueue,
+    Count
 }

@@ -5,40 +5,39 @@ using Trident.Core.CPU.Registers;
 using Trident.CodeGeneration.Shared;
 using Trident.Core.CPU.Decoding.ARM;
 
-namespace Trident.Core.CPU
+namespace Trident.Core.CPU;
+
+public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
 {
-    public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
+    [TemplateGroup<ARMGroup>(ARMGroup.BranchExchange)]
+    internal void ARM_BranchExchange(uint opcode)
     {
-        [TemplateGroup<ARMGroup>(ARMGroup.BranchExchange)]
-        internal void ARM_BranchExchange(uint opcode)
-        {
-            uint address = Registers[opcode & 0b1111];
+        uint address = Registers[opcode & 0b1111];
 
-            if ((address & 1) != 0)
-            {
-                Registers.PC = address & 0xFFFFFFFE;
-                Registers.SetFlag(Flags.T);
-                ReloadPipelineThumb();
-            }
-            else
-            {
-                Registers.PC = address;
-                ReloadPipelineARM();
-            }
+        if ((address & 1) != 0)
+        {
+            Registers.PC = address & 0xFFFFFFFE;
+            Registers.SetFlag(Flags.T);
+            ReloadPipelineThumb();
         }
-
-
-        [TemplateParameter<bool>("Link", bit: 24)]
-        [TemplateGroup<ARMGroup>(ARMGroup.BranchWithLink)]
-        internal void ARM_BranchWithLink<TTraits>(uint opcode)
-            where TTraits : IARM_BranchWithLink_Traits
+        else
         {
-            int offset = ((opcode & 0xFFFFFF).ExtendFrom(24)) << 2;
-
-            if (TTraits.Link) Registers.LR = Registers.PC - 4;
-            Registers.PC += (uint)offset;
-
+            Registers.PC = address;
             ReloadPipelineARM();
         }
+    }
+
+
+    [TemplateParameter<bool>("Link", bit: 24)]
+    [TemplateGroup<ARMGroup>(ARMGroup.BranchWithLink)]
+    internal void ARM_BranchWithLink<TTraits>(uint opcode)
+        where TTraits : IARM_BranchWithLink_Traits
+    {
+        int offset = ((opcode & 0xFFFFFF).ExtendFrom(24)) << 2;
+
+        if (TTraits.Link) Registers.LR = Registers.PC - 4;
+        Registers.PC += (uint)offset;
+
+        ReloadPipelineARM();
     }
 }

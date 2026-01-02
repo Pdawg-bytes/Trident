@@ -3,15 +3,14 @@ using Trident.Core.Global;
 using Trident.Core.CPU.Registers;
 using System.Runtime.CompilerServices;
 
-namespace Trident.Core.CPU
+namespace Trident.Core.CPU;
+
+public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
 {
-    public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void SetNZ(uint value)
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SetNZ(uint value)
-        {
-            Registers.ModifyFlag(Flags.N, value.IsBitSet(31));
-            Registers.ModifyFlag(Flags.Z, value == 0);
-        }
+        Registers.ModifyFlag(Flags.N, value.IsBitSet(31));
+        Registers.ModifyFlag(Flags.Z, value == 0);
     }
 }

@@ -1,35 +1,34 @@
 ﻿using System.Diagnostics;
 
-namespace Trident.Emulation
+namespace Trident.Emulation;
+
+internal class FrameCounter
 {
-    internal class FrameCounter
+    private int _frameCount = 0;
+    private double _lastFps = 0;
+    private double _lastUpdateTime = 0;
+
+    private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
+    private readonly double _updateIntervalSeconds;
+
+    internal FrameCounter(int updateIntervalMs) => _updateIntervalSeconds = updateIntervalMs / 1000.0;
+
+    public void FrameRendered()
     {
-        private int _frameCount = 0;
-        private double _lastFps = 0;
-        private double _lastUpdateTime = 0;
+        _frameCount++;
 
-        private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
-        private readonly double _updateIntervalSeconds;
-
-        internal FrameCounter(int updateIntervalMs) => _updateIntervalSeconds = updateIntervalMs / 1000.0;
-
-        public void FrameRendered()
+        double currentTime = _stopwatch.Elapsed.TotalSeconds;
+        if (currentTime - _lastUpdateTime >= _updateIntervalSeconds)
         {
-            _frameCount++;
+            double fps = _frameCount / (currentTime - _lastUpdateTime);
+            Interlocked.Exchange(ref _frameCount, 0);
+            _lastUpdateTime = currentTime;
 
-            double currentTime = _stopwatch.Elapsed.TotalSeconds;
-            if (currentTime - _lastUpdateTime >= _updateIntervalSeconds)
-            {
-                double fps = _frameCount / (currentTime - _lastUpdateTime);
-                Interlocked.Exchange(ref _frameCount, 0);
-                _lastUpdateTime = currentTime;
-
-                Volatile.Write(ref _lastFps, fps);
-            }
+            Volatile.Write(ref _lastFps, fps);
         }
-
-        public void Reset() => Volatile.Write(ref _lastFps, 0);
-
-        public double GetFPS() => _lastFps;
     }
+
+    public void Reset() => Volatile.Write(ref _lastFps, 0);
+
+    public double GetFPS() => _lastFps;
 }

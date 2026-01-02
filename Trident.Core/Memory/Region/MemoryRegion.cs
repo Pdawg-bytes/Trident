@@ -1,19 +1,18 @@
-﻿namespace Trident.Core.Memory.Region
+﻿namespace Trident.Core.Memory.Region;
+
+public enum MemoryRegion
 {
-    public enum MemoryRegion
-    {
-        BIOS = 0,
+    BIOS = 0,
 
-        EWRAM = 2,
-        IWRAM = 3,
+    EWRAM = 2,
+    IWRAM = 3,
 
-        MMIO = 4,
+    MMIO = 4,
 
-        PRAM = 5,
-        VRAM = 6,
-        OAM = 7,
+    PRAM = 5,
+    VRAM = 6,
+    OAM = 7,
 
-        GamePak = 8,
-        Backup = 14
-    }
+    GamePak = 8,
+    Backup = 14
 }

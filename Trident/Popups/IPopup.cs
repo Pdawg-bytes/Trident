@@ -1,9 +1,8 @@
-﻿namespace Trident.Popups
+﻿namespace Trident.Popups;
+
+internal interface IPopup
 {
-    internal interface IPopup
-    {
-        void Open();
-        void Render();
-        bool IsOpen { get; }
-    }
+    void Open();
+    void Render();
+    bool IsOpen { get; }
 }

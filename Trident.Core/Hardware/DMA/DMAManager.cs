@@ -6,233 +6,232 @@ using System.Runtime.CompilerServices;
 using Trident.Core.Debugging.Snapshots;
 using Trident.Core.Hardware.Interrupts;
 
-namespace Trident.Core.Hardware.DMA
+namespace Trident.Core.Hardware.DMA;
+
+internal partial class DMAManager
 {
-    internal partial class DMAManager
+    private GBABusView _busView;
+    private readonly Action<InterruptSource, int> _raiseIRQ;
+    private readonly Scheduler _scheduler;
+
+    private readonly DMAChannel[] _channels = new DMAChannel[4];
+    private readonly DMASet _hblankDMA      = new();
+    private readonly DMASet _vblankDMA      = new();
+    private readonly DMASet _runnableDMA    = new();
+    private bool _endVideoDMA = false;
+
+    internal DMAManager(Action<InterruptSource, int> raiseIRQ, Scheduler scheduler)
     {
-        private GBABusView _busView;
-        private readonly Action<InterruptSource, int> _raiseIRQ;
-        private readonly Scheduler _scheduler;
+        _raiseIRQ = raiseIRQ;
+        _scheduler = scheduler;
 
-        private readonly DMAChannel[] _channels = new DMAChannel[4];
-        private readonly DMASet _hblankDMA = new();
-        private readonly DMASet _vblankDMA = new();
-        private readonly DMASet _runnableDMA = new();
-        private bool _endVideoDMA = false;
+        _scheduler.Register(EventType.DMA_Activate, ActivateDMA);
+        Reset();
+    }
 
-        internal DMAManager(Action<InterruptSource, int> raiseIRQ, Scheduler scheduler)
+    internal void SetBusView(GBABusView busView) => _busView = busView;
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void Trigger(DMATrigger trigger) => Trigger(trigger, 0);
+    internal void Trigger(DMATrigger trigger, uint scanline)
+    {
+        switch (trigger)
         {
-            _raiseIRQ = raiseIRQ;
-            _scheduler = scheduler;
+            case DMATrigger.HBlank:
+                if (scanline < 160)
+                    Schedule(_hblankDMA.Raw);
 
-            _scheduler.Register(EventType.DMA_Activate, ActivateDMA);
-            Reset();
-        }
-
-        internal void SetBusView(GBABusView busView) => _busView = busView;
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void Trigger(DMATrigger trigger) => Trigger(trigger, 0);
-        internal void Trigger(DMATrigger trigger, uint scanline)
-        {
-            switch (trigger)
-            {
-                case DMATrigger.HBlank:
-                    if (scanline < 160)
-                        Schedule(_hblankDMA.Raw);
-
-                    DMAChannel ch3 = _channels[3];
-                    if (ch3.Enabled && ch3.StartTiming == DMAStartTiming.Special)
-                    {
-                        if (scanline >= 2 && scanline < 162)
-                        {
-                            _endVideoDMA = scanline == 161;
-                            Schedule(1u << 3);
-                        }
-                    }
-                    break;
-                case DMATrigger.VBlank:
-                    Schedule(_vblankDMA.Raw);
-                    break;
-                case DMATrigger.FIFO0:
-                case DMATrigger.FIFO1:
-                    {
-                        int id = trigger == DMATrigger.FIFO0 ? 1 : 2;
-                        DMAChannel ch = _channels[id];
-
-                        if (ch.Enabled && ch.StartTiming == DMAStartTiming.Special)
-                            Schedule(1u << id);
-                    }
-                    break;
-            }
-        }
-
-
-        private void ActivateDMA(ulong id)
-        {
-            DMAChannel ch = _channels[id];
-
-            if (ch.StartTiming == DMAStartTiming.Immediate)
-            {
-                if (id != 3) return;
-
-                int unitSize = ch.TransferSize == DMATransferSize.Word ? 4 : 2;
-
-                for (int i = 0; i < ch.TransferLength; i++)
+                DMAChannel ch3 = _channels[3];
+                if (ch3.Enabled && ch3.StartTiming == DMAStartTiming.Special)
                 {
-                    uint value = ch.TransferSize == DMATransferSize.Word
-                        ? _busView.Read32(ch.Latch.Source, PipelineAccess.NonSequential | PipelineAccess.DMA)
-                        : _busView.Read16(ch.Latch.Source, PipelineAccess.NonSequential | PipelineAccess.DMA);
-
-                    if (ch.TransferSize == DMATransferSize.Word)
-                        _busView.Write32(ch.Latch.Destination, value, PipelineAccess.NonSequential | PipelineAccess.DMA);
-                    else
-                        _busView.Write16(ch.Latch.Destination, (ushort)value, PipelineAccess.NonSequential | PipelineAccess.DMA);
-
-                    ch.Latch.Source      = UpdateAddress(ch.Latch.Source, ch.SourceControl, unitSize);
-                    ch.Latch.Destination = UpdateAddress(ch.Latch.Destination, ch.DestinationControl, unitSize);
+                    if (scanline >= 2 && scanline < 162)
+                    {
+                        _endVideoDMA = scanline == 161;
+                        Schedule(1u << 3);
+                    }
                 }
+                break;
+            case DMATrigger.VBlank:
+                Schedule(_vblankDMA.Raw);
+                break;
+            case DMATrigger.FIFO0:
+            case DMATrigger.FIFO1:
+                {
+                    int id = trigger == DMATrigger.FIFO0 ? 1 : 2;
+                    DMAChannel ch = _channels[id];
 
-                ch.Source      = ch.Latch.Source;
-                ch.Destination = ch.Latch.Destination;
-
-                DequeueDMA(ch);
-                ch.Enabled = false;
-            }
+                    if (ch.Enabled && ch.StartTiming == DMAStartTiming.Special)
+                        Schedule(1u << id);
+                }
+                break;
         }
+    }
 
-        private static uint UpdateAddress(uint addr, AddressingMode mode, int step)
+
+    private void ActivateDMA(ulong id)
+    {
+        DMAChannel ch = _channels[id];
+
+        if (ch.StartTiming == DMAStartTiming.Immediate)
         {
-            return mode switch
+            if (id != 3) return;
+
+            int unitSize = ch.TransferSize == DMATransferSize.Word ? 4 : 2;
+
+            for (int i = 0; i < ch.TransferLength; i++)
             {
-                AddressingMode.Increment => addr + (uint)step,
-                AddressingMode.Decrement => addr - (uint)step,
-                AddressingMode.Fixed => addr,
-                _ => addr
-            };
-        }
+                uint value = ch.TransferSize == DMATransferSize.Word
+                    ? _busView.Read32(ch.Latch.Source, PipelineAccess.NonSequential | PipelineAccess.DMA)
+                    : _busView.Read16(ch.Latch.Source, PipelineAccess.NonSequential | PipelineAccess.DMA);
 
+                if (ch.TransferSize == DMATransferSize.Word)
+                    _busView.Write32(ch.Latch.Destination, value, PipelineAccess.NonSequential | PipelineAccess.DMA);
+                else
+                    _busView.Write16(ch.Latch.Destination, (ushort)value, PipelineAccess.NonSequential | PipelineAccess.DMA);
 
-        private void InitializeDMA(uint id)
-        {
-            DMAChannel ch = _channels[id];
-
-            uint transferMask    = (ch.TransferSize == DMATransferSize.Word) ? ~3u : ~1u;
-            ch.Latch.Source      = ch.Source & transferMask;
-            ch.Latch.Destination = ch.Destination & transferMask;
-
-            uint lengthMask         = (id == 3) ? (ushort)0xFFFF : (ushort)0x3FFF;
-            ch.Latch.TransferLength = ch.TransferLength & lengthMask;
-
-            if (ch.Latch.TransferLength == 0)
-                ch.Latch.TransferLength = lengthMask + 1;
-
-            if (ch.StartTiming == DMAStartTiming.Immediate)
-                Schedule(1u << (int)id);
-            else
-                EnqueueDMA(ch);
-        }
-
-
-        private void Schedule(uint mask)
-        {
-            // TONC: "[...] it works as soon as you enable the DMA.
-            //        Well actually it takes 2 cycles before it'll set in [...]"
-            while (mask != 0)
-            {
-                uint id = (uint)BitOperations.TrailingZeroCount(mask);
-                mask &= ~(1u << (int)id);
-
-                _scheduler.Schedule(EventType.DMA_Activate, 2, ctx: id);
+                ch.Latch.Source      = UpdateAddress(ch.Latch.Source, ch.SourceControl, unitSize);
+                ch.Latch.Destination = UpdateAddress(ch.Latch.Destination, ch.DestinationControl, unitSize);
             }
-        }
 
-        private void EnqueueDMA(DMAChannel ch)
+            ch.Source      = ch.Latch.Source;
+            ch.Destination = ch.Latch.Destination;
+
+            DequeueDMA(ch);
+            ch.Enabled = false;
+        }
+    }
+
+    private static uint UpdateAddress(uint addr, AddressingMode mode, int step)
+    {
+        return mode switch
         {
-            // TODO: handle "special" timing
-            switch (ch.StartTiming)
-            {
-                case DMAStartTiming.VBlank:
-                    _vblankDMA.Set(ch.ID, true);
-                    break;
-                case DMAStartTiming.HBlank:
-                    _hblankDMA.Set(ch.ID, true);
-                    break;
-            }
-        }
+            AddressingMode.Increment => addr + (uint)step,
+            AddressingMode.Decrement => addr - (uint)step,
+            AddressingMode.Fixed => addr,
+            _ => addr
+        };
+    }
 
-        private void DequeueDMA(DMAChannel ch)
+
+    private void InitializeDMA(uint id)
+    {
+        DMAChannel ch = _channels[id];
+
+        uint transferMask    = (ch.TransferSize == DMATransferSize.Word) ? ~3u : ~1u;
+        ch.Latch.Source      = ch.Source & transferMask;
+        ch.Latch.Destination = ch.Destination & transferMask;
+
+        uint lengthMask         = (id == 3) ? (ushort)0xFFFF : (ushort)0x3FFF;
+        ch.Latch.TransferLength = ch.TransferLength & lengthMask;
+
+        if (ch.Latch.TransferLength == 0)
+            ch.Latch.TransferLength = lengthMask + 1;
+
+        if (ch.StartTiming == DMAStartTiming.Immediate)
+            Schedule(1u << (int)id);
+        else
+            EnqueueDMA(ch);
+    }
+
+
+    private void Schedule(uint mask)
+    {
+        // TONC: "[...] it works as soon as you enable the DMA.
+        //        Well actually it takes 2 cycles before it'll set in [...]"
+        while (mask != 0)
         {
-            _hblankDMA.Set(ch.ID, false);
-            _vblankDMA.Set(ch.ID, false);
+            uint id = (uint)BitOperations.TrailingZeroCount(mask);
+            mask &= ~(1u << (int)id);
+
+            _scheduler.Schedule(EventType.DMA_Activate, 2, ctx: id);
         }
+    }
 
-
-        internal void Reset()
+    private void EnqueueDMA(DMAChannel ch)
+    {
+        // TODO: handle "special" timing
+        switch (ch.StartTiming)
         {
-            for (uint i = 0; i < _channels.Length; i++)
-                _channels[i] = new(i);
-
-            _hblankDMA.Clear();
-            _vblankDMA.Clear();
-            _runnableDMA.Clear();
-            _endVideoDMA = false;
+            case DMAStartTiming.VBlank:
+                _vblankDMA.Set(ch.ID, true);
+                break;
+            case DMAStartTiming.HBlank:
+                _hblankDMA.Set(ch.ID, true);
+                break;
         }
+    }
+
+    private void DequeueDMA(DMAChannel ch)
+    {
+        _hblankDMA.Set(ch.ID, false);
+        _vblankDMA.Set(ch.ID, false);
+    }
 
 
-        internal DMASnapshot GetSnapshot()
-        {
-            ref readonly DMAChannel ch0 = ref _channels[0];
-            ref readonly DMAChannel ch1 = ref _channels[1];
-            ref readonly DMAChannel ch2 = ref _channels[2];
-            ref readonly DMAChannel ch3 = ref _channels[3];
+    internal void Reset()
+    {
+        for (uint i = 0; i < _channels.Length; i++)
+            _channels[i] = new(i);
 
-            return new
-            (
-                MakeChannelSnapshot(in ch0),
-                MakeChannelSnapshot(in ch1),
-                MakeChannelSnapshot(in ch2),
-                MakeChannelSnapshot(in ch3)
-            );
-        }
+        _hblankDMA.Clear();
+        _vblankDMA.Clear();
+        _runnableDMA.Clear();
+        _endVideoDMA = false;
+    }
 
-        private DMASnapshot.ChannelSnapshot MakeChannelSnapshot(in DMAChannel ch) => new DMASnapshot.ChannelSnapshot
+
+    internal DMASnapshot GetSnapshot()
+    {
+        ref readonly DMAChannel ch0 = ref _channels[0];
+        ref readonly DMAChannel ch1 = ref _channels[1];
+        ref readonly DMAChannel ch2 = ref _channels[2];
+        ref readonly DMAChannel ch3 = ref _channels[3];
+
+        return new
         (
-            ch.Enabled,
-            ch.Repeat,
-            ch.InterruptOnEnd,
-            ch.GamePakDRQ,
-            ch.Source,
-            ch.Destination,
-            ch.TransferLength,
-            ch.TransferSize,
-            ch.SourceControl,
-            ch.DestinationControl,
-            ch.StartTiming
+            MakeChannelSnapshot(in ch0),
+            MakeChannelSnapshot(in ch1),
+            MakeChannelSnapshot(in ch2),
+            MakeChannelSnapshot(in ch3)
         );
     }
 
+    private DMASnapshot.ChannelSnapshot MakeChannelSnapshot(in DMAChannel ch) => new DMASnapshot.ChannelSnapshot
+    (
+        ch.Enabled,
+        ch.Repeat,
+        ch.InterruptOnEnd,
+        ch.GamePakDRQ,
+        ch.Source,
+        ch.Destination,
+        ch.TransferLength,
+        ch.TransferSize,
+        ch.SourceControl,
+        ch.DestinationControl,
+        ch.StartTiming
+    );
+}
 
-    internal struct DMASet
+
+internal struct DMASet
+{
+    private byte _bits;
+    internal readonly byte Raw => _bits;
+
+    // All DMAs (bits 0-3) set
+    internal readonly bool AllSet  => _bits == 0xF;
+    internal readonly bool NoneSet => _bits == 0;
+
+    internal void Set(uint index, bool value)
     {
-        private byte _bits;
-        internal readonly byte Raw => _bits;
-
-        // All DMAs (bits 0-3) set
-        internal readonly bool AllSet  => _bits == 0xF;
-        internal readonly bool NoneSet => _bits == 0;
-
-        internal void Set(uint index, bool value)
-        {
-            if (value)
-                _bits |= (byte)(1 << (int)index);
-            else
-                _bits &= (byte)~(1 << (int)index);
-        }
-
-        internal bool Get(int index) => (_bits & (1u << index)) != 0;
-
-        internal void Clear() => _bits = 0;
+        if (value)
+            _bits |= (byte)(1 << (int)index);
+        else
+            _bits &= (byte)~(1 << (int)index);
     }
+
+    internal bool Get(int index) => (_bits & (1u << index)) != 0;
+
+    internal void Clear() => _bits = 0;
 }

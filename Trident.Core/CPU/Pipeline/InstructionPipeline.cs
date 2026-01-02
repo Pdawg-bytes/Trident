@@ -1,10 +1,9 @@
-﻿namespace Trident.Core.CPU.Pipeline
-{
-    public struct InstructionPipeline
-    {
-        public uint[] Prefetch;
-        public PipelineAccess Access;
+﻿namespace Trident.Core.CPU.Pipeline;
 
-        public InstructionPipeline() => Prefetch = new uint[2];
-    }
+public struct InstructionPipeline
+{
+    public uint[] Prefetch;
+    public PipelineAccess Access;
+
+    public InstructionPipeline() => Prefetch = new uint[2];
 }

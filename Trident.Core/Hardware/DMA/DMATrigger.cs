@@ -1,10 +1,9 @@
-﻿namespace Trident.Core.Hardware.DMA
+﻿namespace Trident.Core.Hardware.DMA;
+
+internal enum DMATrigger
 {
-    internal enum DMATrigger
-    {
-        HBlank,
-        VBlank,
-        FIFO0,
-        FIFO1
-    }
+    HBlank,
+    VBlank,
+    FIFO0,
+    FIFO1
 }

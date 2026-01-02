@@ -3,33 +3,32 @@ using Trident.Core.CPU.Decoding;
 using Trident.Core.CPU.Registers;
 using Trident.CodeGeneration.Shared;
 
-namespace Trident.Core.CPU
+namespace Trident.Core.CPU;
+
+public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
 {
-    public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
+    [TemplateGroup<ARMGroup>(ARMGroup.Undefined)]
+    internal void ARM_Undefined(uint opcode)
     {
-        [TemplateGroup<ARMGroup>(ARMGroup.Undefined)]
-        internal void ARM_Undefined(uint opcode)
-        {
-            Registers.SetSPSRForMode(ProcessorMode.UND, Registers.CPSR);
-            Registers.SwitchMode(ProcessorMode.UND);
-            Registers.SetFlag(Flags.I);
+        Registers.SetSPSRForMode(ProcessorMode.UND, Registers.CPSR);
+        Registers.SwitchMode(ProcessorMode.UND);
+        Registers.SetFlag(Flags.I);
 
-            Registers.LR = Registers.PC - 4;
-            Registers.PC = 0x00000004;
-            ReloadPipelineARM();
-        }
+        Registers.LR = Registers.PC - 4;
+        Registers.PC = 0x00000004;
+        ReloadPipelineARM();
+    }
 
 
-        [TemplateGroup<ARMGroup>(ARMGroup.SoftwareInterrupt)]
-        internal void ARM_SoftwareInterrupt(uint opcode)
-        {
-            Registers.SetSPSRForMode(ProcessorMode.SVC, Registers.CPSR);
-            Registers.SwitchMode(ProcessorMode.SVC);
-            Registers.SetFlag(Flags.I);
+    [TemplateGroup<ARMGroup>(ARMGroup.SoftwareInterrupt)]
+    internal void ARM_SoftwareInterrupt(uint opcode)
+    {
+        Registers.SetSPSRForMode(ProcessorMode.SVC, Registers.CPSR);
+        Registers.SwitchMode(ProcessorMode.SVC);
+        Registers.SetFlag(Flags.I);
 
-            Registers.LR = Registers.PC - 4;
-            Registers.PC = 0x00000008;
-            ReloadPipelineARM();
-        }
+        Registers.LR = Registers.PC - 4;
+        Registers.PC = 0x00000008;
+        ReloadPipelineARM();
     }
 }
