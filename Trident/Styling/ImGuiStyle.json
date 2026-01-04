@@ -1,19 +1,25 @@
 ﻿{
-  "WindowRounding": 8,
+  "WindowPadding": [ 8, 8 ],
+  "FramePadding": [ 5, 5 ],
+  "ItemSpacing": [ 8, 4 ],
+  "CellPadding": [ 4, 4 ],
+  "WindowBorderSize": 1,
+  "ChildBorderSize": 0,
+  "FrameBorderSize": 1,
+  "PopupBorderSize": 1,
+  "TabBorderSize": 0,
+  "TabBarBorderSize": 0,
+  "WindowRounding": 6,
   "ChildRounding": 4,
   "FrameRounding": 4,
-  "PopupRounding": 6,
-  "ScrollbarRounding": 10,
-  "GrabRounding": 3,
-  "TabRounding":  4,
-
-  "ItemSpacing": [ 6, 6 ],
-  "CellPadding": [ 4, 4 ],
-  "FramePadding": [ 6, 3 ],
-
+  "PopupRounding": 4,
+  "ScrollbarRounding": 9,
+  "GrabRounding": 2,
+  "TabRounding": 4,
   "WindowTitleAlign": [ 0.5, 0.5 ],
-
+  "DockingSeparatorSize": 1,
   "SeparatorTextBorderSize": 1,
+  "SeparatorTextPadding": [ 20, 0 ],
 
   "Colors": {
     "Text": [ 1.0, 1.0, 1.0, 1.0 ],

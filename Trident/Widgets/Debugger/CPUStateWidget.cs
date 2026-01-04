@@ -15,8 +15,8 @@ internal class CPUStateWidget(ImFontPtr monoFont, Func<CPUSnapshot> getSnapshot)
 
     private readonly ImFontPtr _monoFont = monoFont;
 
-    private readonly Vector4 _lavender = new(0.87f, 0.82f, 0.97f, 1f);
-    private readonly uint _tableHighlight = ImGui.ColorConvertFloat4ToU32(new(0.25f, 0.11f, 0.43f, 0.50f));
+    private readonly Vector4 _updateHighlight = Color.MakeHighlight(ImGui.GetStyle().Colors[(int)ImGuiCol.CheckMark]);
+    private readonly uint _tableHighlight = ImGui.ColorConvertFloat4ToU32(ImGui.GetStyle().Colors[(int)ImGuiCol.CheckMark]) & 0x3FFFFFFF;
 
     private readonly (char Label, int Bit)[] _flags =
     [
@@ -164,7 +164,7 @@ internal class CPUStateWidget(ImFontPtr monoFont, Func<CPUSnapshot> getSnapshot)
 
         if (previous.HasValue && current != previous.Value)
         {
-            ImGui.PushStyleColor(ImGuiCol.Text, _lavender);
+            ImGui.PushStyleColor(ImGuiCol.Text, _updateHighlight);
             ImGui.TextUnformatted(valueStr.AsSpan());
             ImGui.PopStyleColor();
         }

@@ -43,6 +43,7 @@ internal class EmulatorWindow : GameWindow
 
     private readonly ShortcutManager _shortcutManager = new();
 
+    private bool _demoOpen = false;
     private bool _uncappedRefresh = false;
     internal IntPtr WindowHandle;
 
@@ -67,8 +68,9 @@ internal class EmulatorWindow : GameWindow
                 throw new InvalidDataException("ImGui style configuration was unable to be deserialized.");
         }
 
+        UpdateFrequency = 0;
         VSync = VSyncMode.Off;
-        UpdateFrequency = 60;
+        GLFW.SwapInterval(1);
 
         WindowHandle = GLFW.GetWin32Window(WindowPtr);
     }
@@ -89,9 +91,9 @@ internal class EmulatorWindow : GameWindow
         var fonts = new List<(string Name, nint Pointer, int Size, float SizePixels)>();
         List<GCHandle> handles = [];
 
-        FontData firaSans = LoadFont("Trident.Fonts.FiraSans-Regular.ttf", 17f);
-        fonts.Add(("Fira Sans", firaSans.Pointer, firaSans.Size, firaSans.SizePixels));
-        handles.Add(firaSans.Handle);
+        FontData roboto = LoadFont("Trident.Fonts.Roboto-Regular.ttf", 16f);
+        fonts.Add(("Roboto", roboto.Pointer, roboto.Size, roboto.SizePixels));
+        handles.Add(roboto.Handle);
 
         FontData firaCode = LoadFont("Trident.Fonts.FiraCode-Medium.ttf", 16f);
         fonts.Add(("Fira Code", firaCode.Pointer, firaCode.Size, firaCode.SizePixels));
@@ -152,7 +154,6 @@ internal class EmulatorWindow : GameWindow
         base.OnClosing(e);
 
         _emulatorThread?.Stop();
-        _controller.DestroyDeviceObjects();
         _controller.Dispose();
     }
 
@@ -211,7 +212,7 @@ internal class EmulatorWindow : GameWindow
         base.OnRenderFrame(e);
         _controller.Update(this, (float)e.Time);
 
-        GL.ClearColor(new Color4(20, 20, 20, 255));
+        GL.ClearColor(new Color4(0, 0, 0, 0));
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
 
         long start = Stopwatch.GetTimestamp();
@@ -227,6 +228,7 @@ internal class EmulatorWindow : GameWindow
 
     private void RenderGUI()
     {
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0);
         if (ImGui.BeginMainMenuBar())
         {
             if (ImGui.BeginMenu("File"))
@@ -302,6 +304,9 @@ internal class EmulatorWindow : GameWindow
 
                     Tooltips.HelpTooltip("Allows the GUI to run closer the primary monitor's refresh rate at the cost of CPU time.\nRounds to multiples of 60.", -38f);
 
+                    if (ImGui.MenuItem("ImGui Demo", "", _demoOpen))
+                        _demoOpen = !_demoOpen;
+
                     ImGui.EndMenu();
                 }
 
@@ -349,6 +354,7 @@ internal class EmulatorWindow : GameWindow
 
             ImGui.EndMainMenuBar();
         }
+        ImGui.PopStyleVar();
 
         PopupManager.Render();
 
@@ -365,6 +371,9 @@ internal class EmulatorWindow : GameWindow
 
         ImGui.Image(_framebufferTexture, new System.Numerics.Vector2(480, 320));
         ImGui.End();
+
+        if (_demoOpen)
+            ImGui.ShowDemoWindow();
     }
 
 

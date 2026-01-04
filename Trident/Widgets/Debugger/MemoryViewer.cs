@@ -57,6 +57,7 @@ internal class MemoryViewer(ImFontPtr monoFont) : IWidget
 
         ImGui.TextUnformatted("Region  ");
         ImGui.SameLine();
+        ImGui.SetNextItemWidth(140);
         if (ImGui.BeginCombo("##regionCombo", _regions[_selectedRegionIndex].Name))
         {
             for (int i = 0; i < _regions.Length; i++)
@@ -189,7 +190,7 @@ internal class MemoryViewer(ImFontPtr monoFont) : IWidget
                         ? (char)result.Value
                         : '.';
                 }
-                ImGui.SameLine(430);
+                ImGui.SameLine(445);
                 ImGui.TextUnformatted(asciiStr.AsSpan());
             }
         }

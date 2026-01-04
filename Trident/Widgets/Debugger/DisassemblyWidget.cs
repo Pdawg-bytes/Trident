@@ -15,7 +15,7 @@ internal class DisassemblyWidget(ImFontPtr monoFont, Disassembler disassembler, 
     private readonly Disassembler _disassembler = disassembler;
     private readonly BreakpointManager _breakpoints = breakpoints;
 
-    private readonly uint _currentInstructionHighlight = ImGui.ColorConvertFloat4ToU32(new(0.20f, 0.18f, 0.24f, 1.0f));
+    private readonly uint _currentInstructionHighlight = ImGui.ColorConvertFloat4ToU32(ImGui.GetStyle().Colors[(int)ImGuiCol.CheckMark]) & 0x32FFFFFF;
     private readonly Vector4 _colorArrow     = new(0.58f, 0.87f, 0.70f, 1.0f);
     private readonly Vector4 _colorBreak     = new(0.90f, 0.35f, 0.35f, 1.0f);
     private readonly Vector4 _colorAddress   = new(0.50f, 0.65f, 0.80f, 1.0f);
@@ -56,6 +56,7 @@ internal class DisassemblyWidget(ImFontPtr monoFont, Disassembler disassembler, 
 
         ImGui.BeginChild("DisasmScroll");
 
+        ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(6, 6));
         if (ImGui.BeginTable("DisasmTable", 1, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp))
         {
             ImGui.PushFont(_monoFont);
@@ -188,6 +189,7 @@ internal class DisassemblyWidget(ImFontPtr monoFont, Disassembler disassembler, 
             ImGui.PopFont();
         }
 
+        ImGui.PopStyleVar();
         ImGui.EndChild();
         ImGui.End();
     }

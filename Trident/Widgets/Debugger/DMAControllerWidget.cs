@@ -12,8 +12,7 @@ internal class DMAControllerWidget(ImFontPtr monoFont, Func<DMASnapshot> getSnap
 
     private readonly ImFontPtr _monoFont = monoFont;
 
-    private readonly Vector4 _lavender = new(0.87f, 0.82f, 0.97f, 1f);
-    private readonly uint _tableHighlight = ImGui.ColorConvertFloat4ToU32(new(0.25f, 0.11f, 0.43f, 0.50f));
+    private readonly uint _tableHighlight = ImGui.ColorConvertFloat4ToU32(ImGui.GetStyle().Colors[(int)ImGuiCol.CheckMark]) & 0x3FFFFFFF;
 
     private static readonly string[] _headers = [ "DMA Channel 0", "DMA Channel 1", "DMA Channel 2", "DMA Channel 3" ];
 

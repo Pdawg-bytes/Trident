@@ -10,7 +10,7 @@ internal class IRQStateWidget(ImFontPtr monoFont, Func<IRQSnapshot> getSnapshot)
     private readonly Func<IRQSnapshot> _getSnapshot = getSnapshot;
 
     private readonly ImFontPtr _monoFont = monoFont;
-    private readonly Vector4 _lavender = new(0.87f, 0.82f, 0.97f, 1f);
+    private readonly Vector4 _activeHighlight = Color.MakeHighlight(ImGui.GetStyle().Colors[(int)ImGuiCol.CheckMark]);
 
 
     public bool IsVisible { get; set; } = true;
@@ -96,7 +96,7 @@ internal class IRQStateWidget(ImFontPtr monoFont, Func<IRQSnapshot> getSnapshot)
 
         Vector4 color;
 
-        if (enabled && pending) color = _lavender;
+        if (enabled && pending) color = _activeHighlight;
         else if (enabled)       color = new Vector4(1f);
         else if (pending)       color = new Vector4(1.0f, 1.0f, 0.71f, 1f);
         else                    color = new Vector4(0.4f, 0.4f, 0.4f, 1f);
