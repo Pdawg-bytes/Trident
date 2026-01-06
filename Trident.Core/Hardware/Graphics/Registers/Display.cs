@@ -7,6 +7,8 @@ internal class DisplayControl
     private ushort _dispcnt;
 
     internal byte BackgroundMode;
+    internal uint GetSpriteBoundary() => BackgroundMode >= 3 ? 0x14000u : 0x10000u;
+
     internal bool CGBMode;
     internal bool FrameSelect;
     internal bool HBlankIntervalFree;

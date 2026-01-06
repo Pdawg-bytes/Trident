@@ -70,7 +70,7 @@ public sealed partial class GBA : IDisposable
         _eWRAM = new(Scheduler.Step);
         _iWRAM = new(Scheduler.Step);
         _pram  = new(Scheduler.Step);
-        _vram  = new(Scheduler.Step, () => _ppuRegisters.DisplayControl.BackgroundMode);
+        _vram  = new(Scheduler.Step, _ppuRegisters.DisplayControl.GetSpriteBoundary);
         _oam   = new(Scheduler.Step);
 
 

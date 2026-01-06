@@ -5,14 +5,14 @@ using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Memory.Graphics;
 
-internal class VRAM(Action<uint> step, Func<byte> getDisplayMode) : IMemoryRegion, IDebugMemory
+internal class VRAM(Action<uint> step, Func<uint> getVRAMBoundary) : IMemoryRegion, IDebugMemory
 {
     internal const uint MemorySize = 96 * 1024;
     private const uint AddressMask = MemorySize - 1;
     private readonly UnsafeMemoryBlock _memory = new(MemorySize);
 
     private readonly Action<uint> _step = step;
-    private readonly Func<byte> _getDisplayMode = getDisplayMode;
+    private readonly Func<uint> _getVRAMBoundary = getVRAMBoundary;
 
 
     public byte Read8(uint address, PipelineAccess access)    => Read<byte>(address);
@@ -51,21 +51,29 @@ internal class VRAM(Action<uint> step, Func<byte> getDisplayMode) : IMemoryRegio
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Write<T>(uint address, T value, bool isByte) where T : unmanaged
     {
+        uint boundary = _getVRAMBoundary();
+        address = address.Align<T>() & 0x1FFFF;
+
         bool isWord = Unsafe.SizeOf<T>() == 4;
         _step(isWord ? 2 : 1u);
 
-        address = address.Align<T>() & 0x1FFFF;
-        if (address >= 0x18000) address -= 0x8000;
-
-        if (isByte)
+        if (address >= boundary)
         {
-            bool objWrite = (_getDisplayMode() >= 3) ? address >= 0x14000 : address >= 0x10000;
+            if (isByte) return;
 
-            if (!objWrite)
-                _memory.Write(address.Align<ushort>(), value);
+            if (address >= 0x18000)
+            {
+                address &= ~0x8000u;
+                if (address < boundary) return;
+            }
         }
         else
-            _memory.Write(address, value);
+        {
+            if (isByte)
+                address = address.Align<ushort>();
+        }
+
+        _memory.Write(address, value);
     }
 
 
