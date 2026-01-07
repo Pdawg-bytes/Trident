@@ -1,10 +1,11 @@
 ﻿using ImGuiNET;
-using System.Numerics;
-using Trident.Styling;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Desktop;
-using System.Runtime.CompilerServices;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Trident.Styling;
 
 namespace Trident.Windowing;
 
@@ -21,7 +22,7 @@ public class ImGuiController : IDisposable
 
     internal ImGuiController(
         int width, int height,
-        List<(string name, nint ptr, int size, float sizePixels)> fonts,
+        List<(string Name, nint Pointer, int Size, float SizePixels, bool Merge, ushort[] Ranges)> fonts,
         out Dictionary<string, ImFontPtr> fontPtrs,
         ImGuiStyleConfig style)
     {
@@ -31,9 +32,30 @@ public class ImGuiController : IDisposable
         ImGui.CreateContext();
         var io = ImGui.GetIO();
 
-        fontPtrs = new Dictionary<string, ImFontPtr>();
-        foreach (var (name, ptr, size, sizePixels) in fonts)
-            fontPtrs.Add(name, io.Fonts.AddFontFromMemoryTTF(ptr, size, sizePixels));
+        fontPtrs = [];
+        foreach (var (name, ptr, size, sizePixels, merge, ranges) in fonts)
+        {
+            if (!merge)
+                fontPtrs.Add(name, io.Fonts.AddFontFromMemoryTTF(ptr, size, sizePixels));
+            else
+            {
+                unsafe
+                {
+                    var nativeConfig = ImGuiNative.ImFontConfig_ImFontConfig();
+                    ImFontConfigPtr cfg = new(nativeConfig)
+                    {
+                        MergeMode = true,
+                        PixelSnapH = true
+                    };
+
+                    GCHandle rangeHandle = GCHandle.Alloc(ranges, GCHandleType.Pinned);
+                    IntPtr rangePtr = rangeHandle.AddrOfPinnedObject();
+
+                    fontPtrs[name] = io.Fonts.AddFontFromMemoryTTF(ptr, size, sizePixels, cfg, rangePtr);
+                    rangeHandle.Free();
+                }
+            }
+        }
 
         ApplyStyle(style);
 

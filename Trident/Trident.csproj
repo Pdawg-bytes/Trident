@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <None Remove="Fonts\FiraCode-Medium.ttf" />
+    <None Remove="Fonts\MaterialSymbolsRounded.ttf" />
     <None Remove="Fonts\Roboto-Regular.ttf" />
     <None Remove="Styling\ImGuiStyle.json" />
   </ItemGroup>
@@ -24,6 +25,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Fonts\FiraCode-Medium.ttf" />
+    <EmbeddedResource Include="Fonts\MaterialSymbolsRounded.ttf" />
     <EmbeddedResource Include="Fonts\Roboto-Regular.ttf" />
     <EmbeddedResource Include="Styling\ImGuiStyle.json" />
   </ItemGroup>

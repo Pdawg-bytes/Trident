@@ -88,15 +88,19 @@ internal class EmulatorWindow : GameWindow
         }
 
 
-        var fonts = new List<(string Name, nint Pointer, int Size, float SizePixels)>();
+        var fonts = new List<(string Name, nint Pointer, int Size, float SizePixels, bool Merge, ushort[] Ranges)>();
         List<GCHandle> handles = [];
 
         FontData roboto = LoadFont("Trident.Fonts.Roboto-Regular.ttf", 16f);
-        fonts.Add(("Roboto", roboto.Pointer, roboto.Size, roboto.SizePixels));
+        fonts.Add(("Roboto", roboto.Pointer, roboto.Size, roboto.SizePixels, false, []));
         handles.Add(roboto.Handle);
 
+        FontData icons = LoadFont("Trident.Fonts.MaterialSymbolsRounded.ttf", 20f);
+        fonts.Add(("MaterialRounded", icons.Pointer, icons.Size, icons.SizePixels, true, [ 0xE003, 0xF8FF, 0 ]));
+        handles.Add(icons.Handle);
+
         FontData firaCode = LoadFont("Trident.Fonts.FiraCode-Medium.ttf", 16f);
-        fonts.Add(("Fira Code", firaCode.Pointer, firaCode.Size, firaCode.SizePixels));
+        fonts.Add(("Fira Code", firaCode.Pointer, firaCode.Size, firaCode.SizePixels, false, []));
         handles.Add(firaCode.Handle);
 
         _controller = new ImGuiController
