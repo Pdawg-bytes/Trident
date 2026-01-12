@@ -7,26 +7,27 @@ public sealed class BreakpointManager(int maxBreakpoints = 64)
     private uint? _suppressOnce;
     private readonly HashSet<uint> _breakpoints = [];
     private uint? _lastHit;
-    private readonly int _maxBreakpoints = maxBreakpoints;
 
     public bool Enabled { get; private set; }
     public int Count => _breakpoints.Count;
-    public int MaxBreakpoints => _maxBreakpoints;
+    public int MaxBreakpoints { get; init; } = maxBreakpoints;
 
 
     public bool Add(uint address)
     {
-        if (_breakpoints.Count >= _maxBreakpoints)
+        if (_breakpoints.Count >= MaxBreakpoints)
             return false;
 
         _breakpoints.Add(address);
         Enabled = true;
+
         return true;
     }
 
     public void Remove(uint address)
     {
         _breakpoints.Remove(address);
+
         if (_breakpoints.Count == 0)
             Enabled = false;
     }
@@ -52,6 +53,7 @@ public sealed class BreakpointManager(int maxBreakpoints = 64)
             _lastHit = pc;
             return true;
         }
+
         return false;
     }
 
@@ -63,6 +65,7 @@ public sealed class BreakpointManager(int maxBreakpoints = 64)
             addr = _lastHit.Value;
             return true;
         }
+
         addr = default;
         return false;
     }
@@ -75,11 +78,13 @@ public sealed class BreakpointManager(int maxBreakpoints = 64)
     public int CopyTo(Span<uint> destination)
     {
         int i = 0;
+
         foreach (var bp in _breakpoints)
         {
             if (i >= destination.Length) break;
             destination[i++] = bp;
         }
+
         return i;
     }
 

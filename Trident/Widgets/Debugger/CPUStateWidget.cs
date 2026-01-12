@@ -16,7 +16,6 @@ internal class CPUStateWidget(ImFontPtr monoFont, Func<CPUSnapshot> getSnapshot)
     private readonly ImFontPtr _monoFont = monoFont;
 
     private readonly Vector4 _updateHighlight = Color.MakeHighlight(ImGui.GetStyle().Colors[(int)ImGuiCol.CheckMark]);
-    private readonly uint _tableHighlight = ImGui.ColorConvertFloat4ToU32(ImGui.GetStyle().Colors[(int)ImGuiCol.CheckMark]) & 0x3FFFFFFF;
 
     private readonly (char Label, int Bit)[] _flags =
     [
@@ -65,7 +64,7 @@ internal class CPUStateWidget(ImFontPtr monoFont, Func<CPUSnapshot> getSnapshot)
                     ImGui.TableSetColumnIndex(col);
 
                     if (IsBanked(regIndex, snapshot.Mode))
-                        ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, _tableHighlight);
+                        ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, Color.HiglightBackground);
 
                     var regStr = StackString.Interpolate(regBuf, $"R{regIndex}");
 
@@ -126,7 +125,7 @@ internal class CPUStateWidget(ImFontPtr monoFont, Func<CPUSnapshot> getSnapshot)
                 ImGui.TableSetColumnIndex(col);
 
                 if (snapshot.CPSR.IsBitSet(_flags[col].Bit))
-                    ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, _tableHighlight);
+                    ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, Color.HiglightBackground);
 
                 flagBuf[0] = _flags[col].Label;
                 Vector2 cellSize = ImGui.GetContentRegionAvail();

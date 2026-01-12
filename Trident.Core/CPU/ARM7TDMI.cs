@@ -42,7 +42,7 @@ public sealed partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
 
     public void AttachBus(TBus bus) => Bus = bus;
     internal void AttachIRQController(InterruptController controller) => _irqController = controller;
-    internal void AttachBreakpoints(BreakpointManager breakpoints) => _breakpointManager = breakpoints;
+    internal void AttachBreakpoints(BreakpointManager breakpoints)    => _breakpointManager = breakpoints;
 
     public void Reset()
     {
@@ -55,19 +55,7 @@ public sealed partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Step()
-    {
-        if (_irqController.IRQAvailable) RaiseIRQ();
-
-        uint opcode = Pipeline.Prefetch[0];
-        Pipeline.Prefetch[0] = Pipeline.Prefetch[1];
-        Registers.PC &= 0xFFFFFFFE;
-
-        if (Registers.IsFlagSet(Flags.T))
-            StepThumb((ushort)opcode);
-        else
-            StepARM(opcode);
-    }
+    public void Step() => StepInternal();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool StepDebug()
@@ -75,7 +63,15 @@ public sealed partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
         if (_breakpointManager.IsBreakpoint(CurrentInstructionAddress()))
             return false;
 
-        if (_irqController.IRQAvailable) RaiseIRQ();
+        StepInternal();
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void StepInternal()
+    {
+        if (_irqController.IRQAvailable)
+            RaiseIRQ();
 
         uint opcode = Pipeline.Prefetch[0];
         Pipeline.Prefetch[0] = Pipeline.Prefetch[1];
@@ -85,8 +81,6 @@ public sealed partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
             StepThumb((ushort)opcode);
         else
             StepARM(opcode);
-
-        return true;
     }
 
 

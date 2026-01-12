@@ -1,9 +1,12 @@
-﻿using System.Numerics;
+﻿using ImGuiNET;
+using System.Numerics;
 
 namespace Trident.Utilities;
 
 internal static class Color
 {
+    internal static readonly uint HiglightBackground = ImGui.ColorConvertFloat4ToU32(ImGui.GetStyle().Colors[(int)ImGuiCol.CheckMark]) & 0x2FFFFFFF;
+
     internal static Vector4 MakeHighlight(Vector4 accent)
     {
         var (h, s, v) = ColorToHSV(accent);

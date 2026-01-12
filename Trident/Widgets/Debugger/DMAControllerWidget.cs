@@ -12,8 +12,6 @@ internal class DMAControllerWidget(ImFontPtr monoFont, Func<DMASnapshot> getSnap
 
     private readonly ImFontPtr _monoFont = monoFont;
 
-    private readonly uint _tableHighlight = ImGui.ColorConvertFloat4ToU32(ImGui.GetStyle().Colors[(int)ImGuiCol.CheckMark]) & 0x3FFFFFFF;
-
     private static readonly string[] _headers = [ "DMA Channel 0", "DMA Channel 1", "DMA Channel 2", "DMA Channel 3" ];
 
 
@@ -119,7 +117,7 @@ internal class DMAControllerWidget(ImFontPtr monoFont, Func<DMASnapshot> getSnap
     private void RenderFlagCell(ReadOnlySpan<char> label, bool state)
     {
         if (state)
-            ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, _tableHighlight);
+            ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, Color.HiglightBackground);
 
         Vector2 cellSize = ImGui.GetContentRegionAvail();
         Vector2 textSize = ImGui.CalcTextSize(label);
