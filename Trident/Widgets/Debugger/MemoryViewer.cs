@@ -55,9 +55,12 @@ internal class MemoryViewer(ImFontPtr monoFont) : IWidget
 
         ImGui.Dummy(new(0));
 
-        ImGui.TextUnformatted("Region  ");
-        ImGui.SameLine();
+        float cursorLine1 = ImGui.GetCursorPosY();
+        ImGui.SetCursorPosY(cursorLine1 + 5);
+        ImGui.TextUnformatted("Region");
+        ImGui.SameLine(65);
         ImGui.SetNextItemWidth(140);
+        ImGui.SetCursorPosY(cursorLine1);
         if (ImGui.BeginCombo("##regionCombo", _regions[_selectedRegionIndex].Name))
         {
             for (int i = 0; i < _regions.Length; i++)
@@ -75,11 +78,15 @@ internal class MemoryViewer(ImFontPtr monoFont) : IWidget
             ImGui.EndCombo();
         }
         ImGui.SameLine();
+        ImGui.SetCursorPosY(cursorLine1 - 1);
         ImGui.Checkbox("Show ASCII", ref _showAscii);
 
+        float cursorLine2 = ImGui.GetCursorPosY();
+        ImGui.SetCursorPosY(cursorLine2 + 3);
         ImGui.TextUnformatted("Address");
-        ImGui.SameLine();
+        ImGui.SameLine(65);
         ImGui.SetNextItemWidth(140);
+        ImGui.SetCursorPosY(cursorLine2);
         if (ImGui.InputText("##gotoAddress", ref _gotoAddressInput, 16, ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CharsHexadecimal))
         {
             if (uint.TryParse(_gotoAddressInput, System.Globalization.NumberStyles.HexNumber, null, out var parsed))

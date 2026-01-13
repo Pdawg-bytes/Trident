@@ -4,6 +4,7 @@ using Trident.Core.Memory;
 using Trident.Core.Scheduling;
 using Trident.Core.Hardware.IO;
 using Trident.Core.Hardware.DMA;
+using Trident.Core.CPU.Registers;
 using Trident.Core.Memory.Region;
 using Trident.Core.Memory.GamePak;
 using Trident.Core.Memory.Graphics;
@@ -226,6 +227,8 @@ public sealed partial class GBA : IDisposable
 
     public void SkipBIOS()
     {
+        CPU.Registers.ClearFlag(Flags.I);
+        CPU.Registers.ClearFlag(Flags.F);
         CPU.Registers.SwitchMode(ProcessorMode.SYS);
         CPU.Registers.SetBankForMode(ProcessorMode.SVC, [0x03007FE0, 0]);
         CPU.Registers.SetBankForMode(ProcessorMode.IRQ, [0x03007FA0, 0]);
