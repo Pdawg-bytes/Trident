@@ -5,15 +5,15 @@ using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Memory.Graphics;
 
-internal class VRAM(Action<uint> step, Func<uint> getVRAMBoundary) : IMemoryRegion, IDebugMemory
+internal class VRAM(Action<uint> step) : IMemoryRegion, IDebugMemory
 {
     internal const uint MemorySize = 96 * 1024;
     private const uint AddressMask = MemorySize - 1;
     private readonly UnsafeMemoryBlock _memory = new(MemorySize);
 
     private readonly Action<uint> _step = step;
-    private readonly Func<uint> _getVRAMBoundary = getVRAMBoundary;
-
+    private Func<uint> _getVRAMBoundary;
+    internal void SetGetBoundary(Func<uint> fetch) => _getVRAMBoundary = fetch;
 
     public byte Read8(uint address, PipelineAccess access)    => Read<byte>(address);
     public ushort Read16(uint address, PipelineAccess access) => Read<ushort>(address);

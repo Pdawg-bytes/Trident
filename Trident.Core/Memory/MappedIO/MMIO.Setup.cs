@@ -23,18 +23,18 @@ internal partial class MMIO
 
 
         // PPU registers
-        SetAccessor(DISPCNT, _ppuRegisters.DisplayControl.Read, _ppuRegisters.DisplayControl.Write);
-        SetAccessor(GREENSWAP, () => (ushort)_ppuRegisters.Greenswap, (value, mask) => { if (mask.IsLower()) _ppuRegisters.Greenswap = value & 1u; });
-        SetAccessor(DISPSTAT, _ppuRegisters.DisplayStatus.Read, _ppuRegisters.DisplayStatus.Write);
-        SetAccessor(VCOUNT, () => (ushort)_ppuRegisters.VCount, _emptyWrite);
+        SetAccessor(DISPCNT, _ppu.DisplayControl.Read, _ppu.DisplayControl.Write);
+        SetAccessor(GREENSWAP, () => (ushort)_ppu.Greenswap, (value, mask) => { if (mask.IsLower()) _ppu.Greenswap = value & 1u; });
+        SetAccessor(DISPSTAT, _ppu.DisplayStatus.Read, _ppu.DisplayStatus.Write);
+        SetAccessor(VCOUNT, () => (ushort)_ppu.VCount, _emptyWrite);
 
-        BackgroundControl bgxcnt = _ppuRegisters.BackgroundControls[0];
+        BackgroundControl bgxcnt = _ppu.BackgroundControls[0];
         SetAccessor(BG0CNT, bgxcnt.Read, bgxcnt.Write);
-        bgxcnt = _ppuRegisters.BackgroundControls[1];
+        bgxcnt = _ppu.BackgroundControls[1];
         SetAccessor(BG1CNT, bgxcnt.Read, bgxcnt.Write);
-        bgxcnt = _ppuRegisters.BackgroundControls[2];
+        bgxcnt = _ppu.BackgroundControls[2];
         SetAccessor(BG2CNT, bgxcnt.Read, bgxcnt.Write);
-        bgxcnt = _ppuRegisters.BackgroundControls[3];
+        bgxcnt = _ppu.BackgroundControls[3];
         SetAccessor(BG3CNT, bgxcnt.Read, bgxcnt.Write);
 
 

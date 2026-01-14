@@ -22,7 +22,7 @@ internal partial class MMIO : IMemoryRegion
 
     private readonly Action<uint> _step;
 
-    private readonly PPURegisters _ppuRegisters;
+    private readonly PPU _ppu;
 
     private readonly DMAManager _dmaManager;
 
@@ -37,7 +37,7 @@ internal partial class MMIO : IMemoryRegion
     (
         Action<uint> step,
 
-        PPURegisters ppuRegisters,
+        PPU ppu,
 
         DMAManager dmaManager,
 
@@ -51,7 +51,7 @@ internal partial class MMIO : IMemoryRegion
     {
         _step = step;
 
-        _ppuRegisters = ppuRegisters;
+        _ppu = ppu;
 
         _dmaManager = dmaManager;
 

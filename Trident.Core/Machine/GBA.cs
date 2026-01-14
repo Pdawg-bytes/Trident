@@ -28,7 +28,6 @@ public sealed partial class GBA : IDisposable
 
     public Framebuffer Framebuffer = new();
     internal PPU PPU;
-    private readonly PPURegisters _ppuRegisters = new();
 
     internal Scheduler Scheduler = new();
 
@@ -71,8 +70,11 @@ public sealed partial class GBA : IDisposable
         _eWRAM = new(Scheduler.Step);
         _iWRAM = new(Scheduler.Step);
         _pram  = new(Scheduler.Step);
-        _vram  = new(Scheduler.Step, _ppuRegisters.DisplayControl.GetSpriteBoundary);
+        _vram  = new(Scheduler.Step);
         _oam   = new(Scheduler.Step);
+
+        PPU = new(Framebuffer, _pram, _vram, _oam, Scheduler, _irqController.Raise, _dmaManager.Trigger);
+        _vram.SetGetBoundary(PPU.DisplayControl.GetSpriteBoundary);
 
 
         BusBuilder builder = new();
@@ -84,16 +86,13 @@ public sealed partial class GBA : IDisposable
         builder.Attach(MemoryRegion.VRAM,  _vram);
         builder.Attach(MemoryRegion.OAM,   _oam);
 
-        _mmio = new(Scheduler.Step, _ppuRegisters, _dmaManager, _keypad, _irqController, _waitControl, _postHalt);
+        _mmio = new(Scheduler.Step, PPU, _dmaManager, _keypad, _irqController, _waitControl, _postHalt);
         builder.Attach(MemoryRegion.MMIO, _mmio);
 
         CPU.AttachBus(builder.Build(Scheduler.Step));
         _busView = new(ref CPU.Bus);
         _dmaManager.SetBusView(_busView);
         Disassembler = new(GetDebugRegion, getPC, GetCPUSnapshot);
-
-
-        PPU = new(Framebuffer, _ppuRegisters, _pram, _vram, _oam, Scheduler, _irqController.Raise, _dmaManager.Trigger);
     }
 
     public T? GetGPIODevice<T>() where T : GPIODevice
