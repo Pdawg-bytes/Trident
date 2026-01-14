@@ -81,9 +81,9 @@ internal partial class DMAManager
                 break;
         }
 
-        address &= source ? DmaSrcMask(id) : DmaDstMask(id);
+        address &= source ? DMASrcMask(id) : DMADstMask(id);
     }
 
-    private static uint DmaSrcMask(uint id) => id == 0 ? 0x07FFFFFFu : 0x0FFFFFFFu;
-    private static uint DmaDstMask(uint id) => id == 3 ? 0x0FFFFFFFu : 0x07FFFFFFu;
+    private static uint DMASrcMask(uint id) => id == 0 ? 0x07FFFFFFu : 0x0FFFFFFFu;
+    private static uint DMADstMask(uint id) => id == 3 ? 0x0FFFFFFFu : 0x07FFFFFFu;
 }

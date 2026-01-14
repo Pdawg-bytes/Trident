@@ -16,7 +16,7 @@ internal class PPU
     private const int HBlankFlagDelay = 46;       // HDraw + Delay (GBATek: "the H-Blank flag is "0" for a total of 1006 cycles.")
 
     private readonly Framebuffer _framebuffer;
-    private readonly PPURegisters _registers;
+    private readonly PPURegisters _state;
     private readonly PRAM _pram;
     private readonly VRAM _vram;
     private readonly OAM _oam;
@@ -29,7 +29,7 @@ internal class PPU
     internal PPU(Framebuffer framebuffer, PPURegisters registers, PRAM pram, VRAM vram, OAM oam, Scheduler scheduler, Action<InterruptSource> raiseIRQ, Action<DMATrigger, uint> triggerDMA)
     {
         _framebuffer = framebuffer;
-        _registers = registers;
+        _state = registers;
         _pram = pram;
         _vram = vram;
         _oam = oam;
@@ -39,7 +39,7 @@ internal class PPU
 
         _scheduler.Register(EventType.PPU_HBlankStart,   OnHBlankStart);
         _scheduler.Register(EventType.PPU_HBlankEnd,     OnHBlankEnd);
-        _scheduler.Register(EventType.PPU_SetHBlankFlag, () => _registers.DisplayStatus.HBlankFlag = true);
+        _scheduler.Register(EventType.PPU_SetHBlankFlag, () => _state.DisplayStatus.HBlankFlag = true);
         _scheduler.Register(EventType.PPU_VBlankStart,   OnVBlankStart);
         _scheduler.Register(EventType.PPU_VBlankEnd,     OnVBlankEnd);
 
@@ -49,34 +49,34 @@ internal class PPU
 
     private void OnHBlankStart()
     {
-        if (_registers.DisplayStatus.HBlankIrq)
+        if (_state.DisplayStatus.HBlankIRQ)
             _raiseIRQ(InterruptSource.LCD_HBlank);
 
-        if (_registers.VCount >= 0 && _registers.VCount < 160)
+        if (_state.VCount >= 0 && _state.VCount < 160)
         {
             // render stuff
             for (int x = 0; x < 240; x++)
             {
                 ushort color = 0;
-                uint bgMode = _registers.DisplayControl.BackgroundMode;
+                uint bgMode = _state.DisplayControl.BackgroundMode;
 
                 if (bgMode == 3)
                 {
-                    color = _vram.Fetch<ushort>(((uint)x + _registers.VCount * 240) << 1);
+                    color = _vram.Fetch<ushort>(((uint)x + _state.VCount * 240) << 1);
                 }
                 else if (bgMode == 4)
                 {
-                    uint baseFrame = _registers.DisplayControl.FrameSelect ? 0xA000 : 0x0000u;
-                    uint addr = baseFrame + (uint)(x + _registers.VCount * 240);
+                    uint baseFrame = _state.DisplayControl.FrameSelect ? 0xA000 : 0x0000u;
+                    uint addr = baseFrame + (uint)(x + _state.VCount * 240);
                     uint index = (uint)(_vram.Fetch<byte>(addr) << 1);
                     color = _pram.Fetch<ushort>(index);
                 }
 
-                _framebuffer.SetPixel(x, (int)_registers.VCount, Framebuffer.ToArgb(color));
+                _framebuffer.SetPixel(x, (int)_state.VCount, Framebuffer.ToArgb(color));
             }
         }
 
-        _triggerDMA(DMATrigger.HBlank, _registers.VCount);
+        _triggerDMA(DMATrigger.HBlank, _state.VCount);
 
         _scheduler.Schedule(EventType.PPU_HBlankEnd, HBlankEndDelay);
         _scheduler.Schedule(EventType.PPU_SetHBlankFlag, HBlankFlagDelay);
@@ -84,26 +84,21 @@ internal class PPU
 
     private void OnHBlankEnd()
     {
-        DisplayStatus dispstat = _registers.DisplayStatus;
+        DisplayStatus dispstat = _state.DisplayStatus;
 
         dispstat.HBlankFlag = false;
-        _registers.VCount++;
+        _state.VCount++;
 
-        if (_registers.VCount == 160)
-        {
-            dispstat.VBlankFlag = true;
+        if (_state.VCount == 160)
             OnVBlankStart();
-        }
 
-        if (_registers.VCount == 227)
-        {
-            dispstat.VBlankFlag = false;
+        if (_state.VCount == 227)
             OnVBlankEnd();
-        }
 
-        if (_registers.VCount == 228) _registers.VCount = 0;
+        if (_state.VCount == 228) 
+            _state.VCount = 0;
 
-        if (dispstat.VCountIrq && _registers.VCount == dispstat.VCountSetting)
+        if (dispstat.VCountIRQ && _state.VCount == dispstat.VCountSetting)
             _raiseIRQ(InterruptSource.LCD_VCounterMatch);
 
         _scheduler.Schedule(EventType.PPU_HBlankStart, HBlankStartDelay);
@@ -112,7 +107,9 @@ internal class PPU
 
     private void OnVBlankStart()
     {
-        if (_registers.DisplayStatus.VBlankIrq)
+        _state.DisplayStatus.VBlankFlag = true;
+
+        if (_state.DisplayStatus.VBlankIRQ)
             _raiseIRQ(InterruptSource.LCD_VBlank);
 
         _triggerDMA(DMATrigger.VBlank, 0);
@@ -120,13 +117,13 @@ internal class PPU
 
     private void OnVBlankEnd()
     {
-        _registers.DisplayStatus.VBlankFlag = false;
+        _state.DisplayStatus.VBlankFlag = false;
     }
 
 
     internal void Reset()
     {
-        _registers.Reset();
+        _state.Reset();
 
         _scheduler.Schedule(EventType.PPU_HBlankStart, 226);
     }

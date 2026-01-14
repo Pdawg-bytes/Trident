@@ -34,17 +34,18 @@ internal class VRAM(Action<uint> step, Func<uint> getVRAMBoundary) : IMemoryRegi
         bool isWord = Unsafe.SizeOf<T>() == 4;
         _step(isWord ? 2 : 1u);
 
-        address = address.Align<T>() & 0x1FFFF;
-        if (address >= 0x18000) address -= 0x8000;
-
-        return _memory.Read<T>(address);
+        return ReadInternal<T>(address);
     }
 
-    internal T Fetch<T>(uint address) where T : unmanaged
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal T Fetch<T>(uint address) where T : unmanaged => ReadInternal<T>(address);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private T ReadInternal<T>(uint address) where T : unmanaged
     {
-        address &= 0x1FFFF;
+        address = address.Align<T>() & 0x1FFFF;
         if (address >= 0x18000) address -= 0x8000;
-        return _memory.Read<T>(address.Align<T>());
+        return _memory.Read<T>(address);
     }
 
 

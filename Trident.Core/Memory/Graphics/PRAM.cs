@@ -36,6 +36,7 @@ internal class PRAM(Action<uint> step) : IMemoryRegion, IDebugMemory
         return _memory.Read<T>(address.Align<T>() & AddressMask);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal T Fetch<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & AddressMask);
 
 
@@ -49,7 +50,7 @@ internal class PRAM(Action<uint> step) : IMemoryRegion, IDebugMemory
     }
 
 
-    public T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & AddressMask);
+    public T DebugRead<T>(uint address) where T : unmanaged => Fetch<T>(address);
 
     public uint BaseAddress => 0x5000000;
     public uint Length => MemorySize;

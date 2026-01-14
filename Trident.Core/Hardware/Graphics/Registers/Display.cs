@@ -52,9 +52,9 @@ internal class DisplayStatus
     internal bool HBlankFlag;
     internal bool VCountFlag;
 
-    internal bool VBlankIrq;
-    internal bool HBlankIrq;
-    internal bool VCountIrq;
+    internal bool VBlankIRQ;
+    internal bool HBlankIRQ;
+    internal bool VCountIRQ;
 
     internal byte VCountSetting;
 
@@ -64,9 +64,9 @@ internal class DisplayStatus
         (VBlankFlag ? 1 : 0) << 0 |
         (HBlankFlag ? 1 : 0) << 1 |
         (VCountFlag ? 1 : 0) << 2 |
-        (VBlankIrq  ? 1 : 0) << 3 |
-        (HBlankIrq  ? 1 : 0) << 4 |
-        (VCountIrq  ? 1 : 0) << 5 |
+        (VBlankIRQ  ? 1 : 0) << 3 |
+        (HBlankIRQ  ? 1 : 0) << 4 |
+        (VCountIRQ  ? 1 : 0) << 5 |
         VCountSetting << 8
     );
 
@@ -74,9 +74,9 @@ internal class DisplayStatus
     {
         if (mask.IsLower())
         {
-            VBlankIrq = ((value >> 3) & 1) != 0;
-            HBlankIrq = ((value >> 4) & 1) != 0;
-            VCountIrq = ((value >> 5) & 1) != 0;
+            VBlankIRQ = ((value >> 3) & 1) != 0;
+            HBlankIRQ = ((value >> 4) & 1) != 0;
+            VCountIRQ = ((value >> 5) & 1) != 0;
         }
 
         if (mask.IsUpper())

@@ -44,6 +44,6 @@ internal class OAM(Action<uint> step) : IMemoryRegion, IDebugMemory
 
     public T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & AddressMask);
 
-    public uint BaseAddress => 0x5000000;
+    public uint BaseAddress => 0x7000000;
     public uint Length => MemorySize;
 }
