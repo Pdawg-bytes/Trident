@@ -9,17 +9,25 @@ namespace Trident.Core.Hardware.Graphics;
 
 internal partial class PPU
 {
-    internal const int ScreenWidth = 240;
+    internal const int ScreenWidth  = 240;
     internal const int ScreenHeight = 160;
 
     private const int HBlankStartDelay = 240 * 4; // HDraw
-    private const int HBlankEndDelay = 68 * 4;    // 68px
-    private const int HBlankFlagDelay = 46;       // HDraw + Delay (GBATek: "the H-Blank flag is "0" for a total of 1006 cycles.")
+    private const int HBlankEndDelay   = 68 * 4;  // 68px
+    private const int HBlankFlagDelay  = 46;      // HDraw + Delay (GBATek: "the H-Blank flag is "0" for a total of 1006 cycles.")
 
     private readonly Framebuffer _framebuffer;
     private readonly PRAM _pram;
     private readonly VRAM _vram;
     private readonly OAM _oam;
+
+    internal Background[] Backgrounds =
+    [
+        new(0),
+        new(1),
+        new(2),
+        new(3)
+    ];
 
     private readonly Scheduler _scheduler;
 
@@ -51,28 +59,23 @@ internal partial class PPU
         if (DisplayStatus.HBlankIRQ)
             _raiseIRQ(InterruptSource.LCD_HBlank);
 
-        if (VCount >= 0 && VCount < 160)
+        if (VCount < 160)
         {
-            // render stuff
-            for (int x = 0; x < 240; x++)
+            // TODO: Clear lines if needed
+
+            //RenderObjectLine();
+
+            switch (DisplayControl.BackgroundMode)
             {
-                ushort color = 0;
-                uint bgMode = DisplayControl.BackgroundMode;
+                case 0 or 1 or 2:
+                    break;
 
-                if (bgMode == 3)
-                {
-                    color = _vram.Fetch<ushort>(((uint)x + VCount * 240) << 1);
-                }
-                else if (bgMode == 4)
-                {
-                    uint baseFrame = DisplayControl.FrameSelect ? 0xA000 : 0x0000u;
-                    uint addr = baseFrame + (uint)(x + VCount * 240);
-                    uint index = (uint)(_vram.Fetch<byte>(addr) << 1);
-                    color = _pram.Fetch<ushort>(index);
-                }
-
-                _framebuffer.SetPixel(x, (int)VCount, Framebuffer.ToArgb(color));
+                case 3: RenderMode3BG(); break;
+                case 4: RenderMode4BG(); break;
+                case 5: RenderMode5BG(); break;
             }
+
+            //Composite();
         }
 
         _triggerDMA(DMATrigger.HBlank, VCount);
@@ -129,7 +132,7 @@ internal partial class PPU
         VCount = 0;
 
         for (int i = 0; i < 4; i++)
-            BackgroundControls[i].Write(0, WriteMask.Both);
+            Backgrounds[i].Reset();
 
         _scheduler.Schedule(EventType.PPU_HBlankStart, 226);
     }

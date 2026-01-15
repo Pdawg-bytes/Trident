@@ -23,19 +23,15 @@ internal partial class MMIO
 
 
         // PPU registers
+        // TODO: PPU read-only registers will return open bus on read, NOT 0.
         SetAccessor(DISPCNT, _ppu.DisplayControl.Read, _ppu.DisplayControl.Write);
         SetAccessor(GREENSWAP, () => (ushort)_ppu.Greenswap, (value, mask) => { if (mask.IsLower()) _ppu.Greenswap = value & 1u; });
         SetAccessor(DISPSTAT, _ppu.DisplayStatus.Read, _ppu.DisplayStatus.Write);
         SetAccessor(VCOUNT, () => (ushort)_ppu.VCount, _emptyWrite);
 
-        BackgroundControl bgxcnt = _ppu.BackgroundControls[0];
-        SetAccessor(BG0CNT, bgxcnt.Read, bgxcnt.Write);
-        bgxcnt = _ppu.BackgroundControls[1];
-        SetAccessor(BG1CNT, bgxcnt.Read, bgxcnt.Write);
-        bgxcnt = _ppu.BackgroundControls[2];
-        SetAccessor(BG2CNT, bgxcnt.Read, bgxcnt.Write);
-        bgxcnt = _ppu.BackgroundControls[3];
-        SetAccessor(BG3CNT, bgxcnt.Read, bgxcnt.Write);
+        RegisterBGBase();
+        RegisterAffineBG(2, BG2PA, BG2X, BG2Y);
+        RegisterAffineBG(3, BG3PA, BG3X, BG3Y);
 
 
         // DMA registers
@@ -49,11 +45,13 @@ internal partial class MMIO
         SetAccessor(KEYINPUT, _keypad.ReadKeyInput, _emptyWrite);
         SetAccessor(KEYCNT, _keypad.ReadKeyControl, _keypad.WriteKeyControl);
 
+
         // Interrupt Controller registers
         SetAccessor(IE, _irqController.ReadIE, _irqController.WriteIE);
         SetAccessor(IF, _irqController.ReadIF, _irqController.WriteIF);
         SetAccessor(IME, _irqController.ReadIME, _irqController.WriteIME);
         MapUnusedRegister(IME + 2);
+
 
         // System Control registers
         SetAccessor(WAITCNT, _waitControl.Read, _waitControl.Write);
@@ -92,5 +90,35 @@ internal partial class MMIO
         // DMAXDAD
         SetAccessor(dadBase + 0, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Lower, mask, id, source: false));
         SetAccessor(dadBase + 2, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Upper, mask, id, source: false));
+    }
+
+
+    private void RegisterBGBase()
+    {
+        for (uint id = 0; id < 4; id++)
+        {
+            uint cnt  = BG0CNT  + id * 2;
+            uint hofs = BG0HOFS + id * 4;
+            uint vofs = BG0VOFS + id * 4;
+
+            SetAccessor(cnt, () => _ppu.ReadBGxCNT(id), (value, mask) => _ppu.WriteBGxCNT(id, value, mask));
+
+            SetAccessor(hofs, _zeroRead, (value, mask) => _ppu.WriteBGxOFS(id, false, value, mask));
+            SetAccessor(vofs, _zeroRead, (value, mask) => _ppu.WriteBGxOFS(id, true, value, mask));
+        }
+    }
+
+    private void RegisterAffineBG(uint id, uint basePA, uint baseX, uint baseY)
+    {
+        SetAccessor(basePA + 0, _zeroRead, (v, m) => _ppu.WriteBGxP(id, AffineParameter.A, v, m));
+        SetAccessor(basePA + 2, _zeroRead, (v, m) => _ppu.WriteBGxP(id, AffineParameter.B, v, m));
+        SetAccessor(basePA + 4, _zeroRead, (v, m) => _ppu.WriteBGxP(id, AffineParameter.C, v, m));
+        SetAccessor(basePA + 6, _zeroRead, (v, m) => _ppu.WriteBGxP(id, AffineParameter.D, v, m));
+
+        SetAccessor(baseX + 0, _zeroRead, (v, m) => _ppu.WriteBGxREF(id, false, v, WriteMask.Lower, m));
+        SetAccessor(baseX + 2, _zeroRead, (v, m) => _ppu.WriteBGxREF(id, false, v, WriteMask.Upper, m));
+
+        SetAccessor(baseY + 0, _zeroRead, (v, m) => _ppu.WriteBGxREF(id, true, v, WriteMask.Lower, m));
+        SetAccessor(baseY + 2, _zeroRead, (v, m) => _ppu.WriteBGxREF(id, true, v, WriteMask.Upper, m));
     }
 }

@@ -8,7 +8,7 @@ public class Framebuffer
     public readonly uint[] Pixels = new uint[Width * Height];
 
 
-    internal void SetPixel(int x, int y, uint color) => Pixels[y * Width + x] = color;
+    internal void SetPixel(uint x, uint y, uint color) => Pixels[y * Width + x] = color;
 
     internal void Clear(uint color = 0xFF000000) => Array.Fill(Pixels, color);
 
