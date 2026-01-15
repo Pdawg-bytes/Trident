@@ -97,14 +97,16 @@ internal partial class MMIO
     {
         for (uint id = 0; id < 4; id++)
         {
-            uint cnt  = BG0CNT  + id * 2;
-            uint hofs = BG0HOFS + id * 4;
-            uint vofs = BG0VOFS + id * 4;
+            uint localId = id;
 
-            SetAccessor(cnt, () => _ppu.ReadBGxCNT(id), (value, mask) => _ppu.WriteBGxCNT(id, value, mask));
+            uint cnt  = BG0CNT  + localId * 2;
+            uint hofs = BG0HOFS + localId * 4;
+            uint vofs = BG0VOFS + localId * 4;
 
-            SetAccessor(hofs, _zeroRead, (value, mask) => _ppu.WriteBGxOFS(id, false, value, mask));
-            SetAccessor(vofs, _zeroRead, (value, mask) => _ppu.WriteBGxOFS(id, true, value, mask));
+            SetAccessor(cnt, () => _ppu.ReadBGxCNT(localId), (value, mask) => _ppu.WriteBGxCNT(localId, value, mask));
+
+            SetAccessor(hofs, _zeroRead, (value, mask) => _ppu.WriteBGxOFS(localId, false, value, mask));
+            SetAccessor(vofs, _zeroRead, (value, mask) => _ppu.WriteBGxOFS(localId, true, value, mask));
         }
     }
 

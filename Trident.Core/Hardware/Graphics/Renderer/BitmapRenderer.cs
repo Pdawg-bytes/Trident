@@ -6,6 +6,8 @@ internal partial class PPU
 {
     private void RenderMode3BG()
     {
+        if (!DisplayControl.Enable[2]) return;
+
         uint rowBase = VCount * 240 << 1;
 
         for (uint x = 0; x < 240; x++)
@@ -17,6 +19,8 @@ internal partial class PPU
 
     private void RenderMode4BG()
     {
+        if (!DisplayControl.Enable[2]) return;
+
         uint baseFrame = DisplayControl.FrameSelect ? 0xA000u : 0x0000u;
         uint rowBase   = baseFrame + VCount * 240;
 
@@ -30,6 +34,8 @@ internal partial class PPU
 
     private void RenderMode5BG()
     {
+        if (!DisplayControl.Enable[2]) return;
+
         uint baseFrame = DisplayControl.FrameSelect ? 0xA000u : 0x0000u;
         uint rowBase = baseFrame + VCount * 320;
 

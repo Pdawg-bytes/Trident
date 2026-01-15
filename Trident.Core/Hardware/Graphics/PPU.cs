@@ -29,6 +29,16 @@ internal partial class PPU
         new(3)
     ];
 
+    static readonly int[][] ClearList =
+    [
+        [],
+        [3],
+        [0, 1],
+        [0, 1, 3],
+        [0, 1, 3],
+        [0, 1, 3],
+    ];
+
     private readonly Scheduler _scheduler;
 
     private readonly Action<InterruptSource> _raiseIRQ;
@@ -61,18 +71,37 @@ internal partial class PPU
 
         if (VCount < 160)
         {
-            // TODO: Clear lines if needed
+            byte mode = DisplayControl.BackgroundMode;
 
             //RenderObjectLine();
 
-            switch (DisplayControl.BackgroundMode)
+            //TODO
+            //foreach (var bg in ClearList[mode])
+            //    ClearBG(bg);
+
+            switch (mode)
             {
-                case 0 or 1 or 2:
+                case 0:
+                    RenderTextBG(0);
+                    RenderTextBG(1);
+                    RenderTextBG(2);
+                    RenderTextBG(3);
+                    break;
+                case 1:
+                    RenderTextBG(0);
+                    RenderTextBG(1);
+                    RenderAffineBG(2);
+                    break;
+                case 2:
+                    RenderAffineBG(2);
+                    RenderAffineBG(3);
                     break;
 
                 case 3: RenderMode3BG(); break;
                 case 4: RenderMode4BG(); break;
                 case 5: RenderMode5BG(); break;
+
+                default: break;
             }
 
             //Composite();

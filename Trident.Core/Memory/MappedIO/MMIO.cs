@@ -69,11 +69,7 @@ internal partial class MMIO : IMemoryRegion
     private bool TryNormalize(uint address, out uint index)
     {
         index = (address - 0x04000000) >> 1;
-
-        if (index >= RegisterCount)
-            return false;
-
-        return true;
+        return index < RegisterCount;
     }
 
 
@@ -129,7 +125,7 @@ internal partial class MMIO : IMemoryRegion
         if (!TryNormalize(address, out uint index))
             return;
 
-        bool upper = (address & 1) != 0;
+        bool upper     = (address & 1) != 0;
         WriteMask mask = upper ? WriteMask.Upper : WriteMask.Lower;
 
         ushort data = upper ? (ushort)(value << 8) : value;
