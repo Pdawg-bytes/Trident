@@ -13,7 +13,7 @@ internal partial class PPU
         Background bg     = Backgrounds[id];
         LayerPixel[] line = _bgLines[id];
 
-        var (width, height) = GetTextBGSize();
+        var (width, height) = GetTextBGSize(bg.ScreenSize);
 
         uint blocksWide   = (uint)((width >> 3) >> 5);
         uint charBaseAddr = bg.CharBaseBlock * 0x4000u;
@@ -83,7 +83,7 @@ internal partial class PPU
         }
     }
 
-    private (uint width, uint height) GetTextBGSize() => ((uint, uint))(DisplayControl.BackgroundMode switch
+    private (ushort width, ushort height) GetTextBGSize(byte screenSize) => ((ushort, ushort))(screenSize switch
     {
         0 => (256, 256),
         1 => (512, 256),
