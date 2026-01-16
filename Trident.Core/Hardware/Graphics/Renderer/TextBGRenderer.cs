@@ -13,13 +13,15 @@ internal partial class PPU
         Background bg     = Backgrounds[id];
         LayerPixel[] line = _bgLines[id];
 
-        uint blocksWide   = (uint)((bg.Width >> 3) >> 5);
+        var (width, height) = GetTextBGSize();
+
+        uint blocksWide   = (uint)((width >> 3) >> 5);
         uint charBaseAddr = bg.CharBaseBlock * 0x4000u;
 
         for (uint x = 0; x < ScreenWidth; x++)
         {
-            uint bgX = (x + bg.XOffset) & (bg.Width  - 1u);
-            uint bgY = (y + bg.YOffset) & (bg.Height - 1u);
+            uint bgX = (x + bg.XOffset) & (width  - 1u);
+            uint bgY = (y + bg.YOffset) & (height - 1u);
 
             uint tileX = bgX >> 3;
             uint tileY = bgY >> 3;
@@ -80,4 +82,13 @@ internal partial class PPU
             };
         }
     }
+
+    private (uint width, uint height) GetTextBGSize() => ((uint, uint))(DisplayControl.BackgroundMode switch
+    {
+        0 => (256, 256),
+        1 => (512, 256),
+        2 => (256, 512),
+        3 => (512, 512),
+        _ => (0, 0)
+    });
 }

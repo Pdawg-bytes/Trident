@@ -2,7 +2,7 @@
 
 public class Framebuffer
 {
-    public const int Width = 240;
+    public const int Width  = 240;
     public const int Height = 160;
 
     private readonly uint[] _bufA = new uint[Width * Height];
@@ -29,8 +29,12 @@ public class Framebuffer
 
     public void Present()
     {
-        _latest = _write;
-        (_write, _spare) = (_spare, _write);
+        Interlocked.Exchange(ref _latest, _write);
+
+        var oldRead = _read;
+        _read       = _write;
+        _write      = _spare;
+        _spare      = oldRead;
     }
 
 

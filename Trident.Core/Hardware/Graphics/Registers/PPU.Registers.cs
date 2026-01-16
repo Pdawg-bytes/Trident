@@ -1,5 +1,6 @@
-﻿using Trident.Core.Memory.MappedIO;
+﻿using Trident.Core.Global;
 using Trident.Core.Hardware.Graphics.Registers;
+using Trident.Core.Memory.MappedIO;
 
 namespace Trident.Core.Hardware.Graphics;
 
@@ -33,16 +34,7 @@ internal partial class PPU
             bg.Raw = (ushort)((bg.Raw & 0x00FF) | (value & 0xFF00));
 
             bg.ScreenBaseBlock = (byte)((value >> 8) & 0x1F);
-
-            bg.ScreenSize = (byte)(value >> 14);
-            (bg.Width, bg.Height) = ((ushort, ushort))(bg.ScreenSize switch
-            {
-                0 => (256, 256),
-                1 => (512, 256),
-                2 => (256, 512),
-                3 => (512, 512),
-                _ => (0, 0)
-            });
+            bg.ScreenSize      = (byte)(value >> 14);
 
             // GBATek: BG2/BG3: Display Area Overflow (0=Transparent, 1=Wraparound)
             if (id >= 2) bg.OverflowWrap = ((value >> 13) & 1) != 0;
@@ -76,8 +68,10 @@ internal partial class PPU
 
     internal void WriteBGxREF(uint id, bool vertical, ushort value, WriteMask wordMask, WriteMask byteMask)
     {
-        Background bg   = Backgrounds[id];
-        ref uint offset = ref (vertical ? ref bg.YReference : ref bg.XReference);
+        Background bg = Backgrounds[id];
+        ref int param = ref (vertical ? ref bg.YReferenceRaw : ref bg.XReferenceRaw);
+
+        uint raw = (uint)param;
 
         uint lo = (uint)(value & 0x00FF);
         uint hi = (uint)(value & 0xFF00);
@@ -86,18 +80,24 @@ internal partial class PPU
         {
             case WriteMask.Lower:
                 if (byteMask.IsLower())
-                    offset = (offset & ~0x000000FFu) | lo;
+                    raw = (raw & ~(0xFFu << 0)) | lo;
                 if (byteMask.IsUpper())
-                    offset = (offset & ~0x0000FF00u) | hi;
+                    raw = (raw & ~(0xFFu << 8)) | hi;
                 break;
 
             case WriteMask.Upper:
                 if (byteMask.IsLower())
-                    offset = (offset & ~0x00FF0000u) | (lo << 16);
+                    raw = (raw & ~(0xFFu << 16)) | (lo << 16);
                 if (byteMask.IsUpper())
-                    offset = (offset & ~0xFF000000u) | (hi << 16);
+                {
+                    raw  = (raw & ~(0xFFu << 24)) | (hi << 16);
+                    raw &= 0x0FFFFFFF;
+                    raw  = (uint)raw.ExtendFrom(27);
+                }
                 break;
         }
+
+        param = (int)raw;
     }
     #endregion
 }

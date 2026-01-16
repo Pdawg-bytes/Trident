@@ -68,16 +68,16 @@ internal partial class DMAManager
         {
             case WriteMask.Lower:
                 if (byteMask.IsLower())
-                    address = (address & ~0x000000FFu) | lo;
+                    address = (address & ~(0xFFu << 0)) | lo;
                 if (byteMask.IsUpper())
-                    address = (address & ~0x0000FF00u) | hi;
+                    address = (address & ~(0xFFu << 8)) | hi;
                 break;
 
             case WriteMask.Upper:
                 if (byteMask.IsLower())
-                    address = (address & ~0x00FF0000u) | (lo << 16);
+                    address = (address & ~(0xFFu << 16)) | (lo << 16);
                 if (byteMask.IsUpper())
-                    address = (address & ~0xFF000000u) | (hi << 16);
+                    address = (address & ~(0xFFu << 24)) | (hi << 16);
                 break;
         }
 

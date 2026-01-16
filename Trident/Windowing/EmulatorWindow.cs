@@ -69,8 +69,7 @@ internal class EmulatorWindow : GameWindow
         }
 
         UpdateFrequency = 0;
-        VSync = VSyncMode.Off;
-        GLFW.SwapInterval(1);
+        VSync = VSyncMode.On;
 
         WindowHandle = GLFW.GetWin32Window(WindowPtr);
     }
@@ -149,8 +148,8 @@ internal class EmulatorWindow : GameWindow
         InitFramebufferTexture();
         InitWidgets();
 
-        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, @"C:\Users\pgago\Downloads\gba_bios\gba_bios.bin"));
-        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"C:\Users\pgago\Downloads\tonc-bin\bin\sbb_aff.gba"));
+        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, @"C:\Users\Pdawg\Downloads\gba_bios\gba_bios.bin"));
+        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"C:\Users\Pdawg\Downloads\Kirby\Kirby.gba"));
     }
 
     protected override void OnClosing(CancelEventArgs e)

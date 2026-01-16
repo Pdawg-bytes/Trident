@@ -19,15 +19,14 @@ internal class Background(uint bg)
     internal bool OverflowWrap;
     internal byte ScreenSize;
 
-    internal ushort Width;
-    internal ushort Height;
-
     internal ushort XOffset;
     internal ushort YOffset;
 
     internal AffineParameters P = new();
-    internal uint XReference;
-    internal uint YReference;
+    internal int XReferenceRaw;
+    internal int YReferenceRaw;
+    internal long XReference;
+    internal long YReference;
 
 
     internal void Reset()
@@ -41,9 +40,11 @@ internal class Background(uint bg)
         OverflowWrap    = false;
         ScreenSize      = 0;
 
-        P          = new();
-        XReference = 0;
-        YReference = 0;
+        P             = new();
+        XReferenceRaw = 0;
+        YReferenceRaw = 0;
+        XReference    = 0;
+        YReference    = 0;
     }
 }
 
