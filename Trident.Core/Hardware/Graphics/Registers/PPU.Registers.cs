@@ -12,7 +12,6 @@ internal partial class PPU
 
     internal uint VCount;
 
-
     #region Background Registers
     internal ushort ReadBGxCNT(uint id) => Backgrounds[id].Raw;
     internal void WriteBGxCNT(uint id, ushort value, WriteMask mask)
@@ -34,7 +33,16 @@ internal partial class PPU
             bg.Raw = (ushort)((bg.Raw & 0x00FF) | (value & 0xFF00));
 
             bg.ScreenBaseBlock = (byte)((value >> 8) & 0x1F);
-            bg.ScreenSize      = (byte)(value >> 14);
+
+            bg.ScreenSize = (byte)(value >> 14);
+            (bg.Width, bg.Height) = ((ushort, ushort))(bg.ScreenSize switch
+            {
+                0 => (256, 256),
+                1 => (512, 256),
+                2 => (256, 512),
+                3 => (512, 512),
+                _ => (0, 0)
+            });
 
             // GBATek: BG2/BG3: Display Area Overflow (0=Transparent, 1=Wraparound)
             if (id >= 2) bg.OverflowWrap = ((value >> 13) & 1) != 0;
@@ -44,26 +52,26 @@ internal partial class PPU
 
     internal void WriteBGxOFS(uint id, bool vertical, ushort value, WriteMask mask)
     {
-        Background bg     = Backgrounds[id];
+        Background bg = Backgrounds[id];
         ref ushort offset = ref (vertical ? ref bg.YOffset : ref bg.XOffset);
 
         if (mask.IsLower())
             offset = (ushort)((offset & 0xFF00) | (byte)value);
 
         if (mask.IsUpper())
-            offset = (ushort)((offset & 0x00FF) | ((value & 1) << 8));
+            offset = (ushort)((offset & 0x00FF) | ((value & 0x0100) >> 8 << 8));
     }
 
     internal void WriteBGxP(uint id, AffineParameter p, ushort value, WriteMask mask)
     {
-        Background bg    = Backgrounds[id];
-        ref ushort param = ref bg.P[(int)p];
+        Background bg   = Backgrounds[id];
+        ref short param = ref bg.P[(int)p];
 
         if (mask.IsLower())
-            param = (ushort)((param & 0xFF00) | (byte)value);
+            param = (short)((param & 0xFF00) | (byte)value);
 
         if (mask.IsUpper())
-            param = (ushort)((param & 0x00FF) | (value << 8));
+            param = (short)((param & 0x00FF) | (value << 8));
     }
 
     internal void WriteBGxREF(uint id, bool vertical, ushort value, WriteMask wordMask, WriteMask byteMask)

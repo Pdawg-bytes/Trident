@@ -2,15 +2,37 @@
 
 public class Framebuffer
 {
-    public const int Width  = 240;
+    public const int Width = 240;
     public const int Height = 160;
 
-    public readonly uint[] Pixels = new uint[Width * Height];
+    private readonly uint[] _bufA = new uint[Width * Height];
+    private readonly uint[] _bufB = new uint[Width * Height];
+    private readonly uint[] _bufC = new uint[Width * Height];
 
+    private uint[] _write;
+    private uint[] _read;
+    private uint[] _spare;
 
-    internal void SetPixel(uint x, uint y, uint color) => Pixels[y * Width + x] = color;
+    private volatile uint[] _latest;
+    public uint[] FrontPixels => _latest;
 
-    internal void Clear(uint color = 0xFF000000) => Array.Fill(Pixels, color);
+    public Framebuffer()
+    {
+        _write  = _bufA;
+        _read   = _bufB;
+        _spare  = _bufC;
+        _latest = _read;
+    }
+
+    public void SetPixel(uint x, uint y, uint color) => _write[y * Width + x] = color;
+    public void Clear(uint color = 0xFF000000) => Array.Fill(_write, color);
+
+    public void Present()
+    {
+        _latest = _write;
+        (_write, _spare) = (_spare, _write);
+    }
+
 
     internal static uint ToArgb(ushort raw)
     {
@@ -18,9 +40,9 @@ public class Framebuffer
         int green = (raw >> 5)  & 0x1F;
         int blue  = (raw >> 10) & 0x1F;
 
-        red   = (red << 3)   | (red >> 2);
+        red   = (red   << 3) | (red   >> 2);
         green = (green << 3) | (green >> 2);
-        blue  = (blue << 3)  | (blue >> 2);
+        blue  = (blue  << 3) | (blue  >> 2);
 
         return (uint)(0xFF << 24 | red << 16 | green << 8 | blue);
     }

@@ -97,6 +97,7 @@ public class EmulatorThread
             if (!_paused)
             {
                 _gba.RunFor(CyclesPerFrame);
+                _gba.Framebuffer.Present();
                 _frameCounter.FrameRendered();
             }
 

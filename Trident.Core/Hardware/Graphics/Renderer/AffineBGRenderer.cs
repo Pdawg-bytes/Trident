@@ -2,8 +2,8 @@
 
 internal partial class PPU
 {
-    private void RenderAffineBG(uint id)
+    private void RenderAffineBG(uint id, uint y)
     {
-
+       
     }
 }

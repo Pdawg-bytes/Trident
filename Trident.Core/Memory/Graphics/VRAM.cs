@@ -53,7 +53,7 @@ internal class VRAM(Action<uint> step) : IMemoryRegion, IDebugMemory
     private void Write<T>(uint address, T value, bool isByte) where T : unmanaged
     {
         uint boundary = _getVRAMBoundary();
-        address = address.Align<T>() & 0x1FFFF;
+        address       = address.Align<T>() & 0x1FFFF;
 
         bool isWord = Unsafe.SizeOf<T>() == 4;
         _step(isWord ? 2 : 1u);
@@ -78,7 +78,7 @@ internal class VRAM(Action<uint> step) : IMemoryRegion, IDebugMemory
     }
 
 
-    public T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & AddressMask);
+    public T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & 0x1FFFF);
 
     public uint BaseAddress => 0x6000000;
     public uint Length => MemorySize;

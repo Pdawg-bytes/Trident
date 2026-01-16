@@ -1,0 +1,71 @@
+﻿using Trident.Core.Global;
+using Trident.Core.Hardware.Graphics.Registers;
+
+namespace Trident.Core.Hardware.Graphics;
+
+internal partial class PPU
+{
+    private struct LayerPixel
+    {
+        internal ushort Color;
+        internal bool   Transparent;
+        internal byte   Priority;
+        internal byte   Source;
+    }
+
+    private static readonly uint[][] ActiveBGs =
+    [
+        [ 0, 1, 2, 3 ],
+        [ 0, 1, 2 ],
+        [ 2, 3 ],
+        [ 2 ],
+        [ 2 ],
+        [ 2 ],
+    ];
+
+    private static readonly LayerPixel DefaultPixel = new()
+    {
+        Color       = 0,
+        Transparent = true,
+        Priority    = 0xFF,
+        Source      = 0xFF
+    };
+
+
+    private void CompositeScanline(uint y, byte mode)
+    {
+        uint[] active = ActiveBGs[mode];
+
+        for (uint x = 0; x < ScreenWidth; x++)
+        {
+            LayerPixel best = DefaultPixel;
+
+            foreach (uint bgId in active)
+            {
+                var px = _bgLines[bgId][x];
+
+                if (!px.Transparent)
+                {
+                    if (px.Priority < best.Priority ||
+                       (px.Priority == best.Priority && px.Source < best.Source))
+                    {
+                        best = px;
+                    }
+                }
+            }
+
+            _framebuffer.SetPixel(x, y, Framebuffer.ToArgb(best.Color));
+        }
+    }
+
+    private void ResetScanlineBuffers()
+    {
+        for (int bg = 0; bg < 4; bg++)
+        {
+            LayerPixel[] line = _bgLines[bg];
+
+            for (int x = 0; x < ScreenWidth; x++)
+                line[x] = DefaultPixel;
+        }
+    }
+}

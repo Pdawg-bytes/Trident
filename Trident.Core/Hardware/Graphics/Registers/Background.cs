@@ -5,7 +5,7 @@ namespace Trident.Core.Hardware.Graphics.Registers;
 internal class Background(uint bg)
 {
     [InlineArray(4)]
-    internal struct AffineParameters { ushort _e0; }
+    internal struct AffineParameters { short _e0; }
 
     internal readonly uint ID = bg;
 
@@ -18,6 +18,9 @@ internal class Background(uint bg)
     internal byte ScreenBaseBlock;
     internal bool OverflowWrap;
     internal byte ScreenSize;
+
+    internal ushort Width;
+    internal ushort Height;
 
     internal ushort XOffset;
     internal ushort YOffset;

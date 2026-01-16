@@ -149,8 +149,8 @@ internal class EmulatorWindow : GameWindow
         InitFramebufferTexture();
         InitWidgets();
 
-        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, @"C:\Users\Pdawg\Downloads\gba_bios\gba_bios.bin"));
-        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"C:\Users\Pdawg\Downloads\OpenLara_gba\OpenLara.gba"));
+        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, @"C:\Users\pgago\Downloads\gba_bios\gba_bios.bin"));
+        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"C:\Users\pgago\Downloads\tonc-bin\bin\sbb_aff.gba"));
     }
 
     protected override void OnClosing(CancelEventArgs e)
@@ -368,10 +368,9 @@ internal class EmulatorWindow : GameWindow
 
         ImGui.Begin("GBA Screen");
 
-        // TODO: This is not thread-safe and will have tearing issues. Fix later.
         GL.BindTexture(TextureTarget.Texture2D, _framebufferTexture);
         GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, 0, 240, 160,
-                         PixelFormat.Bgra, PixelType.UnsignedByte, _gba.Framebuffer.Pixels);
+                         PixelFormat.Bgra, PixelType.UnsignedByte, _gba.Framebuffer.FrontPixels);
 
         ImGui.Image(_framebufferTexture, new System.Numerics.Vector2(480, 320));
         ImGui.End();

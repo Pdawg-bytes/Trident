@@ -29,15 +29,9 @@ internal partial class PPU
         new(3)
     ];
 
-    static readonly int[][] ClearList =
-    [
-        [],
-        [3],
-        [0, 1],
-        [0, 1, 3],
-        [0, 1, 3],
-        [0, 1, 3],
-    ];
+    private readonly LayerPixel[][] _bgLines   = new LayerPixel[4][];
+    private readonly LayerPixel[]   _objLine   = new LayerPixel[ScreenWidth];
+    private readonly LayerPixel[]   _finalLine = new LayerPixel[ScreenWidth];
 
     private readonly Scheduler _scheduler;
 
@@ -69,42 +63,42 @@ internal partial class PPU
         if (DisplayStatus.HBlankIRQ)
             _raiseIRQ(InterruptSource.LCD_HBlank);
 
-        if (VCount < 160)
+        uint scanline = VCount;
+
+        if (scanline < 160)
         {
             byte mode = DisplayControl.BackgroundMode;
 
             //RenderObjectLine();
 
-            //TODO
-            //foreach (var bg in ClearList[mode])
-            //    ClearBG(bg);
+            ResetScanlineBuffers();
 
             switch (mode)
             {
                 case 0:
-                    RenderTextBG(0);
-                    RenderTextBG(1);
-                    RenderTextBG(2);
-                    RenderTextBG(3);
+                    RenderTextBG(0, scanline);
+                    RenderTextBG(1, scanline);
+                    RenderTextBG(2, scanline);
+                    RenderTextBG(3, scanline);
                     break;
                 case 1:
-                    RenderTextBG(0);
-                    RenderTextBG(1);
-                    RenderAffineBG(2);
+                    RenderTextBG(0, scanline);
+                    RenderTextBG(1, scanline);
+                    RenderAffineBG(2, scanline);
                     break;
                 case 2:
-                    RenderAffineBG(2);
-                    RenderAffineBG(3);
+                    RenderAffineBG(2, scanline);
+                    RenderAffineBG(3, scanline);
                     break;
 
-                case 3: RenderMode3BG(); break;
-                case 4: RenderMode4BG(); break;
-                case 5: RenderMode5BG(); break;
+                case 3: RenderMode3BG(scanline); break;
+                case 4: RenderMode4BG(scanline); break;
+                case 5: RenderMode5BG(scanline); break;
 
                 default: break;
             }
 
-            //Composite();
+            CompositeScanline(scanline, mode);
         }
 
         _triggerDMA(DMATrigger.HBlank, VCount);
@@ -162,6 +156,11 @@ internal partial class PPU
 
         for (int i = 0; i < 4; i++)
             Backgrounds[i].Reset();
+
+        for (int i = 0; i < 4; i++) 
+            _bgLines[i] = new LayerPixel[ScreenWidth];
+
+        ResetScanlineBuffers();
 
         _scheduler.Schedule(EventType.PPU_HBlankStart, 226);
     }
