@@ -12,7 +12,7 @@ internal class DMAControllerWidget(ImFontPtr monoFont, Func<DMASnapshot> getSnap
 
     private readonly ImFontPtr _monoFont = monoFont;
 
-    private static readonly string[] _headers = [ "DMA Channel 0", "DMA Channel 1", "DMA Channel 2", "DMA Channel 3" ];
+    private readonly string[] _headers = [ "DMA Channel 0", "DMA Channel 1", "DMA Channel 2", "DMA Channel 3" ];
 
 
     public bool IsVisible { get; set; } = true;

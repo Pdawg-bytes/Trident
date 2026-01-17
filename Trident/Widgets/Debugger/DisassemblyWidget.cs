@@ -26,7 +26,7 @@ internal class DisassemblyWidget(ImFontPtr monoFont, Disassembler disassembler, 
     private bool _showOpcode = true;
     private bool _followPC = true;
 
-    internal readonly static string[] _registers = ["r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "sp", "lr", "pc"];
+    internal readonly string[] _registers = ["r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11", "r12", "sp", "lr", "pc"];
 
 
     public bool IsVisible { get; set; } = true;

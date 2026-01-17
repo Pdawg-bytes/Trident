@@ -21,7 +21,7 @@ public sealed partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     public InstructionPipeline Pipeline;
     public TBus Bus;
 
-    public bool Halted;
+    public bool Halted = false;
     private InterruptController _irqController = new(() => { }, () => false);
     private BreakpointManager _breakpointManager;
     private readonly Scheduler _scheduler;
@@ -46,6 +46,8 @@ public sealed partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
 
     public void Reset()
     {
+        Halted = false;
+
         Registers.ResetRegisters();
         Registers.SwitchMode(ProcessorMode.SVC);
 

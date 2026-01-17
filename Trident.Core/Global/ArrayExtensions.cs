@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Trident.Core.Global;
 
@@ -20,5 +22,11 @@ internal static class ArrayExtensions
             if (CheckMatches(i)) return true;
 
         return false;
+    }
+
+    internal static ref T GetUnsafe<T>(T[] array, uint index)
+    {
+        ref T start = ref MemoryMarshal.GetArrayDataReference(array);
+        return ref Unsafe.Add(ref start, index);
     }
 }

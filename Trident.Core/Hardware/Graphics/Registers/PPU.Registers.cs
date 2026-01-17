@@ -69,7 +69,7 @@ internal partial class PPU
     internal void WriteBGxREF(uint id, bool vertical, ushort value, WriteMask wordMask, WriteMask byteMask)
     {
         Background bg = Backgrounds[id];
-        ref int param = ref (vertical ? ref bg.YReferenceRaw : ref bg.XReferenceRaw);
+        ref int param = ref (vertical ? ref bg.YReference : ref bg.XReference);
 
         uint raw = (uint)param;
 
@@ -91,8 +91,8 @@ internal partial class PPU
                 if (byteMask.IsUpper())
                 {
                     raw  = (raw & ~(0xFFu << 24)) | (hi << 16);
-                    raw &= 0x0FFFFFFF;
-                    raw  = (uint)raw.ExtendFrom(27);
+                    //_raw &= 0x0FFFFFFF;
+                    //_raw  = (uint)_raw.ExtendFrom(27);
                 }
                 break;
         }

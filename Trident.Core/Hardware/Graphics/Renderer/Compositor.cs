@@ -13,7 +13,7 @@ internal partial class PPU
         internal byte   Source;
     }
 
-    private static readonly uint[][] ActiveBGs =
+    private readonly uint[][] ActiveBGs =
     [
         [ 0, 1, 2, 3 ],
         [ 0, 1, 2 ],
@@ -23,7 +23,7 @@ internal partial class PPU
         [ 2 ],
     ];
 
-    private static readonly LayerPixel DefaultPixel = new()
+    private readonly LayerPixel DefaultPixel = new()
     {
         Color       = 0,
         Transparent = true,

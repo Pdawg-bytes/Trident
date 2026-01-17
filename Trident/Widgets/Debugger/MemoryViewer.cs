@@ -34,7 +34,7 @@ internal class MemoryViewer(ImFontPtr monoFont) : IWidget
     private const uint BytesPerRow = 16;
     private bool _showAscii = true;
     private readonly DebugMemoryRead<byte>[] _rowBytes = new DebugMemoryRead<byte>[BytesPerRow];
-    internal static readonly string[] _columnHeaders = Enumerable.Range(0, 16).Select(i => i.ToString("X2")).ToArray();
+    internal readonly string[] _columnHeaders = Enumerable.Range(0, 16).Select(i => i.ToString("X2")).ToArray();
 
 
     public bool IsVisible { get; set; } = true;

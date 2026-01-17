@@ -1,10 +1,24 @@
-﻿using Trident.Core.Global;
+﻿using System.Runtime.InteropServices;
+using Trident.Core.Global;
 using Trident.Core.Hardware.Graphics.Registers;
+
+using static Trident.Core.Global.ArrayExtensions;
 
 namespace Trident.Core.Hardware.Graphics;
 
 internal partial class PPU
 {
+    [StructLayout(LayoutKind.Explicit, Size = 2)]
+    readonly struct TileEntry
+    {
+        [FieldOffset(0)] private readonly ushort _raw;
+
+        internal uint TileIndex => (uint)(_raw & 0x03FF);
+        internal bool FlipX     => _raw.IsBitSet(10);
+        internal bool FlipY     => _raw.IsBitSet(11);
+        internal uint Palette   => (uint)(_raw >> 12) & 0x0F;
+    }
+
     private void RenderTextBG(uint id, uint y)
     {
         if (!DisplayControl.Enable[id])
@@ -13,73 +27,78 @@ internal partial class PPU
         Background bg     = Backgrounds[id];
         LayerPixel[] line = _bgLines[id];
 
+        uint xOffset  = bg.XOffset;
+        uint yOffset  = bg.YOffset;
+        byte priority = bg.Priority;
+        byte source   = (byte)bg.ID;
+        bool use256   = bg.Use256Colors;
+
         var (width, height) = GetTextBGSize(bg.ScreenSize);
 
-        uint blocksWide   = (uint)((width >> 3) >> 5);
-        uint charBaseAddr = bg.CharBaseBlock * 0x4000u;
+        uint blocksWide = (uint)((width >> 3) >> 5);
+        uint charBase   = bg.CharBaseBlock * 0x4000u;
+
+        uint bgY        = (y + yOffset) & (height - 1u);
+        uint tileY      = bgY   >> 3;
+        uint blockY     = tileY >> 5;
+        uint mapRowBase = (tileY & 0x1F) << 5;
+
+        uint screenBlockRow = bg.ScreenBaseBlock + blockY * blocksWide;
+
+        uint basePixelY = bgY & 7u;
 
         for (uint x = 0; x < ScreenWidth; x++)
         {
-            uint bgX = (x + bg.XOffset) & (width  - 1u);
-            uint bgY = (y + bg.YOffset) & (height - 1u);
-
-            uint tileX = bgX >> 3;
-            uint tileY = bgY >> 3;
-
+            uint bgX    = (x + xOffset) & (width - 1u);
+            uint tileX  = bgX   >> 3;
             uint blockX = tileX >> 5;
-            uint blockY = tileY >> 5;
 
-            uint screenBlock = bg.ScreenBaseBlock + blockY * blocksWide + blockX;
-            uint mapIndex    = ((tileY & 31) << 5) + (tileX & 31);
+            uint screenBlock = screenBlockRow + blockX;
+            uint mapIndex    = mapRowBase + (tileX & 0x1F);
 
-            ushort entry = _vram.Fetch<ushort>(screenBlock * 0x800u + (mapIndex << 1));
+            TileEntry entry = _vram.Fetch<TileEntry>(screenBlock * 0x800u + (mapIndex << 1));
 
-            uint tileIndex = entry & 0x3FFu;
-            bool flipX     = entry.IsBitSet(10);
-            bool flipY     = entry.IsBitSet(11);
-            uint palNum    = (uint)(entry >> 12) & 0x0F;
+            uint pixelX = bgX & 7u;
+            if (entry.FlipX) pixelX ^= 7u;
 
-            uint pixelX = bgX & 7;
-            uint pixelY = bgY & 7;
-
-            if (flipX) pixelX ^= 7;
-            if (flipY) pixelY ^= 7;
+            uint pixelY = basePixelY;
+            if (entry.FlipY) pixelY ^= 7u;
 
             ushort color;
-            bool transparent;
+            bool   transparent;
 
-            if (bg.Use256Colors)
+            if (use256)
             {
-                uint tileAddr   = charBaseAddr + (tileIndex << 6);
+                uint tileAddr   = charBase + (entry.TileIndex << 6);
                 uint tileOffset = (pixelY << 3) + pixelX;
 
-                byte paletteIndex = _vram.Fetch<byte>(tileAddr + tileOffset);
+                byte index = _vram.Fetch<byte>(tileAddr + tileOffset);
 
-                color       = _pram.Fetch<ushort>((uint)(paletteIndex << 1));
-                transparent = paletteIndex == 0;
+                color       = _pram.Fetch<ushort>((uint)(index << 1));
+                transparent = index == 0;
             }
             else
             {
-                uint tileAddr   = charBaseAddr + (tileIndex << 5);
+                uint tileAddr   = charBase + (entry.TileIndex << 5);
                 uint rowOffset  = pixelY << 2;
                 uint byteOffset = pixelX >> 1;
 
-                byte b   = _vram.Fetch<byte>(tileAddr + rowOffset + byteOffset);
-                byte idx = ((pixelX & 1) == 0) ? (byte)(b & 0x0F) : (byte)(b >> 4);
+                byte packed = _vram.Fetch<byte>(tileAddr + rowOffset + byteOffset);
+                byte index  = ((pixelX & 1) == 0)
+                    ? (byte)(packed & 0x0F)
+                    : (byte)(packed >> 4);
 
-                byte paletteIndex = (byte)((palNum << 4) + idx);
+                byte paletteIndex = (byte)((entry.Palette << 4) + index);
 
                 color       = _pram.Fetch<ushort>((uint)(paletteIndex << 1));
-                transparent = idx == 0;
+                transparent = index == 0;
             }
 
-            line[x] = new()
-            {
-                Color       = color,
-                Priority    = bg.Priority,
-                Transparent = transparent,
-                Source      = (byte)bg.ID
-            };
+            ref LayerPixel px = ref GetUnsafe(line, x);
+            px.Color       = color;
+            px.Priority    = priority;
+            px.Transparent = transparent;
+            px.Source      = source;
         }
     }
 

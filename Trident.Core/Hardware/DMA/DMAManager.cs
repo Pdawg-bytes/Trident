@@ -102,7 +102,7 @@ internal partial class DMAManager
         }
     }
 
-    private static uint UpdateAddress(uint addr, AddressingMode mode, int step)
+    private uint UpdateAddress(uint addr, AddressingMode mode, int step)
     {
         return mode switch
         {

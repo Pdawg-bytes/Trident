@@ -2,7 +2,7 @@
 
 namespace Trident.Core.Hardware.Graphics.Registers;
 
-internal class Background(uint bg)
+internal sealed class Background(uint bg)
 {
     [InlineArray(4)]
     internal struct AffineParameters { short _e0; }
@@ -23,10 +23,8 @@ internal class Background(uint bg)
     internal ushort YOffset;
 
     internal AffineParameters P = new();
-    internal int XReferenceRaw;
-    internal int YReferenceRaw;
-    internal long XReference;
-    internal long YReference;
+    internal int XReference;
+    internal int YReference;
 
 
     internal void Reset()
@@ -40,11 +38,12 @@ internal class Background(uint bg)
         OverflowWrap    = false;
         ScreenSize      = 0;
 
-        P             = new();
-        XReferenceRaw = 0;
-        YReferenceRaw = 0;
-        XReference    = 0;
-        YReference    = 0;
+        P[0] = 0x0100;
+        P[1] = 0x0000;
+        P[2] = 0x0000;
+        P[3] = 0x0100;
+        XReference = 0;
+        YReference = 0;
     }
 }
 
