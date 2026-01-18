@@ -96,18 +96,19 @@ internal partial class PPU
 
             ref LayerPixel px = ref GetUnsafe(line, x);
             px.Color       = color;
-            px.Priority    = priority;
             px.Transparent = transparent;
+            px.Priority    = priority;
             px.Source      = source;
+            px.Generation  = _pixelGeneration;
         }
     }
 
-    private (ushort width, ushort height) GetTextBGSize(byte screenSize) => ((ushort, ushort))(screenSize switch
+    private (ushort width, ushort height) GetTextBGSize(byte screenSize) => screenSize switch
     {
         0 => (256, 256),
         1 => (512, 256),
         2 => (256, 512),
         3 => (512, 512),
         _ => (0, 0)
-    });
+    };
 }

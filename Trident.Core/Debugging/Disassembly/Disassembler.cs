@@ -31,11 +31,11 @@ public sealed class Disassembler(Func<uint, IDebugMemory?> getRegion, Func<uint>
         uint instrSize   = thumb ? 2 : 4u;
         var (start, end) = GetDisasmWindow(pc, before, after, instrSize, region);
 
-        int length = (int)((end - start) / instrSize);
+        int length = (int)((end - start) >> ((int)instrSize >> 1));
         if (length > 512 || length < 0)
             throw new Exception("Disassembly window out of range.");
 
-        if (_disasmBuffer.Length != length)
+        if (_disasmBuffer.Length < length)
         {
             _disasmBuffer = new DisassembledInstruction[length];
             _tokenBuffer  = new byte[length][];

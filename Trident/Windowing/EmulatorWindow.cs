@@ -21,6 +21,8 @@ using System.Runtime.InteropServices;
 using Trident.Core.Hardware.Controller;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
+using static Trident.Fonts.IconConstants;
+
 using FontData = (nint Pointer, int Size, float SizePixels, System.Runtime.InteropServices.GCHandle Handle);
 
 namespace Trident.Windowing;
@@ -95,7 +97,7 @@ internal class EmulatorWindow : GameWindow
         handles.Add(roboto.Handle);
 
         FontData icons = LoadFont("Trident.Fonts.MaterialSymbolsRounded.ttf", 20f);
-        fonts.Add(("MaterialRounded", icons.Pointer, icons.Size, icons.SizePixels, true, [ 0xE003, 0xF8FF, 0 ]));
+        fonts.Add(("MaterialRounded", icons.Pointer, icons.Size, icons.SizePixels, true, [ IconMinimum, IconMaximum, 0 ]));
         handles.Add(icons.Handle);
 
         FontData firaCode = LoadFont("Trident.Fonts.FiraCode-Medium.ttf", 16f);
@@ -148,8 +150,8 @@ internal class EmulatorWindow : GameWindow
         InitFramebufferTexture();
         InitWidgets();
 
-        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, @"C:\Users\Pdawg\Downloads\gba_bios\gba_bios.bin"));
-        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"C:\Users\Pdawg\Downloads\Kirby\Kirby.gba"));
+        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, @"C:\Users\pgago\Downloads\gba_bios\gba_bios.bin"));
+        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"C:\Users\pgago\Downloads\tonc-bin\bin\m7_ex.gba"));
     }
 
     protected override void OnClosing(CancelEventArgs e)

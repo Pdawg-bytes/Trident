@@ -1,11 +1,12 @@
-﻿using System.Runtime.CompilerServices;
-
-namespace Trident.Core.Hardware.Graphics.Registers;
+﻿namespace Trident.Core.Hardware.Graphics.Registers;
 
 internal sealed class Background(uint bg)
 {
-    [InlineArray(4)]
-    internal struct AffineParameters { short _e0; }
+    internal struct ReferencePoint
+    {
+        internal int X;
+        internal int Y;
+    }
 
     internal readonly uint ID = bg;
 
@@ -22,10 +23,11 @@ internal sealed class Background(uint bg)
     internal ushort XOffset;
     internal ushort YOffset;
 
-    internal AffineParameters P = new();
-    internal int XReference;
-    internal int YReference;
+    internal readonly short[] P = new short[4];
+    internal ReferencePoint Origin;
+    internal ReferencePoint Lerp;
 
+    internal void UpdateReferencePoints() => Lerp = Origin;
 
     internal void Reset()
     {
@@ -42,8 +44,9 @@ internal sealed class Background(uint bg)
         P[1] = 0x0000;
         P[2] = 0x0000;
         P[3] = 0x0100;
-        XReference = 0;
-        YReference = 0;
+
+        Origin = new();
+        Lerp   = new();
     }
 }
 

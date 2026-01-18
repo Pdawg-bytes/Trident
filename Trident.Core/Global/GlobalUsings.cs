@@ -1,4 +1,4 @@
-﻿global using ARMInstruction = ARMInstructionDelegate;
+﻿global using ARMInstruction   = ARMInstructionDelegate;
 global using ThumbInstruction = ThumbInstructionDelegate;
 
 internal delegate void ARMInstructionDelegate(uint opcode);

@@ -1,6 +1,8 @@
 ﻿using Trident.Core.Global;
-using Trident.Core.Hardware.Graphics.Registers;
 using Trident.Core.Memory.MappedIO;
+using Trident.Core.Hardware.Graphics.Registers;
+
+using static Trident.Core.Global.ArrayExtensions;
 
 namespace Trident.Core.Hardware.Graphics;
 
@@ -44,7 +46,7 @@ internal partial class PPU
 
     internal void WriteBGxOFS(uint id, bool vertical, ushort value, WriteMask mask)
     {
-        Background bg = Backgrounds[id];
+        Background bg     = Backgrounds[id];
         ref ushort offset = ref (vertical ? ref bg.YOffset : ref bg.XOffset);
 
         if (mask.IsLower())
@@ -57,19 +59,19 @@ internal partial class PPU
     internal void WriteBGxP(uint id, AffineParameter p, ushort value, WriteMask mask)
     {
         Background bg   = Backgrounds[id];
-        ref short param = ref bg.P[(int)p];
+        ref short param = ref GetUnsafe(bg.P, (uint)p);
 
         if (mask.IsLower())
             param = (short)((param & 0xFF00) | (byte)value);
 
         if (mask.IsUpper())
-            param = (short)((param & 0x00FF) | (value << 8));
+            param = (short)((param & 0x00FF) | (value & 0xFF00));
     }
 
     internal void WriteBGxREF(uint id, bool vertical, ushort value, WriteMask wordMask, WriteMask byteMask)
     {
         Background bg = Backgrounds[id];
-        ref int param = ref (vertical ? ref bg.YReference : ref bg.XReference);
+        ref int param = ref (vertical ? ref bg.Origin.Y : ref bg.Origin.X);
 
         uint raw = (uint)param;
 
@@ -91,13 +93,14 @@ internal partial class PPU
                 if (byteMask.IsUpper())
                 {
                     raw  = (raw & ~(0xFFu << 24)) | (hi << 16);
-                    //_raw &= 0x0FFFFFFF;
-                    //_raw  = (uint)_raw.ExtendFrom(27);
+                    raw &= 0x0FFFFFFF;
+                    raw  = (uint)raw.ExtendFrom(27);
                 }
                 break;
         }
 
         param = (int)raw;
+        bg.UpdateReferencePoints();
     }
     #endregion
 }

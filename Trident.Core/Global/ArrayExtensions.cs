@@ -24,9 +24,20 @@ internal static class ArrayExtensions
         return false;
     }
 
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref T GetUnsafe<T>(T[] array, uint index)
+        where T : unmanaged
     {
         ref T start = ref MemoryMarshal.GetArrayDataReference(array);
         return ref Unsafe.Add(ref start, index);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void SetUnsafe<T>(T[] array, uint index, T value)
+        where T : unmanaged
+    {
+        ref T start = ref MemoryMarshal.GetArrayDataReference(array);
+        Unsafe.Add(ref start, index) = value;
     }
 }

@@ -5,6 +5,8 @@ using Trident.Core.Memory.MappedIO;
 using Trident.Core.Hardware.Interrupts;
 using Trident.Core.Hardware.Graphics.Registers;
 
+using AffineSampler = System.Func<int, int, (ushort color, bool transparent)>;
+
 namespace Trident.Core.Hardware.Graphics;
 
 internal partial class PPU
@@ -31,7 +33,7 @@ internal partial class PPU
 
     private readonly LayerPixel[][] _bgLines   = new LayerPixel[4][];
     private readonly LayerPixel[]   _objLine   = new LayerPixel[ScreenWidth];
-    private readonly LayerPixel[]   _finalLine = new LayerPixel[ScreenWidth];
+    private uint _pixelGeneration = 1;
 
     private readonly Scheduler _scheduler;
 
@@ -71,7 +73,7 @@ internal partial class PPU
 
             //RenderObjectLine();
 
-            ResetScanlineBuffers();
+            _pixelGeneration++;
 
             switch (mode)
             {
@@ -84,16 +86,16 @@ internal partial class PPU
                 case 1:
                     RenderTextBG(0, scanline);
                     RenderTextBG(1, scanline);
-                    RenderAffineBG(2, scanline);
+                    RenderAffineBG<TileSampler>(2, scanline);
                     break;
                 case 2:
-                    RenderAffineBG(2, scanline);
-                    RenderAffineBG(3, scanline);
+                    RenderAffineBG<TileSampler>(2, scanline);
+                    RenderAffineBG<TileSampler>(3, scanline);
                     break;
 
-                case 3: RenderMode3BG(scanline); break;
-                case 4: RenderMode4BG(scanline); break;
-                case 5: RenderMode5BG(scanline); break;
+                case 3: RenderAffineBG<Bitmap3Sampler>(2, scanline); break;
+                case 4: RenderAffineBG<Bitmap4Sampler>(2, scanline); break;
+                case 5: RenderAffineBG<Bitmap5Sampler>(2, scanline); break;
 
                 default: break;
             }
@@ -137,6 +139,9 @@ internal partial class PPU
         if (DisplayStatus.VBlankIRQ)
             _raiseIRQ(InterruptSource.LCD_VBlank);
 
+        Backgrounds[2].UpdateReferencePoints();
+        Backgrounds[3].UpdateReferencePoints();
+
         _triggerDMA(DMATrigger.VBlank, 0);
     }
 
@@ -160,6 +165,9 @@ internal partial class PPU
         for (int i = 0; i < 4; i++) 
             _bgLines[i] = new LayerPixel[ScreenWidth];
 
+        Array.Clear(_objLine);
+
+        _pixelGeneration = 1;
         ResetScanlineBuffers();
 
         _scheduler.Schedule(EventType.PPU_HBlankStart, 226);

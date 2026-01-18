@@ -25,7 +25,11 @@ public class Framebuffer
     }
 
     public void SetPixel(uint x, uint y, uint color) => _write[y * Width + x] = color;
-    public void Clear(uint color = 0xFF000000) => Array.Fill(_write, color);
+    public void Clear(uint color = 0xFF000000)
+    {
+        Array.Fill(_write,  color);
+        Array.Fill(_latest, color);
+    }
 
     public void Present()
     {

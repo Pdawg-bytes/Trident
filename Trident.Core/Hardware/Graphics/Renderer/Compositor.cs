@@ -11,6 +11,7 @@ internal partial class PPU
         internal bool   Transparent;
         internal byte   Priority;
         internal byte   Source;
+        internal uint   Generation;
     }
 
     private readonly uint[][] ActiveBGs =
@@ -42,7 +43,10 @@ internal partial class PPU
 
             foreach (uint bgId in active)
             {
-                var px = _bgLines[bgId][x];
+                LayerPixel px = _bgLines[bgId][x];
+
+                if (px.Generation != _pixelGeneration)
+                    continue;
 
                 if (!px.Transparent)
                 {

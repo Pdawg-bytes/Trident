@@ -7,7 +7,13 @@ namespace Trident.Core.CPU;
 
 public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
 {
-    private ReadOnlySpan<ushort> _conditionLUT =>
+    // https://github.com/dotnet/runtime/issues/122336
+    #if DEBUG
+    private ReadOnlySpan<ushort> ConditionLUT => s_conditionLUT;
+    private readonly ushort[] s_conditionLUT =
+    #else
+    private ReadOnlySpan<ushort> ConditionLUT =>
+    #endif
     [
         0xF0F0, // EQ: Z == 1
         0x0F0F, // NE: Z == 0
@@ -30,9 +36,9 @@ public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool ConditionMet(uint condition, Flags cpsr)
     {
-        ref ushort lut = ref MemoryMarshal.GetReference(_conditionLUT);
+        ref ushort lut = ref MemoryMarshal.GetReference(ConditionLUT);
 
-        ushort entry = Unsafe.Add(ref lut, (nint)condition);
+        ushort entry = Unsafe.Add(ref lut, condition);
         int bit      = (int)((uint)cpsr >> 28);
 
         return ((entry >> bit) & 1) != 0;
