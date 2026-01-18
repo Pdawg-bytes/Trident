@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+﻿using System.Runtime.CompilerServices;
 using Trident.Core.Hardware.Graphics.Registers;
 
 using static Trident.Core.Global.ArrayExtensions;
@@ -95,6 +95,8 @@ internal partial class PPU
         return (color, transparent);
     }
 
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private (ushort width, ushort height) GetAffineBGSize(byte screenSize) => screenSize switch
     {
         0 => (128,  128),

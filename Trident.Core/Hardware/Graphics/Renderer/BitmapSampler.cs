@@ -27,7 +27,7 @@ internal partial class PPU
             return (_pram.Fetch<ushort>(0), false);
 
         uint baseFrame = DisplayControl.FrameSelect ? 0xA000u : 0x0000u;
-        uint addr      = baseFrame + (uint)(texY * 160 + texX) * 2;
+        uint addr      = baseFrame + ((uint)(texY * 160 + texX) << 1);
 
         ushort color = _vram.Fetch<ushort>(addr);
         return (color, false);

@@ -1,5 +1,6 @@
-﻿using System.Runtime.InteropServices;
-using Trident.Core.Global;
+﻿using Trident.Core.Global;
+using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using Trident.Core.Hardware.Graphics.Registers;
 
 using static Trident.Core.Global.ArrayExtensions;
@@ -8,17 +9,6 @@ namespace Trident.Core.Hardware.Graphics;
 
 internal partial class PPU
 {
-    [StructLayout(LayoutKind.Explicit, Size = 2)]
-    readonly struct TileEntry
-    {
-        [FieldOffset(0)] private readonly ushort _raw;
-
-        internal uint TileIndex => (uint)(_raw & 0x03FF);
-        internal bool FlipX     => _raw.IsBitSet(10);
-        internal bool FlipY     => _raw.IsBitSet(11);
-        internal uint Palette   => (uint)(_raw >> 12) & 0x0F;
-    }
-
     private void RenderTextBG(uint id, uint y)
     {
         if (!DisplayControl.Enable[id])
@@ -103,6 +93,7 @@ internal partial class PPU
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private (ushort width, ushort height) GetTextBGSize(byte screenSize) => screenSize switch
     {
         0 => (256, 256),
@@ -111,4 +102,16 @@ internal partial class PPU
         3 => (512, 512),
         _ => (0, 0)
     };
+
+
+    [StructLayout(LayoutKind.Explicit, Size = 2)]
+    readonly struct TileEntry
+    {
+        [FieldOffset(0)] private readonly ushort _raw;
+
+        internal uint TileIndex => (uint)(_raw & 0x03FF);
+        internal bool FlipX => _raw.IsBitSet(10);
+        internal bool FlipY => _raw.IsBitSet(11);
+        internal uint Palette => (uint)(_raw >> 12) & 0x0F;
+    }
 }
