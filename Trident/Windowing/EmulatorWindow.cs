@@ -40,6 +40,7 @@ internal class EmulatorWindow : GameWindow
     private readonly PerformancePopup _performancePopup;
 
     private Dictionary<string, ImFontPtr> _fontPtrs = [];
+    private ImFontPtr _monoFont;
     private ImGuiController _controller;
     private readonly ImGuiStyleConfig _styleConfig;
 
@@ -185,17 +186,17 @@ internal class EmulatorWindow : GameWindow
 
     private unsafe void InitWidgets()
     {
-        ImFontPtr monoFont = _fontPtrs.GetValueOrDefault("Fira Code");
-        if (monoFont.NativePtr == null)
+        _monoFont = _fontPtrs.GetValueOrDefault("Fira Code");
+        if (_monoFont.NativePtr == null)
             throw new InvalidOperationException("Fira Code was not loaded correctly.");
 
-        AddWidget(new CPUStateWidget(monoFont, _gba.GetCPUSnapshot));
-        AddWidget(new BreakpointWidget(monoFont, _gba.Breakpoints, _emulatorThread.SetPause));
-        AddWidget(new DisassemblyWidget(monoFont, _gba.Disassembler, _gba.Breakpoints));
-        AddWidget(new IRQStateWidget(monoFont, _gba.GetIRQSnapshot));
-        AddWidget(new DMAControllerWidget(monoFont, _gba.GetDMASnapshot));
+        AddWidget(new CPUStateWidget(_monoFont, _gba.GetCPUSnapshot));
+        AddWidget(new BreakpointWidget(_monoFont, _gba.Breakpoints, _emulatorThread.SetPause));
+        AddWidget(new DisassemblyWidget(_monoFont, _gba.Disassembler, _gba.Breakpoints));
+        AddWidget(new IRQStateWidget(_monoFont, _gba.GetIRQSnapshot));
+        AddWidget(new DMAControllerWidget(_monoFont, _gba.GetDMASnapshot));
 
-        MemoryViewer memView = new(monoFont);
+        MemoryViewer memView = new(_monoFont);
         memView.SetReadFunction(address => _gba.DebugRead<byte>(address));
         AddWidget(memView);
     }
@@ -238,15 +239,15 @@ internal class EmulatorWindow : GameWindow
         {
             if (ImGui.BeginMenu("File"))
             {
-                if (ImGui.MenuItem("Load BIOS"))
+                if (ImGui.MenuItem(IconFileOpen + "Load BIOS"))
                     PopupManager.Show(new LoadBIOSPopup(path => _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, path))));
 
-                if (ImGui.MenuItem("Load GamePak"))
+                if (ImGui.MenuItem(IconFileOpen + "Load GamePak"))
                     PopupManager.Show(new LoadGamePakPopup(path => _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, path))));
 
                 ImGui.Separator();
 
-                if (ImGui.MenuItem("Close"))
+                if (ImGui.MenuItem(IconClose + "Close"))
                     Close();
 
                 ImGui.EndMenu();
@@ -254,34 +255,34 @@ internal class EmulatorWindow : GameWindow
 
             if (ImGui.BeginMenu("Emulation"))
             {
-                if (ImGui.MenuItem("Reset", "Ctrl + R"))
+                if (ImGui.MenuItem(IconRestartAlt + "Reset", "Ctrl + R"))
                     _emulatorThread.Reset();
 
                 ImGui.Separator();
 
                 bool paused = _emulatorThread.IsPaused();
-                if (ImGui.MenuItem(paused ? "Play" : "Pause", "Ctrl + P"))
+                if (ImGui.MenuItem(paused ? $"{IconPlayArrow}Play" : $"{IconPause}Pause", "Ctrl + P"))
                     _emulatorThread.SetPause(paused = !paused);
 
                 if (paused)
                 {
-                    if (ImGui.MenuItem("Step", "F11"))
+                    if (ImGui.MenuItem(IconStep + "Step", "F11"))
                         StepGBA(1);
                 }
                 else
                 {
                     ImGui.BeginDisabled();
-                    ImGui.MenuItem("Step", "F11");
+                    ImGui.MenuItem(IconStep + "Step", "F11");
                     ImGui.EndDisabled();
                 }
 
                 ImGui.Separator();
 
                 bool speedCapped = _emulatorThread.IsSpeedCapped();
-                if (ImGui.MenuItem(speedCapped ? "Fast forward" : "Cap speed", "Shift + P"))
+                if (ImGui.MenuItem(speedCapped ? $"{IconFastForward}Fast forward" : $"{IconSpeed}Cap speed", "Shift + P"))
                     _emulatorThread.SetSpeedCap(!speedCapped);
 
-                if (ImGui.MenuItem("Accurate sleep", "", _emulatorThread.AccurateSleep))
+                if (ImGui.MenuItem(IconSleep + "Accurate sleep", "", _emulatorThread.AccurateSleep))
                     _emulatorThread.AccurateSleep = !_emulatorThread.AccurateSleep;
 
                 Tooltips.HelpTooltip("Enforces more precise timing in the GBA's run loop at the cost of CPU time.", -72f);
@@ -291,17 +292,17 @@ internal class EmulatorWindow : GameWindow
 
             if (ImGui.BeginMenu("Options"))
             {
-                if (ImGui.BeginMenu("System"))
+                if (ImGui.BeginMenu(IconDeveloperBoard + "System"))
                 {
-                    if (ImGui.MenuItem("Skip BIOS", "", _emulatorThread.ShouldSkipBIOS))
+                    if (ImGui.MenuItem(IconStepOver + "Skip BIOS", "", _emulatorThread.ShouldSkipBIOS))
                         _emulatorThread.ShouldSkipBIOS = !_emulatorThread.ShouldSkipBIOS;
 
                     ImGui.EndMenu();
                 }
 
-                if (ImGui.BeginMenu("GUI"))
+                if (ImGui.BeginMenu(IconSelectWindow + "GUI"))
                 {
-                    if (ImGui.MenuItem("Sync to refresh      ", "", _uncappedRefresh))
+                    if (ImGui.MenuItem(IconSyncLock + "Sync to refresh      ", "", _uncappedRefresh))
                     {
                         _uncappedRefresh = !_uncappedRefresh;
                         SetUpdateFrequency(_uncappedRefresh);
@@ -309,7 +310,7 @@ internal class EmulatorWindow : GameWindow
 
                     Tooltips.HelpTooltip("Allows the GUI to run closer the primary monitor's refresh rate at the cost of CPU time.\nRounds to multiples of 60.", -38f);
 
-                    if (ImGui.MenuItem("ImGui Demo", "", _demoOpen))
+                    if (ImGui.MenuItem(IconDeveloperGuide + "ImGui Demo", "", _demoOpen))
                         _demoOpen = !_demoOpen;
 
                     ImGui.EndMenu();
@@ -337,25 +338,38 @@ internal class EmulatorWindow : GameWindow
             }
 
 
-            Span<char> buf = stackalloc char[64];
-            var speedStr = new StackString(buf);
+            Span<char> buf = stackalloc char[16];
+            var speedStr   = new StackString(buf);
 
-            speedStr.Append("GBA Speed: ");
             speedStr.AppendFormatted(_emulatorThread.CurrentSpeed, "F2");
-            speedStr.PadLeft(speedStr.Length + 6, ' ');
             speedStr.Append('%');
 
-            var size = ImGui.CalcTextSize(speedStr.AsSpan());
+            ImGui.PushFont(_monoFont);
+            float valueSize = ImGui.CalcTextSize(speedStr.AsSpan()).X;
+
             float totalWidth = ImGui.GetWindowWidth();
+            float rightX = totalWidth - valueSize - 14;
 
-            ImGui.SameLine(totalWidth - size.X - 22);
+            const float menuWidth = 162.0f; 
 
-            if (ImGui.BeginMenu(speedStr.AsSpan()))
+            ImGui.SameLine(totalWidth - menuWidth);
+
+            bool open = ImGui.BeginMenu("##GbaSpeedMenu");
+
+            float labelX = totalWidth - menuWidth + 10;
+            ImGui.SetCursorPosX(labelX);
+            ImGui.TextUnformatted("GBA Speed:");
+
+            ImGui.SameLine();
+            ImGui.SetCursorPosX(rightX);
+            ImGui.TextUnformatted(speedStr.AsSpan());
+
+            if (open)
             {
                 PopupManager.Show(_performancePopup);
                 ImGui.EndMenu();
             }
-
+            ImGui.PopFont();
 
             ImGui.EndMainMenuBar();
         }

@@ -45,8 +45,11 @@ public class ImGuiController : IDisposable
                     ImFontConfigPtr cfg = new(nativeConfig)
                     {
                         MergeMode = true,
-                        PixelSnapH = true
+                        PixelSnapH = true,
                     };
+
+                    cfg.GlyphOffset.Y = 3.0f;
+                    cfg.GlyphExtraSpacing.X = 5.0f;
 
                     GCHandle rangeHandle = GCHandle.Alloc(ranges, GCHandleType.Pinned);
                     IntPtr rangePtr = rangeHandle.AddrOfPinnedObject();
