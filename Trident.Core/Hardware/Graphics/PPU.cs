@@ -42,12 +42,14 @@ internal partial class PPU
     internal PPU(Framebuffer framebuffer, PRAM pram, VRAM vram, OAM oam, Scheduler scheduler, Action<InterruptSource> raiseIRQ, Action<DMATrigger, uint> triggerDMA)
     {
         _framebuffer = framebuffer;
-        _pram = pram;
-        _vram = vram;
-        _oam = oam;
-        _scheduler = scheduler;
-        _raiseIRQ = raiseIRQ;
-        _triggerDMA = triggerDMA;
+        _pram        = pram;
+        _vram        = vram;
+        _oam         = oam;
+        _scheduler   = scheduler;
+        _raiseIRQ    = raiseIRQ;
+        _triggerDMA  = triggerDMA;
+
+        DisplayStatus = new(() => VCount);
 
         _scheduler.Register(EventType.PPU_HBlankStart,   OnHBlankStart);
         _scheduler.Register(EventType.PPU_HBlankEnd,     OnHBlankEnd);
@@ -71,7 +73,7 @@ internal partial class PPU
             byte mode = DisplayControl.BackgroundMode;
             _pixelGeneration++;
 
-            //RenderObjectLine(scanline);
+            RenderObjectLine(scanline);
 
             switch (mode)
             {

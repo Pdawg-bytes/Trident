@@ -46,11 +46,12 @@ internal class DisplayControl
 }
 
 
-internal class DisplayStatus
+internal class DisplayStatus(Func<uint> getY)
 {
+    private readonly Func<uint> _getY = getY;
+
     internal bool VBlankFlag;
     internal bool HBlankFlag;
-    internal bool VCountFlag;
 
     internal bool VBlankIRQ;
     internal bool HBlankIRQ;
@@ -61,13 +62,13 @@ internal class DisplayStatus
 
     internal ushort Read() => (ushort)
     (
-        (VBlankFlag ? 1 : 0) << 0 |
-        (HBlankFlag ? 1 : 0) << 1 |
-        (VCountFlag ? 1 : 0) << 2 |
-        (VBlankIRQ  ? 1 : 0) << 3 |
-        (HBlankIRQ  ? 1 : 0) << 4 |
-        (VCountIRQ  ? 1 : 0) << 5 |
-        VCountSetting << 8
+        (VBlankFlag                 ? 1 : 0) << 0 |
+        (HBlankFlag                 ? 1 : 0) << 1 |
+        ((_getY() == VCountSetting) ? 1 : 0) << 2 |
+        (VBlankIRQ                  ? 1 : 0) << 3 |
+        (HBlankIRQ                  ? 1 : 0) << 4 |
+        (VCountIRQ                  ? 1 : 0) << 5 |
+        VCountSetting                        << 8
     );
 
     internal void Write(ushort value, WriteMask mask)

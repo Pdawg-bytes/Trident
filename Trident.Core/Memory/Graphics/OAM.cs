@@ -33,6 +33,9 @@ internal class OAM(Action<uint> step) : IMemoryRegion, IDebugMemory
         return _memory.Read<T>(address.Align<T>() & AddressMask);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal T Fetch<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & AddressMask);
+
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void Write<T>(uint address, T value) where T : unmanaged
@@ -42,7 +45,7 @@ internal class OAM(Action<uint> step) : IMemoryRegion, IDebugMemory
     }
 
 
-    public T DebugRead<T>(uint address) where T : unmanaged => _memory.Read<T>(address.Align<T>() & AddressMask);
+    public T DebugRead<T>(uint address) where T : unmanaged => Fetch<T>(address);
 
     public uint BaseAddress => 0x7000000;
     public uint Length => MemorySize;

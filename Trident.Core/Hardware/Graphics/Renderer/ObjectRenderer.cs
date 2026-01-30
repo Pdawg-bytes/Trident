@@ -7,7 +7,7 @@ internal partial class PPU
 {
     private void RenderObjectLine(uint y)
     {
-        if (DisplayControl.Enable[4]) return;
+        if (!DisplayControl.Enable[4]) return;
 
         _objDrawCycles = DisplayControl.HBlankIntervalFree ? 954 : 1210;
 
@@ -16,7 +16,6 @@ internal partial class PPU
 
         }
     }
-
 
     [StructLayout(LayoutKind.Explicit, Size = 2)]
     readonly struct ObjAttr0
@@ -49,7 +48,7 @@ internal partial class PPU
         [FieldOffset(0)] private readonly ushort _raw;
 
         internal uint TileIndex => (uint)(_raw & 0x03FF);
-        internal uint Priority  => (uint)(_raw >> 10) & 0b11;
+        internal byte Priority  => (byte)((_raw >> 10) & 0b11);
         internal uint Palette   => (uint)(_raw >> 12) & 0x0F;
     }
 }

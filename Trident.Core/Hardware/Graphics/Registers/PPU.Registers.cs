@@ -8,8 +8,8 @@ namespace Trident.Core.Hardware.Graphics;
 
 internal partial class PPU
 {
-    internal DisplayControl DisplayControl = new();
-    internal DisplayStatus DisplayStatus   = new();
+    internal readonly DisplayControl DisplayControl = new();
+    internal readonly DisplayStatus DisplayStatus;
 
     internal uint Greenswap;
 
