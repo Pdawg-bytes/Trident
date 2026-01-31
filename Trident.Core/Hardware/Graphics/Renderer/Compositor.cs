@@ -39,7 +39,11 @@ internal partial class PPU
 
         for (uint x = 0; x < ScreenWidth; x++)
         {
-            LayerPixel best = DefaultPixel;
+            LayerPixel best  = DefaultPixel;
+            LayerPixel objPx = _objLine[x];
+
+            if (objPx.Generation == _pixelGeneration && !objPx.Transparent)
+                best = objPx;
 
             foreach (uint bgId in active)
             {
@@ -50,17 +54,17 @@ internal partial class PPU
 
                 if (!px.Transparent)
                 {
-                    if (px.Priority < best.Priority ||
-                       (px.Priority == best.Priority && px.Source < best.Source))
-                    {
+                    if (best.Transparent)
                         best = px;
-                    }
+                    else if (px.Priority < best.Priority)
+                        best = px;
                 }
             }
 
             _framebuffer.SetPixel(x, y, Framebuffer.ToArgb(best.Color));
         }
     }
+
 
     private void ResetScanlineBuffers()
     {
@@ -71,5 +75,8 @@ internal partial class PPU
             for (int x = 0; x < ScreenWidth; x++)
                 line[x] = DefaultPixel;
         }
+
+        for (int x = 0; x < ScreenWidth; x++)
+            _objLine[x] = DefaultPixel;
     }
 }

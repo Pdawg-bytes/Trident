@@ -86,13 +86,7 @@ internal partial class PPU
         int px = texX & 7;
         int py = texY & 7;
 
-        uint tileAddr = charBase + tileId * 64u;
-        byte palIndex = _vram.Fetch<byte>(tileAddr + (uint)(py * 8 + px));
-
-        ushort color     = _pram.Fetch<ushort>((uint)(palIndex << 1));
-        bool transparent = palIndex == 0;
-
-        return (color, transparent);
+        return SampleTile8bpp(charBase, tileId, px, py, 0u);
     }
 
 

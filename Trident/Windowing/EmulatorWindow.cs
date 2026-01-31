@@ -152,7 +152,7 @@ internal class EmulatorWindow : GameWindow
         InitWidgets();
 
         _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, @"C:\Users\pgago\Downloads\gba_bios\gba_bios.bin"));
-        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"C:\Users\pgago\Downloads\tonc-bin\bin\obj_demo.gba"));
+        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"C:\Users\pgago\Downloads\tonc-bin\bin\m7_ex.gba"));
     }
 
     protected override void OnClosing(CancelEventArgs e)

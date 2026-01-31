@@ -57,32 +57,8 @@ internal partial class PPU
             ushort color;
             bool   transparent;
 
-            if (use256)
-            {
-                uint tileAddr   = charBase + (entry.TileIndex << 6);
-                uint tileOffset = (pixelY << 3) + pixelX;
-
-                byte index = _vram.Fetch<byte>(tileAddr + tileOffset);
-
-                color       = _pram.Fetch<ushort>((uint)(index << 1));
-                transparent = index == 0;
-            }
-            else
-            {
-                uint tileAddr   = charBase + (entry.TileIndex << 5);
-                uint rowOffset  = pixelY << 2;
-                uint byteOffset = pixelX >> 1;
-
-                byte packed = _vram.Fetch<byte>(tileAddr + rowOffset + byteOffset);
-                byte index  = ((pixelX & 1) == 0)
-                    ? (byte)(packed & 0x0F)
-                    : (byte)(packed >> 4);
-
-                byte paletteIndex = (byte)((entry.Palette << 4) + index);
-
-                color       = _pram.Fetch<ushort>((uint)(paletteIndex << 1));
-                transparent = index == 0;
-            }
+            if (use256) (color, transparent) = SampleTile8bpp(charBase, entry.TileIndex, (int)pixelX, (int)pixelY, 0u);
+            else        (color, transparent) = SampleTile4bpp(charBase, entry.TileIndex, (int)pixelX, (int)pixelY, entry.Palette, 0u);
 
             ref LayerPixel px = ref GetUnsafe(line, x);
             px.Color       = color;
@@ -110,8 +86,8 @@ internal partial class PPU
         [FieldOffset(0)] private readonly ushort _raw;
 
         internal uint TileIndex => (uint)(_raw & 0x03FF);
-        internal bool FlipX => _raw.IsBitSet(10);
-        internal bool FlipY => _raw.IsBitSet(11);
-        internal uint Palette => (uint)(_raw >> 12) & 0x0F;
+        internal bool FlipX     => _raw.IsBitSet(10);
+        internal bool FlipY     => _raw.IsBitSet(11);
+        internal uint Palette   => (uint)(_raw >> 12) & 0x0F;
     }
 }
