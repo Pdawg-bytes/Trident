@@ -27,12 +27,14 @@ internal partial class DMAManager
         if (mask.IsLower())
         {
             channel.DestinationControl = (AddressingMode)((value >> 5) & 0b11);
-            channel.SourceControl      = (AddressingMode)(((int)channel.SourceControl & 0b10) | (value >> 7));
+            channel.SourceControl      = (AddressingMode)(((int)channel.SourceControl & 0b10) | ((value >> 7) & 0b01));
         }
 
         if (mask.IsUpper())
         {
-            channel.SourceControl  = (AddressingMode)(((int)channel.SourceControl & 0b01) | ((value & 0b01) << 1));
+            bool wasEnabled = channel.Enabled;
+            
+            channel.SourceControl  = (AddressingMode)(((int)channel.SourceControl & 0b01) | (((value >> 8) & 0b01) << 1));
             channel.Repeat         = (value & (1 << 9)) != 0;
             channel.TransferSize   = (DMATransferSize)((value >> 10) & 1);
             channel.GamePakDRQ     = (value & (1 << 11)) != 0;
@@ -40,7 +42,7 @@ internal partial class DMAManager
             channel.InterruptOnEnd = (value & (1 << 14)) != 0;
             channel.Enabled        = (value & (1 << 15)) != 0;
 
-            if (channel.Enabled && channel.StartTiming == DMAStartTiming.Immediate)
+            if (channel.Enabled && !wasEnabled)
                 InitializeDMA(id);
         }
     }

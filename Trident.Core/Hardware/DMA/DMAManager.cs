@@ -45,7 +45,7 @@ internal partial class DMAManager
                 DMAChannel ch3 = _channels[3];
                 if (ch3.Enabled && ch3.StartTiming == DMAStartTiming.Special)
                 {
-                    if (scanline >= 2 && scanline < 162)
+                    if (scanline < 162)
                     {
                         _endVideoDMA = scanline == 161;
                         Schedule(1u << 3);
@@ -72,34 +72,64 @@ internal partial class DMAManager
     private void ActivateDMA(ulong id)
     {
         DMAChannel ch = _channels[id];
+        
+        if (!ch.Enabled)
+            return;
 
-        if (ch.StartTiming == DMAStartTiming.Immediate)
+        int unitSize       = ch.TransferSize == DMATransferSize.Word ? 4 : 2;
+        uint transferCount = (ch.StartTiming == DMAStartTiming.Special && id >= 1 && id <= 2) ? 4 : ch.Latch.TransferLength;
+
+        PipelineAccess access = PipelineAccess.NonSequential | PipelineAccess.DMA;
+
+        for (uint i = 0; i < transferCount; i++)
         {
-            if (id != 3) return;
-
-            int unitSize = ch.TransferSize == DMATransferSize.Word ? 4 : 2;
-
-            for (int i = 0; i < ch.TransferLength; i++)
+            if (ch.TransferSize == DMATransferSize.Word)
             {
-                uint value = ch.TransferSize == DMATransferSize.Word
-                    ? _busView.Read32(ch.Latch.Source, PipelineAccess.NonSequential | PipelineAccess.DMA)
-                    : _busView.Read16(ch.Latch.Source, PipelineAccess.NonSequential | PipelineAccess.DMA);
-
-                if (ch.TransferSize == DMATransferSize.Word)
-                    _busView.Write32(ch.Latch.Destination, value, PipelineAccess.NonSequential | PipelineAccess.DMA);
-                else
-                    _busView.Write16(ch.Latch.Destination, (ushort)value, PipelineAccess.NonSequential | PipelineAccess.DMA);
-
-                ch.Latch.Source      = UpdateAddress(ch.Latch.Source, ch.SourceControl, unitSize);
-                ch.Latch.Destination = UpdateAddress(ch.Latch.Destination, ch.DestinationControl, unitSize);
+                uint value = _busView.Read32(ch.Latch.Source, access);
+                _busView.Write32(ch.Latch.Destination, value, access);
+            }
+            else
+            {
+                ushort value = _busView.Read16(ch.Latch.Source, access);
+                _busView.Write16(ch.Latch.Destination, value, access);
             }
 
-            ch.Source      = ch.Latch.Source;
-            ch.Destination = ch.Latch.Destination;
+            ch.Latch.Source      = UpdateAddress(ch.Latch.Source, ch.SourceControl, unitSize);
+            ch.Latch.Destination = UpdateAddress(ch.Latch.Destination, ch.DestinationControl, unitSize);
 
-            DequeueDMA(ch);
-            ch.Enabled = false;
+            access = PipelineAccess.Sequential | PipelineAccess.DMA;
         }
+
+        bool isImmediate     = ch.StartTiming == DMAStartTiming.Immediate;
+        bool isVideoTransfer = ch.StartTiming == DMAStartTiming.Special && id == 3;
+
+        if (ch.Repeat && !isImmediate)
+        {
+            if (isVideoTransfer)
+            {
+                if (_endVideoDMA)
+                {
+                    uint transferMask = (ch.TransferSize == DMATransferSize.Word) ? ~3u : ~1u;
+                    ch.Latch.Destination = ch.Destination & transferMask;
+                    _endVideoDMA = false;
+                }
+            }
+            else if (ch.DestinationControl == AddressingMode.Reload)
+            {
+                uint transferMask = (ch.TransferSize == DMATransferSize.Word) ? ~3u : ~1u;
+                ch.Latch.Destination = ch.Destination & transferMask;
+            }
+        }
+        else
+        {
+            ch.Source = ch.Latch.Source;
+            ch.Destination = ch.Latch.Destination;
+            ch.Enabled = false;
+            DequeueDMA(ch);
+        }
+
+        if (ch.InterruptOnEnd)
+            _raiseIRQ(InterruptSource.DMA, (int)id);
     }
 
     private uint UpdateAddress(uint addr, AddressingMode mode, int step)
@@ -108,8 +138,8 @@ internal partial class DMAManager
         {
             AddressingMode.Increment => addr + (uint)step,
             AddressingMode.Decrement => addr - (uint)step,
-            AddressingMode.Fixed => addr,
-            _ => addr
+            AddressingMode.Fixed     => addr,
+            _                        => addr
         };
     }
 
@@ -122,7 +152,7 @@ internal partial class DMAManager
         ch.Latch.Source      = ch.Source & transferMask;
         ch.Latch.Destination = ch.Destination & transferMask;
 
-        uint lengthMask         = (id == 3) ? (ushort)0xFFFF : (ushort)0x3FFF;
+        uint lengthMask = (id == 3) ? 0xFFFFu : 0x3FFFu;
         ch.Latch.TransferLength = ch.TransferLength & lengthMask;
 
         if (ch.Latch.TransferLength == 0)
@@ -150,7 +180,6 @@ internal partial class DMAManager
 
     private void EnqueueDMA(DMAChannel ch)
     {
-        // TODO: handle "special" timing
         switch (ch.StartTiming)
         {
             case DMAStartTiming.VBlank:
@@ -159,6 +188,10 @@ internal partial class DMAManager
             case DMAStartTiming.HBlank:
                 _hblankDMA.Set(ch.ID, true);
                 break;
+            case DMAStartTiming.Special:
+                if (ch.ID == 3 || (ch.ID >= 1 && ch.ID <= 2))
+                    _runnableDMA.Set(ch.ID, true);
+                break;
         }
     }
 
@@ -166,6 +199,7 @@ internal partial class DMAManager
     {
         _hblankDMA.Set(ch.ID, false);
         _vblankDMA.Set(ch.ID, false);
+        _runnableDMA.Set(ch.ID, false);
     }
 
 
