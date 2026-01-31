@@ -36,10 +36,11 @@ internal partial class PPU
     private void CompositeScanline(uint y, byte mode)
     {
         uint[] active = ActiveBGs[mode];
+        LayerPixel backdrop = GetBackdropPixel();
 
         for (uint x = 0; x < ScreenWidth; x++)
         {
-            LayerPixel best  = DefaultPixel;
+            LayerPixel best  = backdrop;
             LayerPixel objPx = _objLine[x];
 
             if (objPx.Generation == _pixelGeneration && !objPx.Transparent)
@@ -63,6 +64,19 @@ internal partial class PPU
 
             _framebuffer.SetPixel(x, y, Framebuffer.ToArgb(best.Color));
         }
+    }
+
+    private LayerPixel GetBackdropPixel()
+    {
+        ushort color = _pram.Fetch<ushort>(0);
+        return new LayerPixel
+        {
+            Color       = color,
+            Transparent = false,
+            Priority    = 0xFF,
+            Source      = 0xFF,
+            Generation  = _pixelGeneration
+        };
     }
 
 

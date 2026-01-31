@@ -161,8 +161,7 @@ internal partial class PPU
 
     private void WriteObjPixel(int screenX, ushort color, byte priority)
     {
-        ref LayerPixel px = ref _objLine[screenX];
-
+        ref LayerPixel px = ref GetUnsafe(_objLine, (uint)screenX);
         px.Color       = color;
         px.Transparent = false;
         px.Priority    = priority;
