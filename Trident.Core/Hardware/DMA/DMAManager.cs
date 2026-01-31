@@ -109,22 +109,22 @@ internal partial class DMAManager
             {
                 if (_endVideoDMA)
                 {
-                    uint transferMask = (ch.TransferSize == DMATransferSize.Word) ? ~3u : ~1u;
+                    uint transferMask    = (ch.TransferSize == DMATransferSize.Word) ? ~3u : ~1u;
                     ch.Latch.Destination = ch.Destination & transferMask;
-                    _endVideoDMA = false;
+                    _endVideoDMA         = false;
                 }
             }
             else if (ch.DestinationControl == AddressingMode.Reload)
             {
-                uint transferMask = (ch.TransferSize == DMATransferSize.Word) ? ~3u : ~1u;
+                uint transferMask    = (ch.TransferSize == DMATransferSize.Word) ? ~3u : ~1u;
                 ch.Latch.Destination = ch.Destination & transferMask;
             }
         }
         else
         {
-            ch.Source = ch.Latch.Source;
+            ch.Source      = ch.Latch.Source;
             ch.Destination = ch.Latch.Destination;
-            ch.Enabled = false;
+            ch.Enabled     = false;
             DequeueDMA(ch);
         }
 
@@ -189,7 +189,7 @@ internal partial class DMAManager
                 _hblankDMA.Set(ch.ID, true);
                 break;
             case DMAStartTiming.Special:
-                if (ch.ID == 3 || (ch.ID >= 1 && ch.ID <= 2))
+                if (ch.ID == 3)
                     _runnableDMA.Set(ch.ID, true);
                 break;
         }
