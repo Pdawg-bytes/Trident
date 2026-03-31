@@ -1,4 +1,4 @@
-﻿namespace Trident.Core.CPU.Pipeline;
+﻿namespace Trident.Core.CPU;
 
 [Flags]
 public enum PipelineAccess : uint

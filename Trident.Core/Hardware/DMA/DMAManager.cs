@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using Trident.Core.Bus;
+using Trident.Core.CPU;
 using Trident.Core.Scheduling;
-using Trident.Core.CPU.Pipeline;
 using System.Runtime.CompilerServices;
 using Trident.Core.Debugging.Snapshots;
 using Trident.Core.Hardware.Interrupts;

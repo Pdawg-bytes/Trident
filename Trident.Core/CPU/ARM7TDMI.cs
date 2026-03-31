@@ -2,7 +2,6 @@
 using Trident.Core.Bus;
 using Trident.Core.Global;
 using Trident.Core.Scheduling;
-using Trident.Core.CPU.Pipeline;
 using Trident.Core.CPU.Registers;
 using Trident.Core.CPU.Decoding.ARM;
 using Trident.Core.CPU.Decoding.Thumb;
@@ -209,4 +208,12 @@ public sealed partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
         (uint)Registers.SPSR,
         Registers.CurrentMode
     );
+}
+
+public struct InstructionPipeline
+{
+    public uint[] Prefetch;
+    public PipelineAccess Access;
+
+    public InstructionPipeline() => Prefetch = new uint[2];
 }

@@ -1,5 +1,5 @@
-﻿using Trident.Core.Global;
-using Trident.Core.CPU.Pipeline;
+﻿using Trident.Core.CPU;
+using Trident.Core.Global;
 using Trident.Core.Memory.Region;
 using System.Runtime.CompilerServices;
 

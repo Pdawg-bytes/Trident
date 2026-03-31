@@ -1,5 +1,4 @@
 ﻿using Trident.Core.CPU;
-using Trident.Core.CPU.Pipeline;
 using Trident.Tests.SingleStep.Models;
 using static Trident.Tests.SingleStep.Infrastructure.TestTypeResolver;
 

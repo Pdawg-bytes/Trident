@@ -1,4 +1,4 @@
-﻿using Trident.Core.CPU.Pipeline;
+﻿using Trident.Core.CPU;
 using Trident.Core.Memory.Region;
 
 namespace Trident.Core.Memory;

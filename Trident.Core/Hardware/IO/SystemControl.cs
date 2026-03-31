@@ -1,4 +1,4 @@
-﻿using Trident.Core.CPU.Pipeline;
+﻿using Trident.Core.CPU;
 using Trident.Core.Memory.MappedIO;
 
 namespace Trident.Core.Hardware.IO;

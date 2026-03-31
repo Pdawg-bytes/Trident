@@ -1,6 +1,6 @@
-﻿using Trident.Core.Global;
+﻿using Trident.Core.CPU;
+using Trident.Core.Global;
 using Trident.Core.Hardware.IO;
-using Trident.Core.CPU.Pipeline;
 using Trident.Core.Hardware.DMA;
 using Trident.Core.Memory.Region;
 using Trident.Core.Hardware.Graphics;

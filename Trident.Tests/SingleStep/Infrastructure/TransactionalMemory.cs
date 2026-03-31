@@ -1,7 +1,7 @@
-﻿using System.Runtime.CompilerServices;
-using Trident.Core.Bus;
+﻿using Trident.Core.Bus;
+using Trident.Core.CPU;
+using System.Runtime.CompilerServices;
 using Trident.Tests.SingleStep.Models;
-using Trident.Core.CPU.Pipeline;
 
 namespace Trident.Tests.SingleStep.Infrastructure;
 
