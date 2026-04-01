@@ -24,7 +24,8 @@ internal static class GamePakLoader
 
             BackupType backupType       = DetectBackupType(romData);
             IBackupDevice? backupDevice = CreateBackupDevice(backupType, saveData);
-            uint romMask                = ((uint)romData.Length).NearestPow2() - 1;
+            // TODO: when ROM is mirrored: ((uint)romData.Length).NearestPow2() - 1
+            uint romMask                = GamePak.MaxSize - 1;
 
             GamePakInfo info = new()
             {

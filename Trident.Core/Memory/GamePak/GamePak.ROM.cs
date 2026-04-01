@@ -60,7 +60,7 @@ internal sealed partial class GamePak
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private ushort ReadData16(uint address, bool seq, bool isLower)
     {
-        address = address.Align<ushort>();
+        address &= 0x01FFFFFE;
 
         if (isLower && IsGPIOAddress(address) && _gpio!.Readable)
             return _gpio.Read(address);
@@ -74,25 +74,27 @@ internal sealed partial class GamePak
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void WriteData16(uint address, bool seqAccess, ushort value, bool isLower)
     {
-        address = address.Align<ushort>();
+        address &= 0x01FFFFFE;
 
-        if (isLower && IsGPIOAddress(address))
-            _gpio!.Write(address, (byte)value);
-
-        if (!isLower && IsEEPROMAddress(address))
+        if (isLower)
         {
-            _backupDevice!.Write(uint.MaxValue, (byte)(value & 1));
-            return;
-        }
+            if (IsGPIOAddress(address))
+                _gpio!.Write(address, (byte)value);
 
-        if (!seqAccess)
-            _romAddress = address & _romAddressMask;
+            if (!seqAccess)
+                _romAddress = address & _romAddressMask;
+        }
+        else
+        {
+            if (IsEEPROMAddress(address))
+                _backupDevice!.Write(uint.MaxValue, (byte)(value & 1));
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private uint ReadData32(uint address, bool seq, bool isLower)
     {
-        address = address.Align<uint>();
+        address &= 0x01FFFFFC;
 
         if (isLower && IsGPIOAddress(address) && _gpio!.Readable)
             return (uint)(_gpio.Read(address) | (_gpio.Read(address + 2) << 16));
@@ -100,7 +102,7 @@ internal sealed partial class GamePak
         if (!isLower && IsEEPROMAddress(address))
         {
             ushort lo = _backupDevice!.Read(uint.MaxValue);
-            ushort hi = _backupDevice.Read(uint.MaxValue);
+            ushort hi = _backupDevice!.Read(uint.MaxValue);
             return (uint)(lo | (hi << 16));
         }
 
