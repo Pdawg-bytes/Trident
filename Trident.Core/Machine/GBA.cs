@@ -7,6 +7,7 @@ using Trident.Core.Hardware.DMA;
 using Trident.Core.CPU.Registers;
 using Trident.Core.Memory.GamePak;
 using Trident.Core.Memory.MappedIO;
+using Trident.Core.Hardware.Timers;
 using Trident.Core.Hardware.Graphics;
 using System.Runtime.CompilerServices;
 using Trident.Core.Memory.GamePak.GPIO;
@@ -23,6 +24,7 @@ public sealed partial class GBA : IDisposable
 
     private readonly InterruptController _irqController;
     private readonly DMAManager _dmaManager;
+    private readonly TimerManager _timerManager;
 
     public Framebuffer Framebuffer = new();
     internal PPU PPU;
@@ -54,14 +56,16 @@ public sealed partial class GBA : IDisposable
         CPU = new(Scheduler);
         Func<uint> getPC = () => CPU.Registers.GetRegisterRef(15);
 
+        _postHalt = new(() => CPU.Halted = true, getPC);
         _irqController = new(() => CPU.Halted = false, () => CPU.Halted);
         CPU.AttachIRQController(_irqController);
         CPU.AttachBreakpoints(Breakpoints);
 
         _dmaManager = new(_irqController.Raise, Scheduler);
 
+        _timerManager = new(_irqController.Raise, Scheduler);
+
         _keypad = new(_irqController.Raise);
-        _postHalt = new(() => CPU.Halted = true, getPC);
 
 
         _bios  = new(getPC, Scheduler.Step);
@@ -84,7 +88,7 @@ public sealed partial class GBA : IDisposable
         builder.Attach(MemoryRegion.VRAM,  _vram);
         builder.Attach(MemoryRegion.OAM,   _oam);
 
-        _mmio = new(Scheduler.Step, PPU, _dmaManager, _keypad, _irqController, _waitControl, _postHalt);
+        _mmio = new(Scheduler.Step, PPU, _dmaManager, _timerManager, _keypad, _irqController, _waitControl, _postHalt);
         builder.Attach(MemoryRegion.MMIO, _mmio);
 
         CPU.AttachBus(builder.Build(Scheduler.Step));
@@ -162,6 +166,7 @@ public sealed partial class GBA : IDisposable
         CPU.Reset();
         _irqController.Reset();
         _dmaManager.Reset();
+        _timerManager.Reset();
 
         PPU.Reset();
         Framebuffer.Clear();

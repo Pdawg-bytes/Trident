@@ -2,6 +2,7 @@
 using Trident.Core.Global;
 using Trident.Core.Hardware.IO;
 using Trident.Core.Hardware.DMA;
+using Trident.Core.Hardware.Timers;
 using Trident.Core.Hardware.Graphics;
 using System.Runtime.CompilerServices;
 using Trident.Core.Hardware.Controller;
@@ -19,6 +20,8 @@ internal partial class MMIO : MemoryBase
 
     private readonly DMAManager _dmaManager;
 
+    private readonly TimerManager _timerManager;
+
     private readonly Keypad _keypad;
 
     private readonly InterruptController _irqController;
@@ -31,6 +34,7 @@ internal partial class MMIO : MemoryBase
         Action<uint> step,
         PPU ppu,
         DMAManager dmaManager,
+        TimerManager timerManager,
         Keypad keypad,
         InterruptController irqController,
         WaitControl waitControl,
@@ -39,6 +43,7 @@ internal partial class MMIO : MemoryBase
     {
         _ppu           = ppu;
         _dmaManager    = dmaManager;
+        _timerManager  = timerManager;
         _keypad        = keypad;
         _irqController = irqController;
         _waitControl   = waitControl;

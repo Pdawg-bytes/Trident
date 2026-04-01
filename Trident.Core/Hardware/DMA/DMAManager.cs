@@ -217,21 +217,16 @@ internal partial class DMAManager
 
     internal DMASnapshot GetSnapshot()
     {
-        ref readonly DMAChannel ch0 = ref _channels[0];
-        ref readonly DMAChannel ch1 = ref _channels[1];
-        ref readonly DMAChannel ch2 = ref _channels[2];
-        ref readonly DMAChannel ch3 = ref _channels[3];
-
         return new
         (
-            MakeChannelSnapshot(in ch0),
-            MakeChannelSnapshot(in ch1),
-            MakeChannelSnapshot(in ch2),
-            MakeChannelSnapshot(in ch3)
+            MakeChannelSnapshot(in _channels[0]),
+            MakeChannelSnapshot(in _channels[1]),
+            MakeChannelSnapshot(in _channels[2]),
+            MakeChannelSnapshot(in _channels[3])
         );
     }
 
-    private DMASnapshot.ChannelSnapshot MakeChannelSnapshot(in DMAChannel ch) => new DMASnapshot.ChannelSnapshot
+    private DMASnapshot.ChannelSnapshot MakeChannelSnapshot(in DMAChannel ch) => new
     (
         ch.Enabled,
         ch.Repeat,

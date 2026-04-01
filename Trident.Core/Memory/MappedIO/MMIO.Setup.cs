@@ -46,6 +46,13 @@ internal partial class MMIO
         SetAccessor(KEYCNT, _keypad.ReadKeyControl, _keypad.WriteKeyControl);
 
 
+        // Timer registers
+        RegisterTimerChannel(0, TM0CNT_L, TM0CNT_H);
+        RegisterTimerChannel(1, TM1CNT_L, TM1CNT_H);
+        RegisterTimerChannel(2, TM2CNT_L, TM2CNT_H);
+        RegisterTimerChannel(3, TM3CNT_L, TM3CNT_H);
+
+
         // Interrupt Controller registers
         SetAccessor(IE, _irqController.ReadIE, _irqController.WriteIE);
         SetAccessor(IF, _irqController.ReadIF, _irqController.WriteIF);
@@ -74,6 +81,14 @@ internal partial class MMIO
             throw new ArgumentOutOfRangeException(nameof(register), $"MMIO: Tried to map invalid unused MMIO register: 0x{register:X}");
 
         _registers[index] = new RegisterAccessor(_zeroRead, _emptyWrite);
+    }
+
+
+    private void RegisterTimerChannel(int id, uint cntL, uint cntH)
+    {
+        int localId = id;
+        SetAccessor(cntL, () => _timerManager.ReadCounterReload(localId), (value, mask) => _timerManager.WriteReload(localId, value, mask));
+        SetAccessor(cntH, () => _timerManager.ReadControl(localId),       (value, mask) => _timerManager.WriteControl(localId, value, mask));
     }
 
 

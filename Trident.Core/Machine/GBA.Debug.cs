@@ -19,6 +19,8 @@ public sealed partial class GBA
 
     public DMASnapshot GetDMASnapshot() => _dmaManager.GetSnapshot();
 
+    public TimerSnapshot GetTimerSnapshot() => _timerManager.GetSnapshot();
+
 
     private MemoryBase? GetDebugRegion(uint region) => CPU.Bus.GetRegionAsDebug(region);
 
