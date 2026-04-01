@@ -29,10 +29,14 @@ namespace Trident.Windowing;
 
 internal class EmulatorWindow : GameWindow
 {
+    private const int GBAWidth = 240;
+    private const int GBAHeight = 160;
+
     private readonly GBA _gba;
     private readonly EmulatorThread _emulatorThread;
 
     private int _framebufferTexture;
+    private readonly uint[] _frameUploadBuffer = new uint[GBAWidth * GBAHeight];
 
     private List<IWidget> _widgets = [];
     private Dictionary<string, List<IWidget>> _widgetGroups = [];
@@ -152,7 +156,7 @@ internal class EmulatorWindow : GameWindow
         InitWidgets();
 
         _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, @"D:\GBA_ROM\gba_bios.bin"));
-        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"D:\GBA_ROM\Super Monkey Ball Jr. (USA)\Super Monkey Ball Jr. (USA).gba"));
+        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"D:\GBA_ROM\Pokemon - Ruby Version (U) (V1.1)\Pokemon - Ruby Version (U) (V1.1).gba"));
     }
 
     protected override void OnClosing(CancelEventArgs e)
@@ -169,7 +173,7 @@ internal class EmulatorWindow : GameWindow
         _framebufferTexture = GL.GenTexture();
         GL.BindTexture(TextureTarget.Texture2D, _framebufferTexture);
         GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba,
-                      240, 160, 0, PixelFormat.Bgra, PixelType.UnsignedByte, IntPtr.Zero);
+                      GBAWidth, GBAHeight, 0, PixelFormat.Bgra, PixelType.UnsignedByte, IntPtr.Zero);
 
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
@@ -384,8 +388,9 @@ internal class EmulatorWindow : GameWindow
         ImGui.Begin("GBA Screen");
 
         GL.BindTexture(TextureTarget.Texture2D, _framebufferTexture);
-        GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, 0, 240, 160,
-                         PixelFormat.Bgra, PixelType.UnsignedByte, _gba.Framebuffer.FrontPixels);
+        _gba.Framebuffer.CopyFrontPixels(_frameUploadBuffer);
+        GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, 0, GBAWidth, GBAHeight,
+                 PixelFormat.Bgra, PixelType.UnsignedByte, _frameUploadBuffer);
 
         ImGui.Image(_framebufferTexture, new System.Numerics.Vector2(480, 320));
         ImGui.End();

@@ -5,40 +5,45 @@ public class Framebuffer
     public const int Width  = 240;
     public const int Height = 160;
 
-    private readonly uint[] _bufA = new uint[Width * Height];
-    private readonly uint[] _bufB = new uint[Width * Height];
-    private readonly uint[] _bufC = new uint[Width * Height];
+    private readonly uint[] _write = new uint[Width * Height];
+    private readonly object _frontBufferLock = new();
 
-    private uint[] _write;
-    private uint[] _read;
-    private uint[] _spare;
+    private readonly uint[] _latest = new uint[Width * Height];
+    private int _presentedFrameId;
 
-    private volatile uint[] _latest;
-    public uint[] FrontPixels => _latest;
+    public int PresentedFrameId => Volatile.Read(ref _presentedFrameId);
 
     public Framebuffer()
     {
-        _write  = _bufA;
-        _read   = _bufB;
-        _spare  = _bufC;
-        _latest = _read;
+        Array.Copy(_write, _latest, _latest.Length);
     }
+
 
     public void SetPixel(uint x, uint y, uint color) => _write[y * Width + x] = color;
     public void Clear(uint color = 0xFF000000)
     {
         Array.Fill(_write,  color);
-        Array.Fill(_latest, color);
+
+        lock (_frontBufferLock)
+            Array.Fill(_latest, color);
     }
+
 
     public void Present()
     {
-        Interlocked.Exchange(ref _latest, _write);
+        lock (_frontBufferLock)
+            Array.Copy(_write, _latest, _latest.Length);
 
-        var oldRead = _read;
-        _read       = _write;
-        _write      = _spare;
-        _spare      = oldRead;
+        Interlocked.Increment(ref _presentedFrameId);
+    }
+
+    public void CopyFrontPixels(uint[] destination)
+    {
+        if (destination.Length < _latest.Length)
+            throw new ArgumentException("Destination buffer is too small.", nameof(destination));
+
+        lock (_frontBufferLock)
+            Array.Copy(_latest, destination, _latest.Length);
     }
 
 

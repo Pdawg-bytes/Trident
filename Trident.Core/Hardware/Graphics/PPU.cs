@@ -134,6 +134,8 @@ internal partial class PPU
 
     private void OnVBlankStart()
     {
+        _framebuffer.Present();
+
         DisplayStatus.VBlankFlag = true;
 
         if (DisplayStatus.VBlankIRQ)

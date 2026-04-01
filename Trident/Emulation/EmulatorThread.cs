@@ -23,6 +23,7 @@ public class EmulatorThread
     private readonly Stopwatch _frameTimer = Stopwatch.StartNew();
     private readonly FrameCounter _frameCounter = new(50);
     private double _nextFrameTime = 0;
+    private int _lastPresentedFrameId;
 
     internal double CurrentSpeed => _frameCounter.GetFPS() / Framerate * 100.0;
 
@@ -89,6 +90,7 @@ public class EmulatorThread
     private void RunLoop()
     {
         _gba.Reset();
+        _lastPresentedFrameId = _gba.Framebuffer.PresentedFrameId;
 
         while (_initialized)
         {
@@ -97,8 +99,13 @@ public class EmulatorThread
             if (!_paused)
             {
                 _gba.RunFor(CyclesPerFrame);
-                _gba.Framebuffer.Present();
-                _frameCounter.FrameRendered();
+
+                int presentedFrameId = _gba.Framebuffer.PresentedFrameId;
+                while (_lastPresentedFrameId < presentedFrameId)
+                {
+                    _frameCounter.FrameRendered();
+                    _lastPresentedFrameId++;
+                }
             }
 
             if (_speedCapped)
