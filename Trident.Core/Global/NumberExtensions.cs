@@ -43,6 +43,34 @@ internal static class NumberExtensions
     internal static uint Align<T>(this uint value) where T : unmanaged =>
         value & ~(uint)(Unsafe.SizeOf<T>() - 1);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static bool Has<TEnum>(this TEnum value, TEnum flags) where TEnum : unmanaged, Enum
+    {
+        if (Unsafe.SizeOf<TEnum>() == 1)
+        {
+            byte v = Unsafe.As<TEnum, byte>(ref value);
+            byte f = Unsafe.As<TEnum, byte>(ref flags);
+            return (v & f) == f;
+        }
+        else if (Unsafe.SizeOf<TEnum>() == 2)
+        {
+            ushort v = Unsafe.As<TEnum, ushort>(ref value);
+            ushort f = Unsafe.As<TEnum, ushort>(ref flags);
+            return (v & f) == f;
+        }
+        else if (Unsafe.SizeOf<TEnum>() == 4)
+        {
+            uint v = Unsafe.As<TEnum, uint>(ref value);
+            uint f = Unsafe.As<TEnum, uint>(ref flags);
+            return (v & f) == f;
+        }
+        else
+        {
+            ulong v = Unsafe.As<TEnum, ulong>(ref value);
+            ulong f = Unsafe.As<TEnum, ulong>(ref flags);
+            return (v & f) == f;
+        }
+    }
 
     static readonly uint[] PromotionTable =
     [

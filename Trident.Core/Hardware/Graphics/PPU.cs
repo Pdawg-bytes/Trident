@@ -1,6 +1,6 @@
-﻿using Trident.Core.Scheduling;
+﻿using Trident.Core.Memory;
+using Trident.Core.Scheduling;
 using Trident.Core.Hardware.DMA;
-using Trident.Core.Memory.Graphics;
 using Trident.Core.Memory.MappedIO;
 using Trident.Core.Hardware.Interrupts;
 using Trident.Core.Hardware.Graphics.Registers;
@@ -29,8 +29,8 @@ internal partial class PPU
         new(3)
     ];
 
-    private readonly LayerPixel[][] _bgLines   = new LayerPixel[4][];
-    private readonly LayerPixel[]   _objLine   = new LayerPixel[ScreenWidth];
+    private readonly LayerPixel[][] _bgLines = new LayerPixel[4][];
+    private readonly LayerPixel[]   _objLine = new LayerPixel[ScreenWidth];
     private int _objDrawCycles = 0;
     private uint _pixelGeneration = 1;
 

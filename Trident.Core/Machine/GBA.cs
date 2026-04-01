@@ -5,9 +5,7 @@ using Trident.Core.Scheduling;
 using Trident.Core.Hardware.IO;
 using Trident.Core.Hardware.DMA;
 using Trident.Core.CPU.Registers;
-using Trident.Core.Memory.Region;
 using Trident.Core.Memory.GamePak;
-using Trident.Core.Memory.Graphics;
 using Trident.Core.Memory.MappedIO;
 using Trident.Core.Hardware.Graphics;
 using System.Runtime.CompilerServices;
@@ -184,23 +182,27 @@ public sealed partial class GBA : IDisposable
         _gamePak?.Dispose();
         _gamePak = GamePakLoader.Load(File.ReadAllBytes(filePath), Scheduler.Step, _waitControl);
 
-        IMemoryRegion gamePakUpper = _gamePak.GetUpperRegion();
-        IMemoryRegion gamePakLower = _gamePak.GetLowerRegion();
-        IMemoryRegion backupHandler = _gamePak.GetBackupRegion();
+        MemoryBase gamePakUpper   = _gamePak.GetUpperRegion();
+        MemoryBase gamePakLower   = _gamePak.GetLowerRegion();
+        MemoryBase? backupHandler = _gamePak.GetBackupRegion();
 
-        CPU.Bus.RegisterHandlers
-        ([
+        var handlers = new List<(int page, MemoryBase handler)>
+        {
             (0x08, gamePakLower),
             (0x09, gamePakUpper),
             (0x0A, gamePakLower),
             (0x0B, gamePakUpper),
             (0x0C, gamePakLower),
-            (0x0D, gamePakUpper),
+            (0x0D, gamePakUpper)
+        };
 
-            (0x0E, backupHandler),
-            (0x0F, backupHandler)
-        ]);
+        if (backupHandler != null)
+        {
+            handlers.Add((0x0E, backupHandler));
+            handlers.Add((0x0F, backupHandler));
+        }
 
+        CPU.Bus.RegisterHandlers([..handlers]);
         CPU.Bus.LoadDebugGamePak(_gamePak);
 
         Disassembler.Enabled = true;

@@ -1,24 +1,20 @@
 ﻿using Trident.Core.CPU;
 using Trident.Core.Memory;
-using Trident.Core.Memory.Region;
 
 namespace Trident.Core.Bus;
 
 public readonly struct GBABus : IDataBus
 {
     private readonly Action<uint> _step;
-
-    private readonly IMemoryRegion[] _accessHandlers;
-    private readonly IDebugMemory?[] _debugHandlers = new IDebugMemory?[16];
-
-    private readonly IMemoryRegion _unusedSection;
+    private readonly MemoryBase[] _accessHandlers;
+    private readonly MemoryBase?[] _debugHandlers = new MemoryBase?[16];
+    private readonly MemoryBase _unusedSection;
     private readonly UnusedSection _unused;
 
     public GBABus(Action<uint> step)
     {
-        _step = step;
-
-        _unused = new(step);
+        _step          = step;
+        _unused        = new(step);
         _unusedSection = _unused;
 
         _accessHandlers = 
@@ -42,11 +38,8 @@ public readonly struct GBABus : IDataBus
         ];
     }
 
-    /// <summary>
-    /// Registers the <paramref name="handler"/> for the given <paramref name="page"/>.
-    /// </summary>
-    /// <param name="page">The page that the handler should be registered to.</param>
-    internal void RegisterHandler(int page, IMemoryRegion handler)
+
+    internal void RegisterHandler(int page, MemoryBase handler)
     {
         if (page < 0 || page >= 16)
             throw new ArgumentOutOfRangeException(nameof(page), $"Invalid page index {page}. Must be in 0..15.");
@@ -56,14 +49,10 @@ public readonly struct GBABus : IDataBus
         _accessHandlers[page] = handler;
 
         if (page < 8)
-            _debugHandlers[page] = handler as IDebugMemory;
+            _debugHandlers[page] = handler;
     }
 
-    /// <summary>
-    /// Registers multiple <see cref="MemoryAccessHandler"/>s at the respective pages.
-    /// </summary>
-    /// <param name="handlers">The list of handlers to register.</param>
-    internal void RegisterHandlers((int page, IMemoryRegion handler)[] handlers)
+    internal void RegisterHandlers((int page, MemoryBase handler)[] handlers)
     {
         if (handlers.Any(handler => handler.page < 0 || handler.page >= 16))
             throw new ArgumentOutOfRangeException(nameof(handlers), $"Invalid page index for one or more handlers.");
@@ -73,14 +62,10 @@ public readonly struct GBABus : IDataBus
             _accessHandlers[handler.page] = handler.handler;
 
             if (handler.page < 8)
-                _debugHandlers[handler.page] = handler.handler as IDebugMemory;
+                _debugHandlers[handler.page] = handler.handler;
         }
     }
 
-    /// <summary>
-    /// Deregisters the <see cref="MemoryAccessHandler"/> for the given <paramref name="page"/>, and disposes of the backing memory for the registered handler.
-    /// </summary>
-    /// <param name="page">The page at which the handler to deregister is located in.</param>
     internal void DeregisterHandler(int page)
     {
         if (page < 0 || page >= 16)
@@ -92,13 +77,13 @@ public readonly struct GBABus : IDataBus
     }
 
 
-    internal void LoadDebugGamePak(IDebugMemory handler)
+    internal void LoadDebugGamePak(MemoryBase handler)
     {
         for (int i = 8; i < 15; i++)
             _debugHandlers[i] = handler;
     }
 
-    internal IDebugMemory? GetRegionAsDebug(uint region) => (region >= _debugHandlers.Length) ? null : _debugHandlers[region];
+    internal MemoryBase? GetRegionAsDebug(uint region) => (region >= _debugHandlers.Length) ? null : _debugHandlers[region];
 
 
     #region Read
@@ -171,7 +156,6 @@ public readonly struct GBABus : IDataBus
         // TODO: Open bus behavior
         return 0;
     }
-
 
     internal void DisposeMemory()
     {

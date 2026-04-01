@@ -1,13 +1,14 @@
 ﻿namespace Trident.Core.Memory.GamePak.Backup;
 
-internal interface IBackupDevice
+internal interface IBackupDevice : IDisposable
 {
-    uint Size { get; }
     BackupType Type { get; }
-
-    void Reset();
+    uint Size       { get; }
+    
     byte Read(uint address);
     void Write(uint address, byte value);
-
-    void Dispose();
+    
+    void Reset();
+    byte[] GetSaveData();
+    void LoadSaveData(byte[] data);
 }

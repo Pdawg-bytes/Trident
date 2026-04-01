@@ -152,7 +152,7 @@ internal class EmulatorWindow : GameWindow
         InitWidgets();
 
         _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, @"D:\GBA_ROM\gba_bios.bin"));
-        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"D:\GBA_ROM\Kirby\Kirby.gba"));
+        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"D:\GBA_ROM\Super Monkey Ball Jr. (USA)\Super Monkey Ball Jr. (USA).gba"));
     }
 
     protected override void OnClosing(CancelEventArgs e)

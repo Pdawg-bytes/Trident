@@ -1,25 +1,26 @@
-﻿using System.Text;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Global;
 
 internal static class ArrayExtensions
 {
-    internal static bool ContainsAscii(this byte[] arr, string str)
+    internal static bool ContainsAscii(this ReadOnlySpan<byte> data, string needle, int step)
     {
-        if (str.Length == 0 || arr.Length < str.Length)
+        if (needle.Length == 0 || data.Length < needle.Length)
             return false;
 
-        byte[] needleBytes = Encoding.ASCII.GetBytes(str);
-        byte firstByte = needleBytes[0];
-        int maxIndex = arr.Length - needleBytes.Length;
+        ReadOnlySpan<byte> needleBytes = System.Text.Encoding.ASCII.GetBytes(needle);
 
-        bool CheckMatches(int offset) =>
-            offset <= maxIndex && arr[offset] == firstByte && needleBytes.AsSpan(1).SequenceEqual(arr.AsSpan(offset + 1, needleBytes.Length - 1));
+        int maxIndex = data.Length - needle.Length;
 
-        for (int i = 0; i <= maxIndex; i++)
-            if (CheckMatches(i)) return true;
+        for (int i = 0; i <= maxIndex; i += step)
+        {
+            if (data[i] != needle[0]) continue;
+
+            if (needleBytes[1..].SequenceEqual(data[(i + 1)..(i + needle.Length)]))
+                return true;
+        }
 
         return false;
     }

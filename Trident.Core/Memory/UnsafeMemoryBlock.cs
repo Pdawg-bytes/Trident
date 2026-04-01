@@ -3,26 +3,29 @@ using System.Runtime.CompilerServices;
 
 namespace Trident.Core.Memory;
 
-internal unsafe class UnsafeMemoryBlock : IDisposable
+public unsafe class UnsafeMemoryBlock : IDisposable
 {
     private byte* _ptr;
     internal nuint Size { get; }
 
     internal UnsafeMemoryBlock(nuint size)
     {
+        if (size == 0)
+            return;
+
         _ptr = (byte*)NativeMemory.AllocZeroed(size);
         Size = size;
     }
 
     internal void* Pointer => _ptr;
 
-    internal byte Read8(nuint offset) => *(_ptr + offset);
+    internal byte Read8(nuint offset)    => *(_ptr + offset);
     internal ushort Read16(nuint offset) => *(ushort*)(_ptr + offset);
-    internal uint Read32(nuint offset) => *(uint*)(_ptr + offset);
+    internal uint Read32(nuint offset)   => *(uint*)(_ptr + offset);
 
-    internal void Write8(nuint offset, byte value) => *(_ptr + offset) = value;
+    internal void Write8(nuint offset, byte value)    => *(_ptr + offset) = value;
     internal void Write16(nuint offset, ushort value) => *(ushort*)(_ptr + offset) = value;
-    internal void Write32(nuint offset, uint value) => *(uint*)(_ptr + offset) = value;
+    internal void Write32(nuint offset, uint value)   => *(uint*)(_ptr + offset) = value;
 
     internal T Read<T>(nuint offset) where T : unmanaged
         => Unsafe.ReadUnaligned<T>(_ptr + offset);

@@ -1,4 +1,4 @@
-﻿using Trident.Core.Memory.Region;
+﻿using Trident.Core.Memory;
 using Trident.Core.Debugging.Snapshots;
 using Trident.Core.Debugging.Disassembly;
 using Trident.Core.Debugging.Breakpoints;
@@ -20,29 +20,29 @@ public sealed partial class GBA
     public DMASnapshot GetDMASnapshot() => _dmaManager.GetSnapshot();
 
 
-    private IDebugMemory? GetDebugRegion(uint region) => CPU.Bus.GetRegionAsDebug(region);
+    private MemoryBase? GetDebugRegion(uint region) => CPU.Bus.GetRegionAsDebug(region);
 
     public DebugMemoryRead<T> DebugRead<T>(uint address) where T : unmanaged
     {
-        IDebugMemory? region = CPU.Bus.GetRegionAsDebug(address >> 24);
+        MemoryBase? region = CPU.Bus.GetRegionAsDebug(address >> 24);
         if (region is null || address < region.BaseAddress || address >= region.EndAddress)
         {
             return new DebugMemoryRead<T>
             (
-                Value: default,
+                Value:       default,
                 BaseAddress: 0,
-                EndAddress: 0,
-                IsValid: false
+                EndAddress:  0,
+                IsValid:     false
             );
         }
 
         T value = region.DebugRead<T>(address);
         return new DebugMemoryRead<T>
         (
-            Value: value,
+            Value:       value,
             BaseAddress: region.BaseAddress,
-            EndAddress: region.EndAddress,
-            IsValid: true
+            EndAddress:  region.EndAddress,
+            IsValid:     true
         );
     }
 }

@@ -1,11 +1,11 @@
 ﻿using Trident.Core.Global;
-using Trident.Core.Memory.Region;
+using Trident.Core.Memory;
 using Trident.CodeGeneration.Shared;
 using Trident.Core.Debugging.Snapshots;
 
 namespace Trident.Core.Debugging.Disassembly;
 
-public sealed class Disassembler(Func<uint, IDebugMemory?> getRegion, Func<uint> getPC, Func<CPUSnapshot> getSnapshot)
+public sealed class Disassembler(Func<uint, MemoryBase?> getRegion, Func<uint> getPC, Func<CPUSnapshot> getSnapshot)
 {
     internal bool Enabled { get; set; }
 
@@ -24,7 +24,7 @@ public sealed class Disassembler(Func<uint, IDebugMemory?> getRegion, Func<uint>
         uint pc    = getPC();
         bool thumb = getSnapshot().CPSR.IsBitSet(5);
 
-        IDebugMemory? region = getRegion(pc >> 24);
+        MemoryBase? region = getRegion(pc >> 24);
         if (region is null)
             return (0, thumb, ReadOnlyMemory<DisassembledInstruction>.Empty);
 
@@ -76,7 +76,7 @@ public sealed class Disassembler(Func<uint, IDebugMemory?> getRegion, Func<uint>
         return (pc - (thumb ? 4 : 8u), thumb, _disasmBuffer.AsMemory(0, _disasmCount));
     }
 
-    private static (uint start, uint end) GetDisasmWindow(uint pc, uint before, uint after, uint instrSize, IDebugMemory region)
+    private static (uint start, uint end) GetDisasmWindow(uint pc, uint before, uint after, uint instrSize, MemoryBase region)
     {
         before *= instrSize;
         after  *= instrSize;
