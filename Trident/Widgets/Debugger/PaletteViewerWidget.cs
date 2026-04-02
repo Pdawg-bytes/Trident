@@ -46,31 +46,26 @@ internal class PaletteViewerWidget(ImFontPtr monoFont, Func<PaletteSnapshot> get
             {
                 if (ImGui.BeginTabItem(PageNames[page]))
                 {
-                    _activePage = page;
+                    _activePage    = page;
                     int baseOffset = page * 256;
 
                     float gridWidth = ColorsPerRow * (SwatchSize + SwatchSpacing);
 
-                    if (_selectedIndex >= 0)
+                    if (ImGui.BeginTable("##pallayout", 2, ImGuiTableFlags.None))
                     {
-                        if (ImGui.BeginTable("##pallayout", 2, ImGuiTableFlags.None))
-                        {
-                            ImGui.TableSetupColumn("Grid", ImGuiTableColumnFlags.WidthFixed, gridWidth + 8f);
-                            ImGui.TableSetupColumn("Detail", ImGuiTableColumnFlags.WidthStretch);
+                        ImGui.TableSetupColumn("Grid", ImGuiTableColumnFlags.WidthFixed, gridWidth + 8f);
+                        ImGui.TableSetupColumn("Detail", ImGuiTableColumnFlags.WidthStretch);
 
-                            ImGui.TableNextRow();
-                            ImGui.TableSetColumnIndex(0);
-                            RenderPaletteGrid(snapshot, baseOffset);
+                        ImGui.TableNextRow();
 
-                            ImGui.TableSetColumnIndex(1);
+                        ImGui.TableSetColumnIndex(0);
+                        RenderPaletteGrid(snapshot, baseOffset);
+
+                        ImGui.TableSetColumnIndex(1);
+                        if (_selectedIndex >= 0)
                             RenderColorDetail(snapshot);
 
-                            ImGui.EndTable();
-                        }
-                    }
-                    else
-                    {
-                        RenderPaletteGrid(snapshot, baseOffset);
+                        ImGui.EndTable();
                     }
 
                     ImGui.EndTabItem();
@@ -86,7 +81,7 @@ internal class PaletteViewerWidget(ImFontPtr monoFont, Func<PaletteSnapshot> get
     private void RenderPaletteGrid(PaletteSnapshot snapshot, int baseOffset)
     {
         ImDrawListPtr drawList = ImGui.GetWindowDrawList();
-        Vector2 origin = ImGui.GetCursorScreenPos();
+        Vector2 origin         = ImGui.GetCursorScreenPos();
 
         float totalStep = SwatchSize + SwatchSpacing;
 
@@ -103,7 +98,8 @@ internal class PaletteViewerWidget(ImFontPtr monoFont, Func<PaletteSnapshot> get
                 Vector2 max = new(x + SwatchSize, y + SwatchSize);
 
                 ushort bgr555 = snapshot.GetColor(index);
-                uint rgba = Bgr555ToRgba(bgr555);
+                uint rgba     = Bgr555ToRgba(bgr555);
+
                 drawList.AddRectFilled(min, max, rgba);
 
                 if (index == _selectedIndex)
@@ -143,7 +139,7 @@ internal class PaletteViewerWidget(ImFontPtr monoFont, Func<PaletteSnapshot> get
         int b8 = (b5 << 3) | (b5 >> 2);
 
         Vector4 colorVec = new(r8 / 255f, g8 / 255f, b8 / 255f, 1f);
-        ImGui.ColorButton("##preview", colorVec, ImGuiColorEditFlags.NoTooltip, new Vector2(32, 32));
+        ImGui.ColorButton("##preview", colorVec, ImGuiColorEditFlags.NoTooltip, new Vector2(44, 44));
 
         Span<char> buf  = stackalloc char[48];
         StackString str = new(buf);

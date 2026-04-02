@@ -118,12 +118,12 @@ internal partial class PPU
         uint charBase = bg.CharBaseBlock * 0x4000u;
         bool use256   = bg.Use256Colors;
 
-        for (int y = 0; y < height; y++)
+        for (uint y = 0; y < height; y++)
         {
-            for (int x = 0; x < width; x++)
+            for (uint x = 0; x < width; x++)
             {
-                var (color, transparent) = SampleTextBGTexel((uint)x, (uint)y, bg.ScreenBaseBlock, charBase, use256, width);
-                pixels[y * width + x]    = transparent ? 0x00000000 : Framebuffer.ToArgb(color);
+                var (color, transparent)     = SampleTextBGTexel(x, y, bg.ScreenBaseBlock, charBase, use256, width);
+                pixels[(int)(y * width + x)] = transparent ? 0x00000000 : Framebuffer.ToArgb(color);
             }
         }
 

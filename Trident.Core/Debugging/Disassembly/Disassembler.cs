@@ -33,7 +33,7 @@ public sealed class Disassembler(Func<uint, MemoryBase?> getRegion, Func<uint> g
 
         int length = (int)((end - start) >> ((int)instrSize >> 1));
         if (length > 512 || length < 0)
-            throw new Exception("Disassembly window out of range.");
+            return (0, false, ReadOnlyMemory<DisassembledInstruction>.Empty);
 
         if (_disasmBuffer.Length < length)
         {
