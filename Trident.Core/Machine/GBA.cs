@@ -173,6 +173,9 @@ public sealed partial class GBA : IDisposable
 
         // TODO: reset other components
 
+        _waitControl.Reset();
+        _postHalt.Reset();
+
         if (ShouldSkipBIOS)
             SkipBIOS();
 

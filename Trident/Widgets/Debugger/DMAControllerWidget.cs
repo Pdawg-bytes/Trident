@@ -1,8 +1,9 @@
 ﻿using ImGuiNET;
-using System.Numerics;
 using Trident.Utilities;
 using Trident.Core.Hardware.DMA;
 using Trident.Core.Debugging.Snapshots;
+
+using static Trident.Widgets.WidgetHelpers;
 
 namespace Trident.Widgets.Debugger;
 
@@ -113,19 +114,6 @@ internal class DMAControllerWidget(ImFontPtr monoFont, Func<DMASnapshot> getSnap
         ImGui.End();
     }
 
-
-    private void RenderFlagCell(ReadOnlySpan<char> label, bool state)
-    {
-        if (state)
-            ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, Color.HiglightBackground);
-
-        Vector2 cellSize = ImGui.GetContentRegionAvail();
-        Vector2 textSize = ImGui.CalcTextSize(label);
-        float xOffset = (cellSize.X - textSize.X) * 0.5f;
-        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + xOffset);
-
-        ImGui.TextUnformatted(label);
-    }
 
 
     private ReadOnlySpan<char> AddressingModeString(AddressingMode mode) => mode switch

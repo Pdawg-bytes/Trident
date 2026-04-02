@@ -17,9 +17,19 @@ public sealed partial class GBA
 
     public IRQSnapshot GetIRQSnapshot() => _irqController.GetSnapshot();
 
+
     public DMASnapshot GetDMASnapshot() => _dmaManager.GetSnapshot();
 
+
     public TimerSnapshot GetTimerSnapshot() => _timerManager.GetSnapshot();
+
+
+    public BackgroundSnapshot GetBackgroundSnapshot() => PPU.GetBackgroundSnapshot();
+    public SpriteSnapshot GetSpriteSnapshot()         => PPU.GetSpriteSnapshot();
+    public PaletteSnapshot GetPaletteSnapshot()       => PPU.GetPaletteSnapshot();
+
+    public bool RenderSpriteToBuffer(int spriteIndex, Span<uint> pixels, out int width, out int height)  => PPU.RenderSpriteToBuffer(spriteIndex, pixels, out width, out height);
+    public bool RenderBGToBuffer(int bgIndex, Span<uint> pixels, out int width, out int height)          => PPU.RenderBGToBuffer(bgIndex, pixels, out width, out height);
 
 
     private MemoryBase? GetDebugRegion(uint region) => CPU.Bus.GetRegionAsDebug(region);

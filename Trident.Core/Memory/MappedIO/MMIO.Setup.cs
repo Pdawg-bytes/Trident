@@ -9,6 +9,8 @@ internal partial class MMIO
     private readonly Func<ushort> _zeroRead = () => 0;
     private readonly Action<ushort, WriteMask> _emptyWrite = (_, _) => { };
 
+    private ushort _soundBias = 0;
+
     private void InitializeRegisterMap()
     {
         RegisterAccessor openBusRegister = new 
@@ -32,6 +34,22 @@ internal partial class MMIO
         RegisterBGBase();
         RegisterAffineBG(2, BG2PA, BG2X, BG2Y);
         RegisterAffineBG(3, BG3PA, BG3X, BG3Y);
+
+
+        // TEMP
+        SetAccessor
+        (   
+            SOUNDBIAS, 
+            ()            => _soundBias, 
+            (value, mask) =>
+            {
+                if (mask.IsLower())
+                    _soundBias = (ushort)((_soundBias & 0xFF00) | (value & 0x00FF));
+            
+                if (mask.IsUpper())
+                    _soundBias = (ushort)((_soundBias & 0x00FF) | (value & 0xFF00));
+            }
+        );
 
 
         // DMA registers

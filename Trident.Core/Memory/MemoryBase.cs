@@ -66,6 +66,8 @@ public abstract class MemoryBase(uint memorySize, Action<uint> step) : IDisposab
     public virtual T DebugRead<T>(uint address) where T : unmanaged
         => _memory.Read<T>(address.Align<T>() & _addressMask);
 
+    internal unsafe void* RawPointer => _memory.Pointer;
+
     public abstract uint BaseAddress { get; }
     public abstract uint Length      { get; }
     public uint EndAddress => BaseAddress + Length;

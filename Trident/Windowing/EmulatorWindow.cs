@@ -201,6 +201,10 @@ internal class EmulatorWindow : GameWindow
         AddWidget(new DMAControllerWidget(_monoFont, _gba.GetDMASnapshot));
         AddWidget(new TimerWidget(_monoFont, _gba.GetTimerSnapshot));
 
+        AddWidget(new BackgroundLayerWidget(_monoFont, _gba.GetBackgroundSnapshot, _gba.RenderBGToBuffer));
+        AddWidget(new SpriteViewerWidget(_monoFont, _gba.GetSpriteSnapshot, _gba.RenderSpriteToBuffer));
+        AddWidget(new PaletteViewerWidget(_monoFont, _gba.GetPaletteSnapshot));
+
         MemoryViewer memView = new(_monoFont);
         memView.SetReadFunction(address => _gba.DebugRead<byte>(address));
         AddWidget(memView);

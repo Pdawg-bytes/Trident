@@ -5,6 +5,8 @@ using Trident.Utilities;
 using Trident.Core.CPU.Registers;
 using Trident.Core.Debugging.Snapshots;
 
+using static Trident.Widgets.WidgetHelpers;
+
 namespace Trident.Widgets.Debugger;
 
 internal class CPUStateWidget(ImFontPtr monoFont, Func<CPUSnapshot> getSnapshot) : IWidget
@@ -124,15 +126,8 @@ internal class CPUStateWidget(ImFontPtr monoFont, Func<CPUSnapshot> getSnapshot)
             {
                 ImGui.TableSetColumnIndex(col);
 
-                if (snapshot.CPSR.IsBitSet(_flags[col].Bit))
-                    ImGui.TableSetBgColor(ImGuiTableBgTarget.CellBg, Color.HiglightBackground);
-
                 flagBuf[0] = _flags[col].Label;
-                Vector2 cellSize = ImGui.GetContentRegionAvail();
-                Vector2 textSize = ImGui.CalcTextSize(flagBuf);
-                float xOffset = (cellSize.X - textSize.X) * 0.5f;
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + xOffset);
-                ImGui.TextUnformatted(flagBuf);
+                RenderFlagCell(flagBuf, snapshot.CPSR.IsBitSet(_flags[col].Bit));
             }
 
             ImGui.EndTable();

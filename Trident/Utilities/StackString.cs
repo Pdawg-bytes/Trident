@@ -26,7 +26,8 @@ internal ref struct StackString
     internal void Append(ReadOnlySpan<char> text)
     {
         int available = _buffer.Length - _length;
-        int toCopy = Math.Min(text.Length, available);
+        int toCopy    = Math.Min(text.Length, available);
+
         text[..toCopy].CopyTo(_buffer[_length..]);
         _length += toCopy;
     }
@@ -34,7 +35,7 @@ internal ref struct StackString
     internal void Append(ReadOnlySpan<byte> asciiBytes)
     {
         int available = _buffer.Length - _length;
-        int toCopy = Math.Min(asciiBytes.Length, available);
+        int toCopy    = Math.Min(asciiBytes.Length, available);
 
         for (int i = 0; i < toCopy; i++)
             _buffer[_length++] = (char)asciiBytes[i];
@@ -82,7 +83,8 @@ internal ref struct StackString
     internal void Repeat(char c, int count)
     {
         int available = _buffer.Length - _length;
-        int toWrite = Math.Min(count, available);
+        int toWrite   = Math.Min(count, available);
+
         for (int i = 0; i < toWrite; i++)
             _buffer[_length++] = c;
     }
@@ -123,7 +125,7 @@ internal ref struct StackStringHandler
 
     public StackStringHandler(int literalLength, int formattedCount, Span<char> buffer, out bool shouldAppend)
     {
-        _target = new StackString(buffer);
+        _target      = new StackString(buffer);
         shouldAppend = true;
     }
 

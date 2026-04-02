@@ -32,6 +32,9 @@ internal class PostHalt(Action haltCPU, Func<uint> getPC)
                 _haltCPU();
         }
     }
+
+
+    internal void Reset() => _postFlag = 0;
 }
 
 
@@ -58,7 +61,7 @@ internal class WaitControl
         AccessTimings32[(int)PipelineAccess.NonSequential] = new uint[4];
         AccessTimings32[(int)PipelineAccess.Sequential]    = new uint[4];
 
-        Write(0x0000, WriteMask.Both);
+        Reset();
     }
 
 
@@ -108,4 +111,7 @@ internal class WaitControl
         AccessTimings16[(int)PipelineAccess.Sequential][region] = seq;
         AccessTimings32[(int)PipelineAccess.Sequential][region] = seq + seq;
     }
+
+
+    internal void Reset() => Write(0x0000, WriteMask.Both);
 }

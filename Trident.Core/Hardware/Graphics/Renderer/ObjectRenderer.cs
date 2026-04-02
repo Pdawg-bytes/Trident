@@ -23,7 +23,7 @@ internal partial class PPU
             ObjAttr1 attr1 = _oam.Fetch<ObjAttr1>(oamAddr + 2);
             ObjAttr2 attr2 = _oam.Fetch<ObjAttr2>(oamAddr + 4);
 
-            var (width, height) = GetUnsafe(SpriteSizes, attr0.Shape * 4 + attr1.Size);
+            var (width, height) = SpriteUtility.GetSize(attr0.Shape, attr1.Size);
 
             int objY = attr0.Y;
             if (objY >= 160) objY -= 256;
@@ -68,7 +68,7 @@ internal partial class PPU
             int tileX = pixelX >> 3;
             int localX = pixelX & 7;
 
-            uint tile = CalculateSpriteTileIndex(tileIndex, tileX, tileY, tilesPerRow, use256);
+            uint tile = SpriteUtility.CalculateTileIndex(tileIndex, tileX, tileY, tilesPerRow, use256, DisplayControl.ObjVramMapping);
 
             if (TrySampleSpritePixel(use256, tileBase, tile, localX, pixelY, palette, out ushort color))
             {
@@ -107,7 +107,6 @@ internal partial class PPU
         int dy = screenY - (objY + displayCenterY);
 
         bool use256    = attr0.Color256;
-        uint tileBase  = 0x10000u;
         uint tileIndex = attr2.TileIndex;
         byte priority  = attr2.Priority;
         uint palette   = attr2.Palette;
@@ -122,17 +121,10 @@ internal partial class PPU
             int texX = ((pa * dx + pb * dy) >> 8) + texCenterX;
             int texY = ((pc * dx + pd * dy) >> 8) + texCenterY;
 
-            if ((uint)texX >= texWidth || (uint)texY >= texHeight)
+            if ((uint)texX >= (uint)texWidth || (uint)texY >= (uint)texHeight)
                 continue;
 
-            int tileX  = texX >> 3;
-            int tileY  = texY >> 3;
-            int localX = texX & 7;
-            int localY = texY & 7;
-
-            uint tile = CalculateSpriteTileIndex(tileIndex, tileX, tileY, tilesPerRow, use256);
-
-            if (TrySampleSpritePixel(use256, tileBase, tile, localX, localY, palette, out ushort color))
+            if (SampleSpriteTexel(texX, texY, tileIndex, tilesPerRow, use256, palette, out ushort color))
             {
                 int screenX = objX + x;
 
@@ -146,9 +138,10 @@ internal partial class PPU
     private (int start, int end) ComputeXRange(int objX, int width)
     {
         int start = objX < 0 ? -objX : 0;
-        int end = (objX + width > 240) ? 240 - objX : width;
+        int end   = (objX + width > 240) ? 240 - objX : width;
         return (start, end);
     }
+
 
     private bool TrySampleSpritePixel(bool use256, uint tileBase, uint tile, int x, int y, uint palette, out ushort color)
     {
@@ -159,6 +152,13 @@ internal partial class PPU
         return !transparent;
     }
 
+    private bool SampleSpriteTexel(int texX, int texY, uint tileIndex, int tilesPerRow, bool use256, uint palette, out ushort color)
+    {
+        uint tile = SpriteUtility.CalculateTileIndex(tileIndex, texX >> 3, texY >> 3, tilesPerRow, use256, DisplayControl.ObjVramMapping);
+        return TrySampleSpritePixel(use256, 0x10000u, tile, texX & 7, texY & 7, palette, out color);
+    }
+
+
     private void WriteObjPixel(int screenX, ushort color, byte priority)
     {
         ref LayerPixel px = ref GetUnsafe(_objLine, (uint)screenX);
@@ -168,50 +168,42 @@ internal partial class PPU
         px.Source      = 4;
         px.Generation  = _pixelGeneration;
     }
+}
 
 
-    private readonly (int width, int height)[] SpriteSizes =
-    [
-        (8, 8),  (16, 16), (32, 32), (64, 64),
-        (16, 8), (32, 8),  (32, 16), (64, 32),
-        (8, 16), (8, 32),  (16, 32), (32, 64)
-    ];
+[StructLayout(LayoutKind.Explicit, Size = 2)]
+internal readonly struct ObjAttr0
+{
+    [FieldOffset(0)] private readonly ushort _raw;
 
+    [FieldOffset(0)] internal readonly byte Y;
+    internal uint ObjMode    => (uint)(_raw >> 8) & 0b11;
+    internal bool Affine     => _raw.IsBitSet(8);
+    internal bool DoubleSize => _raw.IsBitSet(9);
+    internal uint GfxMode    => (uint)(_raw >> 10) & 0b11;
+    internal bool Mosaic     => _raw.IsBitSet(12);
+    internal bool Color256   => _raw.IsBitSet(13);
+    internal uint Shape      => (uint)(_raw >> 14) & 0b11;
+}
 
-    [StructLayout(LayoutKind.Explicit, Size = 2)]
-    readonly struct ObjAttr0
-    {
-        [FieldOffset(0)] private readonly ushort _raw;
+[StructLayout(LayoutKind.Explicit, Size = 2)]
+internal readonly struct ObjAttr1
+{
+    [FieldOffset(0)] private readonly ushort _raw;
 
-        [FieldOffset(0)] internal readonly byte Y;
-        internal uint ObjMode    => (uint)(_raw >> 8) & 0b11;
-        internal bool Affine     => _raw.IsBitSet(8);
-        internal bool DoubleSize => _raw.IsBitSet(9);
-        internal uint GfxMode    => (uint)(_raw >> 10) & 0b11;
-        internal bool Mosaic     => _raw.IsBitSet(12);
-        internal bool Color256   => _raw.IsBitSet(13);
-        internal uint Shape      => (uint)(_raw >> 14) & 0b11;
-    }
+    internal uint X           => (uint)(_raw & 0x01FF);
+    internal uint AffineIndex => (uint)(_raw >> 9) & 0x1F;
+    internal bool HFlip       => _raw.IsBitSet(12);
+    internal bool VFlip       => _raw.IsBitSet(13);
+    internal uint Size        => (uint)(_raw >> 14) & 0b11;
+}
 
-    [StructLayout(LayoutKind.Explicit, Size = 2)]
-    readonly struct ObjAttr1
-    {
-        [FieldOffset(0)] private readonly ushort _raw;
+[StructLayout(LayoutKind.Explicit, Size = 2)]
+internal readonly struct ObjAttr2
+{
+    [FieldOffset(0)] private readonly ushort _raw;
 
-        internal uint X           => (uint)(_raw & 0x01FF);
-        internal uint AffineIndex => (uint)(_raw >> 9) & 0x1F;
-        internal bool HFlip       => _raw.IsBitSet(12);
-        internal bool VFlip       => _raw.IsBitSet(13);
-        internal uint Size        => (uint)(_raw >> 14) & 0b11;
-    }
-
-    [StructLayout(LayoutKind.Explicit, Size = 2)]
-    readonly struct ObjAttr2
-    {
-        [FieldOffset(0)] private readonly ushort _raw;
-
-        internal uint TileIndex => (uint)(_raw & 0x03FF);
-        internal byte Priority  => (byte)((_raw >> 10) & 0b11);
-        internal uint Palette   => (uint)(_raw >> 12) & 0x0F;
-    }
+    internal uint TileIndex => (uint)(_raw & 0x03FF);
+    internal byte Priority  => (byte)((_raw >> 10) & 0b11);
+    internal uint Palette   => (uint)(_raw >> 12) & 0x0F;
 }
