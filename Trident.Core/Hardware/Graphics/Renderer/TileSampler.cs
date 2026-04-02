@@ -32,22 +32,4 @@ internal partial class PPU
 
         return (color, transparent);
     }
-
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private uint CalculateSpriteTileIndex(uint baseTileIndex, int tileX, int tileY, int tilesPerRow, bool is256Color)
-    {
-        if (DisplayControl.ObjVramMapping)
-        {
-            return is256Color
-                ? baseTileIndex + (uint)(tileY * tilesPerRow * 2 + tileX * 2)
-                : baseTileIndex + (uint)(tileY * tilesPerRow + tileX);
-        }
-        else
-        {
-            return is256Color 
-                ? baseTileIndex + (uint)(tileY * 32 + tileX * 2)
-                : baseTileIndex + (uint)(tileY * 32 + tileX);
-        }
-    }
 }
