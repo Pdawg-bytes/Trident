@@ -161,30 +161,30 @@ internal partial class PPU
         switch (mode)
         {
             case 3:
-                width = 240;
-                height = 160;
+                width   = 240;
+                height  = 160;
                 sampler = SampleMode3;
                 break;
 
             case 4:
-                width = 240;
-                height = 160;
+                width   = 240;
+                height  = 160;
                 sampler = SampleMode4;
                 break;
 
             case 5:
-                width = 160;
-                height = 128;
+                width   = 160;
+                height  = 128;
                 sampler = SampleMode5;
                 break;
 
             default:
-                outWidth = 0;
+                outWidth  = 0;
                 outHeight = 0;
                 return false;
         }
 
-        outWidth = width;
+        outWidth  = width;
         outHeight = height;
 
         if (pixels.Length < width * height)
@@ -195,7 +195,7 @@ internal partial class PPU
         {
             for (int x = 0; x < width; x++)
             {
-                var (color, _) = sampler(x, y);
+                var (color, _)  = sampler(x, y);
                 pixels[index++] = Framebuffer.ToArgb(color);
             }
         }
