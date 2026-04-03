@@ -69,7 +69,7 @@ internal static class GamePakLoader
         return backupType switch
         {
             BackupType.SRAM         => new SRAM(saveData),
-            BackupType.EEPROMDetect => new EEPROM(BackupType.EEPROM512B, saveData),
+            BackupType.EEPROMDetect => new EEPROM(BackupType.EEPROM8K, saveData),   // TODO: use heuristic to determine between 512B and 8K
             BackupType.EEPROM512B   => new EEPROM(BackupType.EEPROM512B, saveData),
             BackupType.EEPROM8K     => new EEPROM(BackupType.EEPROM8K, saveData),
             BackupType.Flash64K     => new Flash(BackupType.Flash64K, saveData),

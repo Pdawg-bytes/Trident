@@ -4,8 +4,8 @@ namespace Trident.Core.Memory.GamePak.Backup;
 
 internal sealed class EEPROM : IBackupDevice
 {
-    private const int DataSizeBits    = 64;
-    private const uint AddressMask    = 0x1FFF;
+    private const int DataSizeBits = 64;
+    private const uint AddressMask = 0x1FFF;
     
     public BackupType Type { get; }
     public uint Size => _memorySize;
@@ -67,7 +67,7 @@ internal sealed class EEPROM : IBackupDevice
 
     public void Write(uint address, byte value)
     {
-        if (_state.Has(EEPROMState.Reading | EEPROMState.Busy))
+        if (_state.Has(EEPROMState.Reading) || _state.Has(EEPROMState.Busy))
             return;
 
         _buffer = (_buffer << 1) | ((value & 1) != 0 ? 1UL : 0UL);
