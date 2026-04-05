@@ -1,6 +1,7 @@
 ﻿using ImGuiNET;
 using System.Numerics;
 using Trident.Utilities;
+using Trident.Emulation;
 
 namespace Trident.Popups;
 
@@ -91,7 +92,7 @@ internal class PerformancePopup(Func<double> getGbaSpeed) : IPopup
         _uiFrameTimes[_frameIndex] = (float)uiFrameTimeMs;
         _realRenderTime = uiRenderTimeMs;
 
-        double gbaFps = _getGbaSpeed() / 100.0 * 59.73;
+        double gbaFps = _getGbaSpeed() / 100.0 * EmulatorThread.Framerate;
         _gbaFrameTimes[_frameIndex] = (float)(1000.0 / gbaFps);
 
         _frameIndex = _frameIndex + 1 & BufferSize - 1;
