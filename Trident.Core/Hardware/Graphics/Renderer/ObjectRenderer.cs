@@ -55,9 +55,9 @@ internal partial class PPU
         byte priority  = attr2.Priority;
         uint palette   = attr2.Palette;
 
-        int tileY       = spriteY >> 3;
-        int pixelY      = spriteY &  7;
-        int tilesPerRow = width   >> 3;
+        int tileY       = spriteY / 8;
+        int pixelY      = spriteY & 7;
+        int tilesPerRow = width   / 8;
 
         var (startX, endX) = ComputeXRange(objX, width);
 
@@ -65,8 +65,8 @@ internal partial class PPU
         {
             int pixelX = attr1.HFlip ? width - 1 - x : x;
 
-            int tileX  = pixelX >> 3;
-            int localX = pixelX &  7;
+            int tileX  = pixelX / 8;
+            int localX = pixelX & 7;
 
             uint tile = CalculateTileIndex(tileIndex, tileX, tileY, tilesPerRow, use256);
 
@@ -89,19 +89,19 @@ internal partial class PPU
         short pc = _oam.Fetch<short>(paramBase + 0x16);
         short pd = _oam.Fetch<short>(paramBase + 0x1E);
 
-        int texWidth = width;
+        int texWidth  = width;
         int texHeight = height;
 
         if (attr0.DoubleSize)
         {
-            width  <<= 1;
-            height <<= 1;
+            width  *= 2;
+            height *= 2;
         }
 
-        int displayCenterX = width     >> 1;
-        int displayCenterY = height    >> 1;
-        int texCenterX     = texWidth  >> 1;
-        int texCenterY     = texHeight >> 1;
+        int displayCenterX = width     / 2;
+        int displayCenterY = height    / 2;
+        int texCenterX     = texWidth  / 2;
+        int texCenterY     = texHeight / 2;
 
         int dy = screenY - (objY + displayCenterY);
 
@@ -110,7 +110,7 @@ internal partial class PPU
         byte priority  = attr2.Priority;
         uint palette   = attr2.Palette;
 
-        int tilesPerRow = texWidth >> 3;
+        int tilesPerRow = texWidth / 8;
 
         var (startX, endX) = ComputeXRange(objX, width);
 
@@ -153,7 +153,7 @@ internal partial class PPU
 
     private bool SampleSpriteTexel(int texX, int texY, uint tileIndex, int tilesPerRow, bool use256, uint palette, out ushort color)
     {
-        uint tile = CalculateTileIndex(tileIndex, texX >> 3, texY >> 3, tilesPerRow, use256);
+        uint tile = CalculateTileIndex(tileIndex, texX / 8, texY / 8, tilesPerRow, use256);
         return TrySampleSpritePixel(use256, 0x10000u, tile, texX & 7, texY & 7, palette, out color);
     }
 
@@ -162,7 +162,7 @@ internal partial class PPU
     {
         if (is256Color)
         {
-            uint baseIndex = baseTileIndex >> 1;
+            uint baseIndex = baseTileIndex / 2;
             return DisplayControl.ObjVramMapping
                 ? baseIndex + (uint)(tileY * tilesPerRow + tileX)
                 : baseIndex + (uint)(tileY * 16 + tileX);
