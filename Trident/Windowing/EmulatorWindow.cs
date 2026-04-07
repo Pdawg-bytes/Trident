@@ -155,8 +155,8 @@ internal class EmulatorWindow : GameWindow
         InitFramebufferTexture();
         InitWidgets();
 
-        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, @"D:\GBA_ROM\gba_bios.bin"));
-        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"D:\GBA_ROM\Legend of Zelda, The_ The Minish Cap\Legend of Zelda, The - The Minish Cap (USA).gba"));
+        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, @"C:\Users\Pdawg\Downloads\gba_bios.bin"));
+        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"C:\Users\Pdawg\Downloads\Pokemon - Ruby Version (U) (V1.1)\Pokemon - Ruby Version (U) (V1.1).gba"));
     }
 
     protected override void OnClosing(CancelEventArgs e)

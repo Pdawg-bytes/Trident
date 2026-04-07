@@ -216,7 +216,7 @@ internal partial class PPU
 
         if (attr0.ObjMode == 2) return false;
 
-        var (w, h) = SpriteUtility.GetSize(attr0.Shape, attr1.Size);
+        var (w, h) = GetSize(attr0.Shape, attr1.Size);
         outWidth   = w;
         outHeight  = h;
 

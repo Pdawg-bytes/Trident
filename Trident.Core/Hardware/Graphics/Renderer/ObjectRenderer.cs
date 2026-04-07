@@ -1,5 +1,6 @@
 ﻿using Trident.Core.Global;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 using static Trident.Core.Global.ArrayExtensions;
 
@@ -23,7 +24,7 @@ internal partial class PPU
             ObjAttr1 attr1 = _oam.Fetch<ObjAttr1>(oamAddr + 2);
             ObjAttr2 attr2 = _oam.Fetch<ObjAttr2>(oamAddr + 4);
 
-            var (width, height) = SpriteUtility.GetSize(attr0.Shape, attr1.Size);
+            var (width, height) = GetSize(attr0.Shape, attr1.Size);
 
             int objY = attr0.Y;
             if (objY >= 160) objY -= 256;
@@ -50,14 +51,13 @@ internal partial class PPU
             spriteY = height - 1 - spriteY;
 
         bool use256    = attr0.Color256;
-        uint tileBase  = 0x10000u;
         uint tileIndex = attr2.TileIndex;
         byte priority  = attr2.Priority;
         uint palette   = attr2.Palette;
 
         int tileY       = spriteY >> 3;
-        int pixelY      = spriteY & 7;
-        int tilesPerRow = width >> 3;
+        int pixelY      = spriteY &  7;
+        int tilesPerRow = width   >> 3;
 
         var (startX, endX) = ComputeXRange(objX, width);
 
@@ -65,12 +65,12 @@ internal partial class PPU
         {
             int pixelX = attr1.HFlip ? width - 1 - x : x;
 
-            int tileX = pixelX >> 3;
-            int localX = pixelX & 7;
+            int tileX  = pixelX >> 3;
+            int localX = pixelX &  7;
 
-            uint tile = SpriteUtility.CalculateTileIndex(tileIndex, tileX, tileY, tilesPerRow, use256, DisplayControl.ObjVramMapping);
+            uint tile = CalculateTileIndex(tileIndex, tileX, tileY, tilesPerRow, use256);
 
-            if (TrySampleSpritePixel(use256, tileBase, tile, localX, pixelY, palette, out ushort color))
+            if (TrySampleSpritePixel(use256, 0x10000, tile, localX, pixelY, palette, out ushort color))
             {
                 int screenX = objX + x;
 
@@ -82,8 +82,7 @@ internal partial class PPU
 
     private void RenderAffineSprite(int objX, int objY, int screenY, int width, int height, ObjAttr0 attr0, ObjAttr1 attr1, ObjAttr2 attr2)
     {
-        uint affineIndex = attr1.AffineIndex;
-        uint paramBase = affineIndex * 32;
+        uint paramBase = attr1.AffineIndex * 32;
 
         short pa = _oam.Fetch<short>(paramBase + 0x06);
         short pb = _oam.Fetch<short>(paramBase + 0x0E);
@@ -154,8 +153,48 @@ internal partial class PPU
 
     private bool SampleSpriteTexel(int texX, int texY, uint tileIndex, int tilesPerRow, bool use256, uint palette, out ushort color)
     {
-        uint tile = SpriteUtility.CalculateTileIndex(tileIndex, texX >> 3, texY >> 3, tilesPerRow, use256, DisplayControl.ObjVramMapping);
+        uint tile = CalculateTileIndex(tileIndex, texX >> 3, texY >> 3, tilesPerRow, use256);
         return TrySampleSpritePixel(use256, 0x10000u, tile, texX & 7, texY & 7, palette, out color);
+    }
+
+
+    private uint CalculateTileIndex(uint baseTileIndex, int tileX, int tileY, int tilesPerRow, bool is256Color)
+    {
+        if (is256Color)
+        {
+            uint baseIndex = baseTileIndex >> 1;
+            return DisplayControl.ObjVramMapping
+                ? baseIndex + (uint)(tileY * tilesPerRow + tileX)
+                : baseIndex + (uint)(tileY * 16 + tileX);
+        }
+        else
+        {
+            return DisplayControl.ObjVramMapping
+                ? baseTileIndex + (uint)(tileY * tilesPerRow + tileX)
+                : baseTileIndex + (uint)(tileY * 32 + tileX);
+        }
+    }
+
+
+    internal static short[] Widths =
+    [
+        8,  16, 32, 64,
+        16, 32, 32, 64,
+        8,   8, 16, 32
+    ];
+
+    internal static short[] Heights =
+    [
+        8,  16, 32, 64,
+        8,  8,  16, 32,
+        16, 32, 32, 64
+    ];
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static (short width, short height) GetSize(uint shape, uint size)
+    {
+        int index = (int)(shape * 4 + size);
+        return (Widths[index], Heights[index]);
     }
 
 
