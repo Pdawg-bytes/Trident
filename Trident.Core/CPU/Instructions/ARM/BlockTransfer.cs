@@ -54,7 +54,6 @@ public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
         bool firstTransfer = true;
         PipelineAccess access = PipelineAccess.NonSequential;
 
-        ref uint regBase = ref Registers.GetRegisterRef(0);
         while (regList != 0)
         {
             int index = BitOperations.TrailingZeroCount(regList);
@@ -67,12 +66,11 @@ public partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
                 if (TTraits.Writeback && firstTransfer)
                     Registers[rb] = finalAddress;
 
-                Unsafe.Add(ref regBase, index) = Bus.Read32(address, access);
+                Registers[index] = Bus.Read32(address, access);
             }
             else
             {
-                Bus.Write32(address, Unsafe.Add(ref regBase, index), access);
-
+                Bus.Write32(address, Registers[index], access);
                 if (TTraits.Writeback && firstTransfer)
                     Registers[rb] = finalAddress;
             }
