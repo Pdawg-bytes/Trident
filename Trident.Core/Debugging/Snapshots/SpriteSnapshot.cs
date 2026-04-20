@@ -75,7 +75,12 @@ public unsafe struct SpriteSnapshot
         ObjAttr1 attr1 = Unsafe.As<ushort, ObjAttr1>(ref raw1);
         ObjAttr2 attr2 = Unsafe.As<ushort, ObjAttr2>(ref raw2);
 
-        var (width, height) = PPU.GetSize(attr0.Shape, attr1.Size);
+        short width, height;
+
+        if (attr0.Shape <= 2 && attr1.Size <= 3)
+            (width, height) = PPU.GetSize(attr0.Shape, attr1.Size);
+        else
+            (width, height) = (0, 0);
 
         int rawY = attr0.Y;
         int rawX = (int)attr1.X;
