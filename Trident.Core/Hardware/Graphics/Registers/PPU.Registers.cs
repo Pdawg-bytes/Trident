@@ -38,9 +38,12 @@ internal partial class PPU
             bg.ScreenBaseBlock = (byte)((value >> 8) & 0x1F);
             bg.ScreenSize      = (byte)(value >> 14);
 
-            // GBATek: BG2/BG3: Display Area Overflow (0=Transparent, 1=Wraparound)
             if (id >= 2) bg.OverflowWrap = ((value >> 13) & 1) != 0;
-            else         bg.OverflowWrap = false;
+            else
+            {
+                bg.OverflowWrap = false;
+                bg.Raw          = (ushort)(bg.Raw & ~(1 << 13));
+            }
         }
     }
 
