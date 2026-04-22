@@ -1,6 +1,4 @@
 ﻿using Trident.Core.Global;
-using Trident.Core.Hardware.Graphics.Registers;
-
 namespace Trident.Core.Hardware.Graphics;
 
 internal partial class PPU

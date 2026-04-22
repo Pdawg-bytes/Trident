@@ -9,18 +9,18 @@ internal class DMAChannel(uint id)
     internal bool InterruptOnEnd;
     internal bool GamePakDRQ;
 
-    internal uint Source;
-    internal uint Destination;
+    internal uint   Source;
+    internal uint   Destination;
     internal ushort TransferLength;
 
-    internal TransferLatch Latch;
+    internal TransferLatch   Latch;
 
     internal DMATransferSize TransferSize;
 
-    internal AddressingMode SourceControl;
-    internal AddressingMode DestinationControl;
+    internal AddressingMode  SourceControl;
+    internal AddressingMode  DestinationControl;
 
-    internal DMAStartTiming StartTiming;
+    internal DMAStartTiming  StartTiming;
 }
 
 internal struct TransferLatch

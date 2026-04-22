@@ -69,8 +69,9 @@ internal class TimerManager
     {
         TimerChannel ch = _channels[id];
 
-        return (ushort)(
-            (ch.Prescaler & 3) |
+        return (ushort)
+        (
+            (ch.Prescaler & 3)             |
             (ch.Cascade    ? (1 << 2) : 0) |
             (ch.IRQEnabled ? (1 << 6) : 0) |
             (ch.Enabled    ? (1 << 7) : 0)
@@ -194,4 +195,20 @@ internal class TimerManager
             running:    ch.Running
         );
     }
+}
+
+internal class TimerChannel
+{
+    internal int ID;
+
+    internal ushort Reload;
+    internal uint   Counter;
+
+    internal int  Prescaler;
+    internal bool Cascade;
+    internal bool IRQEnabled;
+    internal bool Enabled;
+
+    internal bool  Running;
+    internal ulong TimestampStarted;
 }

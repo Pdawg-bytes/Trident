@@ -136,6 +136,13 @@ internal partial class MMIO : MemoryBase
 }
 
 
+internal readonly struct RegisterAccessor(Func<ushort> read, Action<ushort, WriteMask> write)
+{
+    internal readonly Func<ushort> Read = read;
+    internal readonly Action<ushort, WriteMask> Write = write;
+}
+
+
 [Flags]
 internal enum WriteMask : byte
 {

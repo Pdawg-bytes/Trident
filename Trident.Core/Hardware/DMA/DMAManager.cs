@@ -2,6 +2,7 @@
 using Trident.Core.Bus;
 using Trident.Core.CPU;
 using Trident.Core.Scheduling;
+using Trident.Core.Memory.MappedIO;
 using System.Runtime.CompilerServices;
 using Trident.Core.Debugging.Snapshots;
 using Trident.Core.Hardware.Interrupts;
@@ -240,6 +241,15 @@ internal partial class DMAManager
         ch.DestinationControl,
         ch.StartTiming
     );
+}
+
+
+internal enum DMATrigger
+{
+    HBlank,
+    VBlank,
+    FIFO0,
+    FIFO1
 }
 
 

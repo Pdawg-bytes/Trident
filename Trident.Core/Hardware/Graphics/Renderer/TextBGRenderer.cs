@@ -1,7 +1,6 @@
 ﻿using Trident.Core.Global;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
-using Trident.Core.Hardware.Graphics.Registers;
 
 using static Trident.Core.Global.ArrayExtensions;
 

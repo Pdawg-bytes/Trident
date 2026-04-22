@@ -1,5 +1,4 @@
 using Trident.Core.Debugging.Snapshots;
-using Trident.Core.Hardware.Graphics.Registers;
 
 namespace Trident.Core.Hardware.Graphics;
 

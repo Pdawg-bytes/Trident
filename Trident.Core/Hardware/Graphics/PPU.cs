@@ -3,7 +3,6 @@ using Trident.Core.Scheduling;
 using Trident.Core.Hardware.DMA;
 using Trident.Core.Memory.MappedIO;
 using Trident.Core.Hardware.Interrupts;
-using Trident.Core.Hardware.Graphics.Registers;
 
 namespace Trident.Core.Hardware.Graphics;
 
@@ -111,9 +110,7 @@ internal partial class PPU
 
     private void OnHBlankEnd()
     {
-        DisplayStatus dispstat = DisplayStatus;
-
-        dispstat.HBlankFlag = false;
+        DisplayStatus.HBlankFlag = false;
         VCount++;
 
         if (VCount == 160)
@@ -125,7 +122,7 @@ internal partial class PPU
         if (VCount == 228) 
             VCount = 0;
 
-        if (dispstat.VCountIRQ && VCount == dispstat.VCountSetting)
+        if (DisplayStatus.VCountIRQ && VCount == DisplayStatus.VCountSetting)
             _raiseIRQ(InterruptSource.LCD_VCounterMatch);
 
         _scheduler.Schedule(EventType.PPU_HBlankStart, HBlankStartDelay);

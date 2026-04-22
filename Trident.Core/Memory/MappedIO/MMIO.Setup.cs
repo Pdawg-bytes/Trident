@@ -1,5 +1,5 @@
 ﻿using Trident.Core.Hardware.IO;
-using Trident.Core.Hardware.Graphics.Registers;
+using Trident.Core.Hardware.Graphics;
 using static Trident.Core.Hardware.IO.IORegisters;
 
 namespace Trident.Core.Memory.MappedIO;
