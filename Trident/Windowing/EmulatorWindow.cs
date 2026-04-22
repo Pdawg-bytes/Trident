@@ -87,6 +87,8 @@ internal class EmulatorWindow : GameWindow
         else
         {
             UpdateFrequency = 0;
+            VSync           = VSyncMode.On;
+        }
 
         WindowHandle = GLFW.GetWin32Window(WindowPtr);
     }
