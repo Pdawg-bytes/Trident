@@ -74,9 +74,19 @@ internal class EmulatorWindow : GameWindow
             _styleConfig = JsonSerializer.Deserialize<ImGuiStyleConfig>(json) ?? 
                 throw new InvalidDataException("ImGui style configuration was unable to be deserialized.");
         }
+        
+        string vendor = GL.GetString(StringName.Vendor) ?? "";
+        bool isIntel  = vendor.Contains("Intel", StringComparison.OrdinalIgnoreCase);
 
-        UpdateFrequency = 0;
-        VSync = VSyncMode.On;
+        if (isIntel && Environment.OSVersion.Platform == PlatformID.Win32NT)
+        {
+            // Intel's awful drivers seem to just spin in SwapBuffers, making VSync burn an entire core!
+            UpdateFrequency = Monitors.GetPrimaryMonitor().CurrentVideoMode.RefreshRate;
+            VSync           = VSyncMode.Off;
+        }
+        else
+        {
+            UpdateFrequency = 0;
 
         WindowHandle = GLFW.GetWin32Window(WindowPtr);
     }
@@ -159,15 +169,6 @@ internal class EmulatorWindow : GameWindow
         _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"C:\Users\Pdawg\Downloads\Pokemon - Ruby Version (U) (V1.1)\Pokemon - Ruby Version (U) (V1.1).gba"));
     }
 
-    protected override void OnClosing(CancelEventArgs e)
-    {
-        base.OnClosing(e);
-
-        _emulatorThread?.Stop();
-        _controller.Dispose();
-    }
-
-
     private void InitFramebufferTexture()
     {
         _framebufferTexture = GL.GenTexture();
@@ -178,6 +179,15 @@ internal class EmulatorWindow : GameWindow
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
     }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        base.OnClosing(e);
+
+        _emulatorThread?.Stop();
+        _controller.Dispose();
+    }
+
 
     private void AddWidget(IWidget widget)
     {
@@ -218,7 +228,6 @@ internal class EmulatorWindow : GameWindow
         GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
         _controller.WindowResized(ClientSize.X, ClientSize.Y);
     }
-
 
     protected override void OnRenderFrame(FrameEventArgs e)
     {
@@ -305,22 +314,6 @@ internal class EmulatorWindow : GameWindow
                 {
                     if (ImGui.MenuItem(IconStepOver + "Skip BIOS", "", _emulatorThread.ShouldSkipBIOS))
                         _emulatorThread.ShouldSkipBIOS = !_emulatorThread.ShouldSkipBIOS;
-
-                    ImGui.EndMenu();
-                }
-
-                if (ImGui.BeginMenu(IconSelectWindow + "GUI"))
-                {
-                    if (ImGui.MenuItem(IconSyncLock + "Sync to refresh      ", "", _uncappedRefresh))
-                    {
-                        _uncappedRefresh = !_uncappedRefresh;
-                        SetUpdateFrequency(_uncappedRefresh);
-                    }
-
-                    Tooltips.HelpTooltip("Allows the GUI to run closer the primary monitor's refresh rate at the cost of CPU time.\nRounds to multiples of 60.", -38f);
-
-                    if (ImGui.MenuItem(IconDeveloperGuide + "ImGui Demo", "", _demoOpen))
-                        _demoOpen = !_demoOpen;
 
                     ImGui.EndMenu();
                 }
@@ -461,6 +454,7 @@ internal class EmulatorWindow : GameWindow
         }
     }
 
+
     private void StepGBA(ulong cycles)
     {
         if (_emulatorThread.IsPaused())
@@ -484,19 +478,6 @@ internal class EmulatorWindow : GameWindow
 
         GCHandle handle = GCHandle.Alloc(fontData, GCHandleType.Pinned);
         return (handle.AddrOfPinnedObject(), fontData.Length, sizePixels, handle);
-    }
-
-
-    private void SetUpdateFrequency(bool uncapped)
-    {
-        if (uncapped)
-        {
-            int refresh = Monitors.GetPrimaryMonitor().CurrentVideoMode.RefreshRate;
-            int rounded = Math.Clamp((int)(Math.Round(refresh / 60.0) * 60), 60, 120);
-            UpdateFrequency = rounded;
-        }
-        else
-            UpdateFrequency = 60;
     }
 
 
