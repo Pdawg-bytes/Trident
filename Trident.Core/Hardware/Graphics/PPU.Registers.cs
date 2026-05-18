@@ -7,146 +7,13 @@ namespace Trident.Core.Hardware.Graphics;
 
 internal partial class PPU
 {
-    internal sealed class DisplayControlRegister
-    {
-        private ushort _dispcnt;
-
-        internal byte BackgroundMode;
-        internal uint GetSpriteBoundary() => BackgroundMode >= 3 ? 0x14000u : 0x10000u;
-
-        internal bool CGBMode;
-        internal bool FrameSelect;
-        internal bool HBlankIntervalFree;
-        internal bool ObjVramMapping;
-        internal bool ForcedBlank;
-
-        // Display flags: BG0–BG3, OBJ, WIN0, WIN1, OBJWIN
-        internal bool[] Enable = new bool[8];
-
-
-        internal ushort Read() => _dispcnt;
-
-        internal void Write(ushort value, WriteMask mask)
-        {
-            if (mask.IsLower())
-            {
-                _dispcnt = (ushort)((_dispcnt & 0xFF00) | (byte)value);
-
-                BackgroundMode     = (byte)(_dispcnt & 0b111);
-                CGBMode            = (_dispcnt & (1 << 3)) != 0;
-                FrameSelect        = (_dispcnt & (1 << 4)) != 0;
-                HBlankIntervalFree = (_dispcnt & (1 << 5)) != 0;
-                ObjVramMapping     = (_dispcnt & (1 << 6)) != 0;
-                ForcedBlank        = (_dispcnt & (1 << 7)) != 0;
-            }
-
-            if (mask.IsUpper())
-            {
-                _dispcnt = (ushort)((_dispcnt & 0x00FF) | (value & 0xFF00));
-
-                for (int i = 0; i < 8; i++)
-                    Enable[i] = (_dispcnt & (1 << (8 + i))) != 0;
-            }
-        }
-    }
-
-    internal sealed class DisplayStatusRegister(Func<uint> getY)
-    {
-        private readonly Func<uint> _getY = getY;
-
-        internal bool VBlankFlag;
-        internal bool HBlankFlag;
-
-        internal bool VBlankIRQ;
-        internal bool HBlankIRQ;
-        internal bool VCountIRQ;
-
-        internal byte VCountSetting;
-
-
-        internal ushort Read() => (ushort)
-        (
-            (VBlankFlag                 ? 1 : 0) << 0 |
-            (HBlankFlag                 ? 1 : 0) << 1 |
-            ((_getY() == VCountSetting) ? 1 : 0) << 2 |
-            (VBlankIRQ                  ? 1 : 0) << 3 |
-            (HBlankIRQ                  ? 1 : 0) << 4 |
-            (VCountIRQ                  ? 1 : 0) << 5 |
-            VCountSetting                        << 8
-        );
-
-        internal void Write(ushort value, WriteMask mask)
-        {
-            if (mask.IsLower())
-            {
-                VBlankIRQ = ((value >> 3) & 1) != 0;
-                HBlankIRQ = ((value >> 4) & 1) != 0;
-                VCountIRQ = ((value >> 5) & 1) != 0;
-            }
-
-            if (mask.IsUpper())
-                VCountSetting = (byte)(value >> 8);
-        }
-    }
-
-    internal readonly DisplayControlRegister DisplayControl = new();
-    internal readonly DisplayStatusRegister  DisplayStatus;
+    internal readonly DisplayControl DisplayControl = new();
+    internal readonly DisplayStatus  DisplayStatus;
 
 
     internal uint Greenswap;
 
     internal uint VCount;
-
-
-    internal sealed class Background(uint bg)
-    {
-        internal struct ReferencePoint
-        {
-            internal int X;
-            internal int Y;
-        }
-
-        internal readonly uint ID = bg;
-
-        internal ushort Raw;
-
-        internal byte Priority;
-        internal byte CharBaseBlock;
-        internal bool Mosaic;
-        internal bool Use256Colors;
-        internal byte ScreenBaseBlock;
-        internal bool OverflowWrap;
-        internal byte ScreenSize;
-
-        internal ushort XOffset;
-        internal ushort YOffset;
-
-        internal readonly short[] P = new short[4];
-        internal ReferencePoint Origin;
-        internal ReferencePoint Lerp;
-
-        internal void UpdateReferencePoints() => Lerp = Origin;
-
-        internal void Reset()
-        {
-            Raw             = 0;
-            Priority        = 0;
-            CharBaseBlock   = 0;
-            Mosaic          = false;
-            Use256Colors    = false;
-            ScreenBaseBlock = 0;
-            OverflowWrap    = false;
-            ScreenSize      = 0;
-
-            P[0] = 0x0100;
-            P[1] = 0x0000;
-            P[2] = 0x0000;
-            P[3] = 0x0100;
-
-            Origin = new();
-            Lerp   = new();
-        }
-    }
 
     internal ushort ReadBGxCNT(uint id) => Backgrounds[id].Raw;
     internal void WriteBGxCNT(uint id, ushort value, WriteMask mask)
@@ -236,6 +103,141 @@ internal partial class PPU
 
         param = (int)raw;
         bg.UpdateReferencePoints();
+    }
+}
+
+
+internal sealed class DisplayControl
+{
+    private ushort _dispcnt;
+
+    internal byte BackgroundMode;
+    internal uint GetSpriteBoundary() => BackgroundMode >= 3 ? 0x14000u : 0x10000u;
+
+    internal bool CGBMode;
+    internal bool FrameSelect;
+    internal bool HBlankIntervalFree;
+    internal bool ObjVramMapping;
+    internal bool ForcedBlank;
+
+    // Display flags: BG0–BG3, OBJ, WIN0, WIN1, OBJWIN
+    internal bool[] Enable = new bool[8];
+
+
+    internal ushort Read() => _dispcnt;
+
+    internal void Write(ushort value, WriteMask mask)
+    {
+        if (mask.IsLower())
+        {
+            _dispcnt = (ushort)((_dispcnt & 0xFF00) | (byte)value);
+
+            BackgroundMode     = (byte)(_dispcnt & 0b111);
+            CGBMode            = (_dispcnt & (1 << 3)) != 0;
+            FrameSelect        = (_dispcnt & (1 << 4)) != 0;
+            HBlankIntervalFree = (_dispcnt & (1 << 5)) != 0;
+            ObjVramMapping     = (_dispcnt & (1 << 6)) != 0;
+            ForcedBlank        = (_dispcnt & (1 << 7)) != 0;
+        }
+
+        if (mask.IsUpper())
+        {
+            _dispcnt = (ushort)((_dispcnt & 0x00FF) | (value & 0xFF00));
+
+            for (int i = 0; i < 8; i++)
+                Enable[i] = (_dispcnt & (1 << (8 + i))) != 0;
+        }
+    }
+}
+
+internal sealed class DisplayStatus(Func<uint> getY)
+{
+    private readonly Func<uint> _getY = getY;
+
+    internal bool VBlankFlag;
+    internal bool HBlankFlag;
+
+    internal bool VBlankIRQ;
+    internal bool HBlankIRQ;
+    internal bool VCountIRQ;
+
+    internal byte VCountSetting;
+
+
+    internal ushort Read() => (ushort)
+    (
+        (VBlankFlag                 ? 1 : 0) << 0 |
+        (HBlankFlag                 ? 1 : 0) << 1 |
+        ((_getY() == VCountSetting) ? 1 : 0) << 2 |
+        (VBlankIRQ                  ? 1 : 0) << 3 |
+        (HBlankIRQ                  ? 1 : 0) << 4 |
+        (VCountIRQ                  ? 1 : 0) << 5 |
+        VCountSetting                        << 8
+    );
+
+    internal void Write(ushort value, WriteMask mask)
+    {
+        if (mask.IsLower())
+        {
+            VBlankIRQ = ((value >> 3) & 1) != 0;
+            HBlankIRQ = ((value >> 4) & 1) != 0;
+            VCountIRQ = ((value >> 5) & 1) != 0;
+        }
+
+        if (mask.IsUpper())
+            VCountSetting = (byte)(value >> 8);
+    }
+}
+
+
+
+internal sealed class Background(uint bg)
+{
+    internal struct ReferencePoint
+    {
+        internal int X;
+        internal int Y;
+    }
+
+    internal readonly uint ID = bg;
+
+    internal ushort Raw;
+
+    internal byte Priority;
+    internal byte CharBaseBlock;
+    internal bool Mosaic;
+    internal bool Use256Colors;
+    internal byte ScreenBaseBlock;
+    internal bool OverflowWrap;
+    internal byte ScreenSize;
+
+    internal ushort XOffset;
+    internal ushort YOffset;
+
+    internal readonly short[] P = new short[4];
+    internal ReferencePoint Origin;
+    internal ReferencePoint Lerp;
+
+    internal void UpdateReferencePoints() => Lerp = Origin;
+
+    internal void Reset()
+    {
+        Raw             = 0;
+        Priority        = 0;
+        CharBaseBlock   = 0;
+        Mosaic          = false;
+        Use256Colors    = false;
+        ScreenBaseBlock = 0;
+        OverflowWrap    = false;
+        ScreenSize      = 0;
+
+        P[0] = 0x0100;
+        P[1] = 0x0000;
+        P[2] = 0x0000;
+        P[3] = 0x0100;
+
+        Origin = new();
+        Lerp   = new();
     }
 }
 

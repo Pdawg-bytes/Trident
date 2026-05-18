@@ -156,7 +156,7 @@ internal partial class PPU
         DisplayStatus.Write(0, WriteMask.Both);
 
         Greenswap = 0;
-        VCount = 0;
+        VCount    = 0;
 
         for (int i = 0; i < 4; i++)
             Backgrounds[i].Reset();
