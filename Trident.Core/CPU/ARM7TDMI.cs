@@ -33,9 +33,9 @@ public sealed partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
         _scheduler = scheduler;
 
         Registers = new();
-        Pipeline = new();
+        Pipeline  = new();
 
-        _armDispatcher = new(this);
+        _armDispatcher   = new(this);
         _thumbDispatcher = new(this);
     }
 
@@ -197,7 +197,7 @@ public sealed partial class ARM7TDMI<TBus> where TBus : struct, IDataBus
     }
 
 
-    internal void NonImplementedARMInstr(uint opcode) => throw new NotImplementedException("This ARM instruction group is not implemented.");
+    internal void NonImplementedARMInstr(uint opcode)     => throw new NotImplementedException("This ARM instruction group is not implemented.");
     internal void NonImplementedThumbInstr(ushort opcode) => throw new NotImplementedException("This Thumb instruction group is not implemented.");
 
 
