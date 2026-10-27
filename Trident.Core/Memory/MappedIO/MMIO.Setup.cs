@@ -1,5 +1,4 @@
-﻿using Trident.Core.Hardware.IO;
-using Trident.Core.Hardware.Graphics;
+﻿using Trident.Core.Hardware.Graphics;
 using static Trident.Core.Hardware.IO.IORegisters;
 
 namespace Trident.Core.Memory.MappedIO;
@@ -26,14 +25,21 @@ internal partial class MMIO
 
         // PPU registers
         // TODO: PPU read-only registers will return open bus on read, NOT 0.
-        SetAccessor(DISPCNT, _ppu.DisplayControl.Read, _ppu.DisplayControl.Write);
-        SetAccessor(GREENSWAP, () => (ushort)_ppu.Greenswap, (value, mask) => { if (mask.IsLower()) _ppu.Greenswap = value & 1u; });
-        SetAccessor(DISPSTAT, _ppu.DisplayStatus.Read, _ppu.DisplayStatus.Write);
-        SetAccessor(VCOUNT, () => (ushort)_ppu.VCount, _emptyWrite);
+        SetAccessor(DISPCNT,   _ppu.DisplayControl.Read,  _ppu.DisplayControl.Write);
+        SetAccessor(GREENSWAP, _ppu.GreenSwap.Read,       _ppu.GreenSwap.Write);
+        SetAccessor(DISPSTAT,  _ppu.DisplayStatus.Read,   _ppu.DisplayStatus.Write);
+        SetAccessor(VCOUNT,    () => (ushort)_ppu.VCount, _emptyWrite);
 
         RegisterBGBase();
         RegisterAffineBG(2, BG2PA, BG2X, BG2Y);
         RegisterAffineBG(3, BG3PA, BG3X, BG3Y);
+
+        RegisterWindows();
+
+        SetAccessor(MOSAIC,   _zeroRead,              _ppu.Mosaic.Write);
+        SetAccessor(BLDCNT,   _ppu.Blend.ReadControl, _ppu.Blend.WriteControl);
+        SetAccessor(BLDALPHA, _zeroRead,              _ppu.Blend.WriteAlpha);
+        SetAccessor(BLDY,     _zeroRead,              _ppu.Blend.WriteBrightness);
 
 
         // TEMP
@@ -130,30 +136,41 @@ internal partial class MMIO
     {
         for (uint id = 0; id < 4; id++)
         {
-            uint localId = id;
+            Background bg = _ppu.Backgrounds[id];
 
-            uint cnt  = BG0CNT  + localId * 2;
-            uint hofs = BG0HOFS + localId * 4;
-            uint vofs = BG0VOFS + localId * 4;
-
-            SetAccessor(cnt, () => _ppu.ReadBGxCNT(localId), (value, mask) => _ppu.WriteBGxCNT(localId, value, mask));
-
-            SetAccessor(hofs, _zeroRead, (value, mask) => _ppu.WriteBGxOFS(localId, false, value, mask));
-            SetAccessor(vofs, _zeroRead, (value, mask) => _ppu.WriteBGxOFS(localId, true, value, mask));
+            SetAccessor(BG0CNT  + id * 2, bg.ReadControl, bg.WriteControl);
+            SetAccessor(BG0HOFS + id * 4, _zeroRead,      (v, m) => bg.WriteOffset(false, v, m));
+            SetAccessor(BG0VOFS + id * 4, _zeroRead,      (v, m) => bg.WriteOffset(true,  v, m));
         }
     }
 
     private void RegisterAffineBG(uint id, uint basePA, uint baseX, uint baseY)
     {
-        SetAccessor(basePA + 0, _zeroRead, (v, m) => _ppu.WriteBGxP(id, AffineParameter.A, v, m));
-        SetAccessor(basePA + 2, _zeroRead, (v, m) => _ppu.WriteBGxP(id, AffineParameter.B, v, m));
-        SetAccessor(basePA + 4, _zeroRead, (v, m) => _ppu.WriteBGxP(id, AffineParameter.C, v, m));
-        SetAccessor(basePA + 6, _zeroRead, (v, m) => _ppu.WriteBGxP(id, AffineParameter.D, v, m));
+        Background bg = _ppu.Backgrounds[id];
 
-        SetAccessor(baseX + 0, _zeroRead, (v, m) => _ppu.WriteBGxREF(id, false, v, WriteMask.Lower, m));
-        SetAccessor(baseX + 2, _zeroRead, (v, m) => _ppu.WriteBGxREF(id, false, v, WriteMask.Upper, m));
+        SetAccessor(basePA + 0, _zeroRead, (v, m) => bg.WriteAffineParameter(AffineParameter.A, v, m));
+        SetAccessor(basePA + 2, _zeroRead, (v, m) => bg.WriteAffineParameter(AffineParameter.B, v, m));
+        SetAccessor(basePA + 4, _zeroRead, (v, m) => bg.WriteAffineParameter(AffineParameter.C, v, m));
+        SetAccessor(basePA + 6, _zeroRead, (v, m) => bg.WriteAffineParameter(AffineParameter.D, v, m));
 
-        SetAccessor(baseY + 0, _zeroRead, (v, m) => _ppu.WriteBGxREF(id, true, v, WriteMask.Lower, m));
-        SetAccessor(baseY + 2, _zeroRead, (v, m) => _ppu.WriteBGxREF(id, true, v, WriteMask.Upper, m));
+        SetAccessor(baseX + 0, _zeroRead, (v, m) => bg.WriteReference(false, v, WriteMask.Lower, m));
+        SetAccessor(baseX + 2, _zeroRead, (v, m) => bg.WriteReference(false, v, WriteMask.Upper, m));
+
+        SetAccessor(baseY + 0, _zeroRead, (v, m) => bg.WriteReference(true, v, WriteMask.Lower, m));
+        SetAccessor(baseY + 2, _zeroRead, (v, m) => bg.WriteReference(true, v, WriteMask.Upper, m));
+    }
+
+    private void RegisterWindows()
+    {
+        for (uint id = 0; id < 2; id++)
+        {
+            Window win = _ppu.Windows[id];
+
+            SetAccessor(WIN0H + id * 2, () => win.ReadBounds(false), (v, m) => win.WriteBounds(false, v, m));
+            SetAccessor(WIN0V + id * 2, () => win.ReadBounds(true),  (v, m) => win.WriteBounds(true,  v, m));
+        }
+
+        SetAccessor(WININ,  _ppu.WindowInside.Read,  _ppu.WindowInside.Write);
+        SetAccessor(WINOUT, _ppu.WindowOutside.Read, _ppu.WindowOutside.Write);
     }
 }

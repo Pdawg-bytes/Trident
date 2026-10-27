@@ -167,8 +167,8 @@ internal class EmulatorWindow : GameWindow
         InitFramebufferTexture();
         InitWidgets();
 
-        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, @"C:\Users\Pdawg\Downloads\gba_bios.bin"));
-        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"C:\Users\Pdawg\Downloads\Pokemon - Ruby Version (U) (V1.1)\Pokemon - Ruby Version (U) (V1.1).gba"));
+        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.BIOS, @"D:\GBA_ROM\gba_bios.bin"));
+        _emulatorThread.EnqueueCommand(new LoadCommand(LoadType.GamePak, @"D:\GBA_ROM\Pokemon - Ruby Version (U) (V1.1)\Pokemon - Ruby Version (U) (V1.1).gba"));
     }
 
     private void InitFramebufferTexture()

@@ -1,109 +1,22 @@
 ﻿using Trident.Core.Global;
 using Trident.Core.Memory.MappedIO;
 
-using static Trident.Core.Global.ArrayExtensions;
-
 namespace Trident.Core.Hardware.Graphics;
 
 internal partial class PPU
 {
     internal readonly DisplayControl DisplayControl = new();
-    internal readonly DisplayStatus  DisplayStatus;
+    internal readonly DisplayStatus DisplayStatus;
 
+    internal readonly GreenSwap GreenSwap = new();
 
-    internal uint Greenswap;
+    internal readonly Mosaic Mosaic      = new();
+    internal readonly BlendControl Blend = new();
+
+    internal readonly WindowInside WindowInside;
+    internal readonly WindowOutside WindowOutside = new();
 
     internal uint VCount;
-
-    internal ushort ReadBGxCNT(uint id) => Backgrounds[id].Raw;
-    internal void WriteBGxCNT(uint id, ushort value, WriteMask mask)
-    {
-        Background bg = Backgrounds[id];
-
-        if (mask.IsLower())
-        {
-            bg.Raw = (ushort)((bg.Raw & 0xFF00) | (byte)value);
-
-            bg.Priority      = (byte)((value >> 0) & 0b11);
-            bg.CharBaseBlock = (byte)((value >> 2) & 0b11);
-            bg.Mosaic        = ((value >> 6) & 1) != 0;
-            bg.Use256Colors  = ((value >> 7) & 1) != 0;
-        }
-
-        if (mask.IsUpper())
-        {
-            bg.Raw = (ushort)((bg.Raw & 0x00FF) | (value & 0xFF00));
-
-            bg.ScreenBaseBlock = (byte)((value >> 8) & 0x1F);
-            bg.ScreenSize      = (byte)(value >> 14);
-
-            if (id >= 2) bg.OverflowWrap = ((value >> 13) & 1) != 0;
-            else
-            {
-                bg.OverflowWrap = false;
-                bg.Raw          = (ushort)(bg.Raw & ~(1 << 13));
-            }
-        }
-    }
-
-    internal void WriteBGxOFS(uint id, bool vertical, ushort value, WriteMask mask)
-    {
-        Background bg     = Backgrounds[id];
-        ref ushort offset = ref (vertical ? ref bg.YOffset : ref bg.XOffset);
-
-        if (mask.IsLower())
-            offset = (ushort)((offset & 0xFF00) | (byte)value);
-
-        if (mask.IsUpper())
-            offset = (ushort)((offset & 0x00FF) | ((value & 0x0100) >> 8 << 8));
-    }
-
-    internal void WriteBGxP(uint id, AffineParameter p, ushort value, WriteMask mask)
-    {
-        Background bg   = Backgrounds[id];
-        ref short param = ref GetUnsafe(bg.P, (uint)p);
-
-        if (mask.IsLower())
-            param = (short)((param & 0xFF00) | (byte)value);
-
-        if (mask.IsUpper())
-            param = (short)((param & 0x00FF) | (value & 0xFF00));
-    }
-
-    internal void WriteBGxREF(uint id, bool vertical, ushort value, WriteMask wordMask, WriteMask byteMask)
-    {
-        Background bg = Backgrounds[id];
-        ref int param = ref (vertical ? ref bg.Origin.Y : ref bg.Origin.X);
-
-        uint raw = (uint)param;
-
-        uint lo = (uint)(value & 0x00FF);
-        uint hi = (uint)(value & 0xFF00);
-
-        switch (wordMask)
-        {
-            case WriteMask.Lower:
-                if (byteMask.IsLower())
-                    raw = (raw & ~(0xFFu << 0)) | lo;
-                if (byteMask.IsUpper())
-                    raw = (raw & ~(0xFFu << 8)) | hi;
-                break;
-
-            case WriteMask.Upper:
-                if (byteMask.IsLower())
-                    raw = (raw & ~(0xFFu << 16)) | (lo << 16);
-                if (byteMask.IsUpper())
-                {
-                    raw  = (raw & ~(0xFFu << 24)) | (hi << 16);
-                    raw &= 0x0FFFFFFF;
-                    raw  = (uint)raw.ExtendFrom(27);
-                }
-                break;
-        }
-
-        param = (int)raw;
-        bg.UpdateReferencePoints();
-    }
 }
 
 
@@ -150,6 +63,7 @@ internal sealed class DisplayControl
     }
 }
 
+
 internal sealed class DisplayStatus(Func<uint> getY)
 {
     private readonly Func<uint> _getY = getY;
@@ -190,6 +104,30 @@ internal sealed class DisplayStatus(Func<uint> getY)
 }
 
 
+internal sealed class GreenSwap
+{
+    internal uint Value;
+
+    internal ushort Read() => (ushort)Value;
+
+    internal void Write(ushort value, WriteMask mask)
+    {
+        if (mask.IsLower())
+            Value = value & 1u;
+    }
+
+    internal void Reset() => Value = 0;
+}
+
+
+internal enum AffineParameter
+{
+    A = 0,
+    B = 1,
+    C = 2,
+    D = 3
+}
+
 
 internal sealed class Background(uint bg)
 {
@@ -218,6 +156,93 @@ internal sealed class Background(uint bg)
     internal ReferencePoint Origin;
     internal ReferencePoint Lerp;
 
+
+    internal ushort ReadControl() => Raw;
+
+    internal void WriteControl(ushort value, WriteMask mask)
+    {
+        if (mask.IsLower())
+        {
+            Raw = (ushort)((Raw & 0xFF00) | (byte)value);
+
+            Priority      = (byte)((value >> 0) & 0b11);
+            CharBaseBlock = (byte)((value >> 2) & 0b11);
+            Mosaic        = ((value >> 6) & 1) != 0;
+            Use256Colors  = ((value >> 7) & 1) != 0;
+        }
+
+        if (mask.IsUpper())
+        {
+            Raw = (ushort)((Raw & 0x00FF) | (value & 0xFF00));
+
+            ScreenBaseBlock = (byte)((value >> 8) & 0x1F);
+            ScreenSize      = (byte)(value >> 14);
+
+            if (ID >= 2) OverflowWrap = ((value >> 13) & 1) != 0;
+            else
+            {
+                OverflowWrap = false;
+                Raw          = (ushort)(Raw & ~(1 << 13));
+            }
+        }
+    }
+
+    internal void WriteOffset(bool vertical, ushort value, WriteMask mask)
+    {
+        ref ushort offset = ref (vertical ? ref YOffset : ref XOffset);
+
+        if (mask.IsLower())
+            offset = (ushort)((offset & 0xFF00) | (byte)value);
+
+        if (mask.IsUpper())
+            offset = (ushort)((offset & 0x00FF) | (value & 0x0100));
+    }
+
+    internal void WriteAffineParameter(AffineParameter p, ushort value, WriteMask mask)
+    {
+        ref short param = ref P[(int)p];
+
+        if (mask.IsLower())
+            param = (short)((param & 0xFF00) | (byte)value);
+
+        if (mask.IsUpper())
+            param = (short)((param & 0x00FF) | (value & 0xFF00));
+    }
+
+    internal void WriteReference(bool vertical, ushort value, WriteMask wordMask, WriteMask byteMask)
+    {
+        ref int param = ref (vertical ? ref Origin.Y : ref Origin.X);
+
+        uint raw = (uint)param;
+
+        uint lo = (uint)(value & 0x00FF);
+        uint hi = (uint)(value & 0xFF00);
+
+        switch (wordMask)
+        {
+            case WriteMask.Lower:
+                if (byteMask.IsLower())
+                    raw = (raw & ~(0xFFu << 0)) | lo;
+                if (byteMask.IsUpper())
+                    raw = (raw & ~(0xFFu << 8)) | hi;
+                break;
+
+            case WriteMask.Upper:
+                if (byteMask.IsLower())
+                    raw = (raw & ~(0xFFu << 16)) | (lo << 16);
+                if (byteMask.IsUpper())
+                {
+                    raw  = (raw & ~(0xFFu << 24)) | (hi << 16);
+                    raw &= 0x0FFFFFFF;
+                    raw  = (uint)raw.ExtendFrom(27);
+                }
+                break;
+        }
+
+        param = (int)raw;
+        UpdateReferencePoints();
+    }
+
     internal void UpdateReferencePoints() => Lerp = Origin;
 
     internal void Reset()
@@ -242,10 +267,205 @@ internal sealed class Background(uint bg)
 }
 
 
-internal enum AffineParameter
+internal sealed class Window(uint id)
 {
-    A = 0,
-    B = 1,
-    C = 2,
-    D = 3
+    internal readonly uint ID = id;
+
+    internal byte Left, Right, Top, Bottom;
+
+    internal bool OBJEnabled;
+    internal bool FXEnabled;
+
+    internal byte Layers;
+    internal bool BGEnabled(uint bg) => (Layers & (1 << (int)bg)) != 0;
+
+
+    internal ushort ReadBounds(bool vertical) => vertical
+        ? (ushort)((Top  << 8) | Bottom)
+        : (ushort)((Left << 8) | Right);
+
+    internal void WriteBounds(bool vertical, ushort value, WriteMask mask)
+    {
+        if (mask.IsLower())
+        {
+            if (vertical) Bottom = (byte)value;
+            else          Right  = (byte)value;
+        }
+
+        if (mask.IsUpper())
+        {
+            if (vertical) Top  = (byte)(value >> 8);
+            else          Left = (byte)(value >> 8);
+        }
+    }
+
+    internal byte ReadControl() => (byte)
+    (
+        (Layers & 0x0F)           |
+        (OBJEnabled ? 1 : 0) << 4 |
+        (FXEnabled  ? 1 : 0) << 5
+    );
+
+    internal void WriteControl(byte value)
+    {
+        Layers     = (byte)(value & 0x0F);
+        OBJEnabled = ((value >> 4) & 1) != 0;
+        FXEnabled  = ((value >> 5) & 1) != 0;
+    }
+}
+
+
+internal sealed class WindowInside(Window[] windows)
+{
+    private readonly Window[] _windows = windows;
+
+    internal ushort Read() => (ushort)(_windows[0].ReadControl() | (_windows[1].ReadControl() << 8));
+
+    internal void Write(ushort value, WriteMask mask)
+    {
+        if (mask.IsLower())
+            _windows[0].WriteControl((byte)value);
+
+        if (mask.IsUpper())
+            _windows[1].WriteControl((byte)(value >> 8));
+    }
+}
+
+
+internal sealed class WindowOutside
+{
+    internal byte OutsideLayers;
+    internal bool OutsideOBJEnabled;
+    internal bool OutsideFXEnabled;
+
+    internal byte OBJWindowLayers;
+    internal bool OBJWindowOBJEnabled;
+    internal bool OBJWindowFXEnabled;
+
+
+    internal ushort Read() => (ushort)
+    (
+        (OutsideLayers       & 0x0F)        |
+        (OutsideOBJEnabled   ? 1 : 0) << 4  |
+        (OutsideFXEnabled    ? 1 : 0) << 5  |
+        (OBJWindowLayers     & 0x0F)  << 8  |
+        (OBJWindowOBJEnabled ? 1 : 0) << 12 |
+        (OBJWindowFXEnabled  ? 1 : 0) << 13
+    );
+
+    internal void Write(ushort value, WriteMask mask)
+    {
+        if (mask.IsLower())
+        {
+            OutsideLayers     = (byte)(value & 0x0F);
+            OutsideOBJEnabled = ((value >> 4) & 1) != 0;
+            OutsideFXEnabled  = ((value >> 5) & 1) != 0;
+        }
+
+        if (mask.IsUpper())
+        {
+            OBJWindowLayers     = (byte)((value >> 8) & 0x0F);
+            OBJWindowOBJEnabled = ((value >> 12) & 1) != 0;
+            OBJWindowFXEnabled  = ((value >> 13) & 1) != 0;
+        }
+    }
+
+    internal void Reset()
+    {
+        Write(0, WriteMask.Both);
+    }
+}
+
+
+internal sealed class Mosaic
+{
+    internal byte BGHSize = 1;
+    internal byte BGVSize = 1;
+    internal byte OBJHSize = 1;
+    internal byte OBJVSize = 1;
+
+    internal void Write(ushort value, WriteMask mask)
+    {
+        if (mask.IsLower())
+        {
+            BGHSize = (byte)(value        & 0xF);
+            BGVSize = (byte)((value >> 4) & 0xF);
+        }
+
+        if (mask.IsUpper())
+        {
+            OBJHSize = (byte)((value >>  8) & 0xF);
+            OBJVSize = (byte)((value >> 12) & 0xF);
+        }
+    }
+
+    internal void Reset() => Write(0, WriteMask.Both);
+}
+
+
+internal enum BlendMode
+{
+    None     = 0,
+    Alpha    = 1,
+    Brighten = 2,
+    Darken   = 3
+}
+
+
+internal sealed class BlendControl
+{
+    private ushort _bldcnt;
+
+    internal readonly bool[] FirstTarget  = new bool[6];
+    internal readonly bool[] SecondTarget = new bool[6];
+
+    internal BlendMode Mode;
+
+    internal byte EVA;
+    internal byte EVB;
+    internal byte EVY;
+
+    internal ushort ReadControl() => _bldcnt;
+
+    internal void WriteControl(ushort value, WriteMask mask)
+    {
+        if (mask.IsLower())
+        {
+            _bldcnt = (ushort)((_bldcnt & 0xFF00) | (byte)value);
+
+            for (int i = 0; i < 6; i++)
+                FirstTarget[i] = (_bldcnt & (1 << i)) != 0;
+
+            Mode = (BlendMode)((_bldcnt >> 6) & 0b11);
+        }
+
+        if (mask.IsUpper())
+        {
+            _bldcnt = (ushort)((_bldcnt & 0x00FF) | (value & 0x3F00));
+
+            for (int i = 0; i < 6; i++)
+                SecondTarget[i] = (_bldcnt & (1 << (8 + i))) != 0;
+        }
+    }
+
+    internal void WriteAlpha(ushort value, WriteMask mask)
+    {
+        if (mask.IsLower())
+            EVA = (byte)Math.Min(value & 0x1F, 16);
+
+        if (mask.IsUpper())
+            EVB = (byte)Math.Min((value >> 8) & 0x1F, 16);
+    }
+
+    internal void WriteBrightness(ushort value, WriteMask mask)
+    {
+        if (mask.IsLower())
+            EVY = (byte)Math.Min(value & 0x1F, 16);
+    }
+
+    internal void Reset()
+    {
+        WriteControl(0, WriteMask.Both);
+        EVA = EVB = EVY = 0;
+    }
 }

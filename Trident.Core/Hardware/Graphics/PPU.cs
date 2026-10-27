@@ -12,7 +12,7 @@ internal partial class PPU
     internal const int ScreenHeight = 160;
 
     private const int HBlankStartDelay = 240 * 4; // HDraw
-    private const int HBlankEndDelay   = 68 * 4;  // 68px
+    private const int HBlankEndDelay   = 68  * 4; // 68px
     private const int HBlankFlagDelay  = 46;      // HDraw + Delay (GBATek: "the H-Blank flag is "0" for a total of 1006 cycles.")
 
     private readonly Framebuffer _framebuffer;
@@ -26,6 +26,12 @@ internal partial class PPU
         new(1),
         new(2),
         new(3)
+    ];
+
+    internal Window[] Windows =
+    [
+        new(0),
+        new(1)
     ];
 
     private readonly LayerPixel[][] _bgLines = new LayerPixel[4][];
@@ -49,6 +55,7 @@ internal partial class PPU
         _triggerDMA  = triggerDMA;
 
         DisplayStatus = new(() => VCount);
+        WindowInside  = new(Windows);
 
         _scheduler.Register(EventType.PPU_HBlankStart,   OnHBlankStart);
         _scheduler.Register(EventType.PPU_HBlankEnd,     OnHBlankEnd);
@@ -154,9 +161,12 @@ internal partial class PPU
     {
         DisplayControl.Write(0, WriteMask.Both);
         DisplayStatus.Write(0, WriteMask.Both);
+        WindowOutside.Reset();
+        GreenSwap.Reset();
+        Mosaic.Reset();
+        Blend.Reset();
 
-        Greenswap = 0;
-        VCount    = 0;
+        VCount = 0;
 
         for (int i = 0; i < 4; i++)
             Backgrounds[i].Reset();
