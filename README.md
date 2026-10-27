@@ -1,7 +1,7 @@
 # Trident
 A very WIP GBA emulator written in C#.
 
-Trident is somewhat complete, but it is missing audio and a fair chunk of PPU features such as special effects, windowing, and mosaic. The GUI is made entirely in ImGUI.NET.
+Trident is somewhat complete, but it is missing audio. Many games may not boot or be unstable due to various bugs. The GUI is made entirely in ImGUI.NET.
 
 ## Screenshots
 <img width="1916" height="1029" alt="image" src="https://github.com/user-attachments/assets/7c18521f-d579-4122-a826-89608b27c92d" />
