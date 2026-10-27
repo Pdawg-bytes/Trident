@@ -78,7 +78,7 @@ public class Scheduler
     internal void SkipToNextEvent() => Step(NextTimestamp - CurrentTimestamp);
 
 
-    internal void Schedule(EventType eventType, ulong delay, uint priority = 0, ulong ctx = 0)
+    internal ulong Schedule(EventType eventType, ulong delay, uint priority = 0, ulong ctx = 0)
     {
         var evt = new SchedulerEvent(
             timestamp: CurrentTimestamp + delay,
@@ -89,6 +89,7 @@ public class Scheduler
         );
 
         _heap.Insert(evt);
+        return evt.UniqueID;
     }
 
     internal void Remove(SchedulerEvent evt) => Remove(evt.UniqueID);

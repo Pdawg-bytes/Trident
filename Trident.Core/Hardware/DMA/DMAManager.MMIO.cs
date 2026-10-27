@@ -43,7 +43,9 @@ internal partial class DMAManager
             channel.Enabled        = (value & (1 << 15)) != 0;
 
             if (channel.Enabled && !wasEnabled)
-                InitializeDMA(id);
+                InitializeDMA(channel);
+            else if (!channel.Enabled)
+                Dequeue(channel);
         }
     }
 

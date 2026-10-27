@@ -120,12 +120,14 @@ internal class TimerManager
         ch.Running = true;
         ch.TimestampStarted = _scheduler.CurrentTimestamp;
 
-        _scheduler.Schedule(EventType.TMR_Overflow, cyclesToOverflow, ctx: (ulong)ch.ID);
+        ch.OverflowEventID = _scheduler.Schedule(EventType.TMR_Overflow, cyclesToOverflow, ctx: (ulong)ch.ID);
     }
 
     private void StopChannel(TimerChannel ch)
     {
         if (!ch.Running) return;
+
+        _scheduler.Remove(ch.OverflowEventID);
 
         ch.Counter += GetCounterDelta(ch);
 
@@ -211,4 +213,5 @@ internal class TimerChannel
 
     internal bool  Running;
     internal ulong TimestampStarted;
+    internal ulong OverflowEventID;
 }

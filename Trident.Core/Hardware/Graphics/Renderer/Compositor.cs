@@ -38,7 +38,7 @@ internal partial class PPU
 
     private void CompositeScanline(uint y, byte mode)
     {
-        int bgCount         = CollectSortedBGs(mode);
+        int bgCount         = SortBGs(mode);
         WindowCache windows = CacheWindows(y);
         BlendCache blend    = CacheBlend();
         LayerPixel backdrop = BackdropPixel;
@@ -77,7 +77,7 @@ internal partial class PPU
     }
 
 
-    private int CollectSortedBGs(byte mode)
+    private int SortBGs(byte mode)
     {
         uint[] active = ActiveBGs[mode];
         SortActiveBGs(active);
