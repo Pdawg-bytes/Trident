@@ -34,10 +34,10 @@ internal partial class PPU
         new(1)
     ];
 
-    private readonly LayerPixel[][] _bgLines = new LayerPixel[4][];
-    private readonly LayerPixel[]   _objLine = new LayerPixel[ScreenWidth];
-    private int _objDrawCycles = 0;
-    private uint _pixelGeneration = 1;
+    private readonly LayerPixel[][] _bgLines   = new LayerPixel[4][];
+    private readonly LayerPixel[]   _objLine   = new LayerPixel[ScreenWidth];
+    private readonly bool[]         _objWindow = new bool[ScreenWidth];
+    private uint _pixelGeneration              = 1;
 
     private readonly Scheduler _scheduler;
 
@@ -175,7 +175,6 @@ internal partial class PPU
             _bgLines[i] = new LayerPixel[ScreenWidth];
 
         Array.Clear(_objLine);
-        _objDrawCycles = 0;
 
         _pixelGeneration = 1;
         ResetScanlineBuffers();

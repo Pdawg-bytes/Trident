@@ -47,16 +47,27 @@ public class Framebuffer
     }
 
 
-    internal static uint ToArgb(ushort raw)
+    private static readonly uint[] ArgbTable = BuildArgbTable();
+
+    private static uint[] BuildArgbTable()
     {
-        int red   = (raw >> 0)  & 0x1F;
-        int green = (raw >> 5)  & 0x1F;
-        int blue  = (raw >> 10) & 0x1F;
+        uint[] table = new uint[0x8000];
 
-        red   = (red   << 3) | (red   >> 2);
-        green = (green << 3) | (green >> 2);
-        blue  = (blue  << 3) | (blue  >> 2);
+        for (int raw = 0; raw < table.Length; raw++)
+        {
+            int red   = (raw >> 0)  & 0x1F;
+            int green = (raw >> 5)  & 0x1F;
+            int blue  = (raw >> 10) & 0x1F;
 
-        return (uint)(0xFF << 24 | red << 16 | green << 8 | blue);
+            red   = (red   << 3) | (red   >> 2);
+            green = (green << 3) | (green >> 2);
+            blue  = (blue  << 3) | (blue  >> 2);
+
+            table[raw] = (uint)(0xFF << 24 | red << 16 | green << 8 | blue);
+        }
+
+        return table;
     }
+
+    internal static uint ToArgb(ushort raw) => ArgbTable[raw & 0x7FFF];
 }

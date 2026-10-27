@@ -215,6 +215,7 @@ internal class EmulatorWindow : GameWindow
 
         AddWidget(new BackgroundLayerWidget(_monoFont, _gba.GetBackgroundSnapshot, _gba.RenderBGToBuffer));
         AddWidget(new SpriteViewerWidget(_monoFont, _gba.GetSpriteSnapshot, _gba.RenderSpriteToBuffer));
+        AddWidget(new EffectsWidget(_monoFont, _gba.GetEffectsSnapshot));
         AddWidget(new PaletteViewerWidget(_monoFont, _gba.GetPaletteSnapshot));
 
         MemoryViewer memView = new(_monoFont);

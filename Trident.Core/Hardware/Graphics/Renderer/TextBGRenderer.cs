@@ -25,11 +25,11 @@ internal partial class PPU
         var (width, height) = GetTextBGSize(bg.ScreenSize);
 
         uint charBase = bg.CharBaseBlock * 0x4000u;
-        uint bgY      = (y + yOffset) & (height - 1u);
+        uint bgY      = ((uint)Mosaic.BGY(bg.Mosaic, (int)y) + yOffset) & (height - 1u);
 
         for (uint x = 0; x < ScreenWidth; x++)
         {
-            uint bgX = (x + xOffset) & (width - 1u);
+            uint bgX = ((uint)Mosaic.BGX(bg.Mosaic, (int)x) + xOffset) & (width - 1u);
 
             var (color, transparent) = SampleTextBGTexel(bgX, bgY, bg.ScreenBaseBlock, charBase, use256, width);
 

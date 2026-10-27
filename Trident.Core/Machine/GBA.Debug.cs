@@ -26,6 +26,7 @@ public sealed partial class GBA
 
     public BackgroundSnapshot GetBackgroundSnapshot() => PPU.GetBackgroundSnapshot();
     public SpriteSnapshot GetSpriteSnapshot()         => PPU.GetSpriteSnapshot();
+    public EffectsSnapshot GetEffectsSnapshot()       => PPU.GetEffectsSnapshot();
     public PaletteSnapshot GetPaletteSnapshot()       => PPU.GetPaletteSnapshot();
 
     public bool RenderSpriteToBuffer(int spriteIndex, Span<uint> pixels, out int width, out int height)  => PPU.RenderSpriteToBuffer(spriteIndex, pixels, out width, out height);

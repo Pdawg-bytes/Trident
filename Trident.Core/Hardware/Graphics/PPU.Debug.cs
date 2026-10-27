@@ -49,6 +49,25 @@ internal partial class PPU
         );
     }
 
+    internal EffectsSnapshot GetEffectsSnapshot() => new
+    (
+        DisplayControl.Enable[5],
+        DisplayControl.Enable[6],
+        DisplayControl.Enable[7],
+        MakeWindowSnapshot(Windows[0]),
+        MakeWindowSnapshot(Windows[1]),
+        new EffectsSnapshot.RegionSnapshot(WindowOutside.OutsideLayers, WindowOutside.OutsideOBJEnabled, WindowOutside.OutsideFXEnabled),
+        new EffectsSnapshot.RegionSnapshot(WindowOutside.OBJWindowLayers, WindowOutside.OBJWindowOBJEnabled, WindowOutside.OBJWindowFXEnabled),
+        new EffectsSnapshot.MosaicSnapshot(Mosaic.BGHSize, Mosaic.BGVSize, Mosaic.OBJHSize, Mosaic.OBJVSize),
+        new EffectsSnapshot.BlendSnapshot((BlendModeKind)Blend.Mode, TargetMask(Blend.FirstTarget), TargetMask(Blend.SecondTarget), Blend.EVA, Blend.EVB, Blend.EVY)
+    );
+
+    private static EffectsSnapshot.WindowSnapshot MakeWindowSnapshot(Window window) => new
+    (
+        window.Left, window.Right, window.Top, window.Bottom,
+        new EffectsSnapshot.RegionSnapshot(window.Layers, window.OBJEnabled, window.FXEnabled)
+    );
+
     internal unsafe SpriteSnapshot GetSpriteSnapshot()
     {
         byte* oamPtr               = (byte*)_oam.RawPointer;

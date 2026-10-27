@@ -384,6 +384,14 @@ internal sealed class Mosaic
     internal byte OBJHSize = 1;
     internal byte OBJVSize = 1;
 
+    internal int BGX(bool enabled, int x) => enabled ? Snap(x, BGHSize) : x;
+    internal int BGY(bool enabled, int y) => enabled ? Snap(y, BGVSize) : y;
+
+    internal int ObjXOffset(bool enabled, int screenX) => enabled ? screenX - Snap(screenX, OBJHSize) : 0;
+    internal int ObjYOffset(bool enabled, int y)       => enabled ? y       - Snap(y,       OBJVSize) : 0;
+
+    private static int Snap(int coordinate, byte size) => coordinate - coordinate % (size + 1);
+
     internal void Write(ushort value, WriteMask mask)
     {
         if (mask.IsLower())

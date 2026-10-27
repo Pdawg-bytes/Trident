@@ -23,18 +23,20 @@ internal partial class PPU
         byte priority = bg.Priority;
         byte source   = (byte)bg.ID;
 
-        int xRef = bg.Lerp.X;
-        int yRef = bg.Lerp.Y;
-
         short pa = bg.P[0];
         short pb = bg.P[1];
         short pc = bg.P[2];
         short pd = bg.P[3];
 
+        int lineOffset = (int)y - Mosaic.BGY(bg.Mosaic, (int)y);
+        int xRef       = bg.Lerp.X - lineOffset * pb;
+        int yRef       = bg.Lerp.Y - lineOffset * pd;
+
         for (uint x = 0; x < ScreenWidth; x++)
         {
-            int texX = xRef >> 8;
-            int texY = yRef >> 8;
+            int sampleX = Mosaic.BGX(bg.Mosaic, (int)x);
+            int texX    = (xRef + sampleX * pa) >> 8;
+            int texY    = (yRef + sampleX * pc) >> 8;
 
             (ushort color, bool transparent) = TSampler.Mode switch
             {
@@ -51,9 +53,6 @@ internal partial class PPU
             px.Priority    = priority;
             px.Source      = source;
             px.Generation  = _pixelGeneration;
-
-            xRef += pa;
-            yRef += pc;
         }
 
         bg.Lerp.X += pb; 
