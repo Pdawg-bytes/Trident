@@ -8,7 +8,8 @@ internal partial class MMIO
     private readonly Func<ushort> _zeroRead = () => 0;
     private readonly Action<ushort, WriteMask> _emptyWrite = (_, _) => { };
 
-    private ushort _soundBias = 0;
+    private ushort _soundBias;
+    private ushort _rcnt;
 
     private void InitializeRegisterMap()
     {
@@ -65,16 +66,32 @@ internal partial class MMIO
         RegisterDMAChannel(3, DMA3SAD, DMA3DAD, DMA3CNT_L, DMA3CNT_H);
 
 
-        // Keypad registers
-        SetAccessor(KEYINPUT, _keypad.ReadKeyInput, _emptyWrite);
-        SetAccessor(KEYCNT, _keypad.ReadKeyControl, _keypad.WriteKeyControl);
-
-
         // Timer registers
         RegisterTimerChannel(0, TM0CNT_L, TM0CNT_H);
         RegisterTimerChannel(1, TM1CNT_L, TM1CNT_H);
         RegisterTimerChannel(2, TM2CNT_L, TM2CNT_H);
         RegisterTimerChannel(3, TM3CNT_L, TM3CNT_H);
+
+
+        // Keypad registers
+        SetAccessor(KEYINPUT, _keypad.ReadKeyInput, _emptyWrite);
+        SetAccessor(KEYCNT, _keypad.ReadKeyControl, _keypad.WriteKeyControl);
+
+
+        // TEMP
+        SetAccessor
+        (
+            RCNT,
+            () => _rcnt,
+            (value, mask) =>
+            {
+                if (mask.IsLower())
+                    _rcnt = (ushort)((_rcnt & 0xFF00) | (value & 0x00FF));
+
+                if (mask.IsUpper())
+                    _rcnt = (ushort)((_rcnt & 0x00FF) | (value & 0xFF00));
+            }
+        );
 
 
         // Interrupt Controller registers

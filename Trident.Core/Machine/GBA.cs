@@ -163,6 +163,8 @@ public sealed partial class GBA : IDisposable
         _vram.Reset();
         _oam.Reset();
 
+        _mmio.Reset();
+
         CPU.Reset();
         _irqController.Reset();
         _dmaManager.Reset();

@@ -131,6 +131,12 @@ internal partial class MMIO : MemoryBase
     }
 
 
+    internal override void Reset()
+    {
+        _memory.Clear();
+        _rcnt = 0x8000;
+    }
+
     public override uint BaseAddress => 0x04000000;
     public override uint Length      => 0x400;
 }
