@@ -60,9 +60,9 @@ internal partial class PPU
                     InsertLayer(objPx, ref top, ref below);
             }
 
-            for (int i = 0; i < bgCount; i++)
+            for (uint i = 0; i < bgCount; i++)
             {
-                if ((layers & _sortedBGBits[i]) == 0)
+                if ((layers & GetUnsafe(_sortedBGBits, i)) == 0)
                     continue;
 
                 ref LayerPixel px = ref GetUnsafe(_sortedBGLines[i], x);
