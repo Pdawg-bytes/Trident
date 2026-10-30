@@ -8,7 +8,6 @@ internal partial class MMIO
     private readonly Func<ushort> _zeroRead = () => 0;
     private readonly Action<ushort, WriteMask> _emptyWrite = (_, _) => { };
 
-    private ushort _soundBias;
     private ushort _rcnt;
 
     private void InitializeRegisterMap()
@@ -43,20 +42,36 @@ internal partial class MMIO
         SetAccessor(BLDY,     _zeroRead,              _ppu.Blend.WriteBrightness);
 
 
-        // TEMP
-        SetAccessor
-        (   
-            SOUNDBIAS, 
-            ()            => _soundBias, 
-            (value, mask) =>
-            {
-                if (mask.IsLower())
-                    _soundBias = (ushort)((_soundBias & 0xFF00) | (value & 0x00FF));
-            
-                if (mask.IsUpper())
-                    _soundBias = (ushort)((_soundBias & 0x00FF) | (value & 0xFF00));
-            }
-        );
+        // Audio registers
+        SetAccessor(SOUND1CNT_L, _apu.Square1.ReadSweep,     _apu.Square1.WriteSweep);
+        SetAccessor(SOUND1CNT_H, _apu.Square1.ReadControl,   _apu.Square1.WriteControl);
+        SetAccessor(SOUND1CNT_X, _apu.Square1.ReadFrequency, _apu.Square1.WriteFrequency);
+
+        SetAccessor(SOUND2CNT_L, _apu.Square2.ReadControl,   _apu.Square2.WriteControl);
+        SetAccessor(SOUND2CNT_H, _apu.Square2.ReadFrequency, _apu.Square2.WriteFrequency);
+
+        SetAccessor(SOUND3CNT_L, _apu.Wave.ReadControl,      _apu.Wave.WriteControl);
+        SetAccessor(SOUND3CNT_H, _apu.Wave.ReadVolume,       _apu.Wave.WriteVolume);
+        SetAccessor(SOUND3CNT_X, _apu.Wave.ReadFrequency,    _apu.Wave.WriteFrequency);
+
+        SetAccessor(SOUND4CNT_L, _apu.Noise.ReadControl,     _apu.Noise.WriteControl);
+        SetAccessor(SOUND4CNT_H, _apu.Noise.ReadFrequency,   _apu.Noise.WriteFrequency);
+
+        for (int i = 0; i < 8; i++)
+        {
+            int index = i;
+            SetAccessor(WAVE_RAM + (uint)(i * 2), () => _apu.Wave.ReadWaveRAM(index), (v, m) => _apu.Wave.WriteWaveRAM(index, v, m));
+        }
+
+        SetAccessor(SOUNDCNT_L, _apu.ReadControlL, _apu.WriteControlL);
+        SetAccessor(SOUNDCNT_H, _apu.ReadControlH, _apu.WriteControlH);
+        SetAccessor(SOUNDCNT_X, _apu.ReadControlX, _apu.WriteControlX);
+        SetAccessor(SOUNDBIAS,  _apu.ReadBias,     _apu.WriteBias);
+
+        SetAccessor(FIFO_A + 0, _zeroRead, (v, m) => _apu.WriteFIFO(0, v, m));
+        SetAccessor(FIFO_A + 2, _zeroRead, (v, m) => _apu.WriteFIFO(0, v, m));
+        SetAccessor(FIFO_B + 0, _zeroRead, (v, m) => _apu.WriteFIFO(1, v, m));
+        SetAccessor(FIFO_B + 2, _zeroRead, (v, m) => _apu.WriteFIFO(1, v, m));
 
 
         // DMA registers
@@ -85,11 +100,7 @@ internal partial class MMIO
             () => _rcnt,
             (value, mask) =>
             {
-                if (mask.IsLower())
-                    _rcnt = (ushort)((_rcnt & 0xFF00) | (value & 0x00FF));
-
-                if (mask.IsUpper())
-                    _rcnt = (ushort)((_rcnt & 0x00FF) | (value & 0xFF00));
+                _rcnt = MMIO.Merge(_rcnt, value, mask);
             }
         );
 
@@ -128,24 +139,24 @@ internal partial class MMIO
     private void RegisterTimerChannel(int id, uint cntL, uint cntH)
     {
         int localId = id;
-        SetAccessor(cntL, () => _timerManager.ReadCounterReload(localId), (value, mask) => _timerManager.WriteReload(localId, value, mask));
-        SetAccessor(cntH, () => _timerManager.ReadControl(localId),       (value, mask) => _timerManager.WriteControl(localId, value, mask));
+        SetAccessor(cntL, () => _timerManager.ReadCounterReload(localId), (v, m) => _timerManager.WriteReload(localId, v, m));
+        SetAccessor(cntH, () => _timerManager.ReadControl(localId),       (v, m) => _timerManager.WriteControl(localId, v, m));
     }
 
 
     private void RegisterDMAChannel(uint id, uint sadBase, uint dadBase, uint cntL, uint cntH)
     {
         // DMAXCNT
-        SetAccessor(cntL, _zeroRead,                            (value, mask) => _dmaManager.WriteDMAControlL(value, mask, id));
-        SetAccessor(cntH, () => _dmaManager.ReadDMAControl(id), (value, mask) => _dmaManager.WriteDMAControlH(value, mask, id));
+        SetAccessor(cntL, _zeroRead,                            (v, m) => _dmaManager.WriteDMAControlL(v, m, id));
+        SetAccessor(cntH, () => _dmaManager.ReadDMAControl(id), (v, m) => _dmaManager.WriteDMAControlH(v, m, id));
 
         // DMAXSAD
-        SetAccessor(sadBase + 0, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Lower, mask, id, source: true));
-        SetAccessor(sadBase + 2, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Upper, mask, id, source: true));
+        SetAccessor(sadBase + 0, _zeroRead, (v, m) => _dmaManager.WriteDMATarget(v, WriteMask.Lower, m, id, source: true));
+        SetAccessor(sadBase + 2, _zeroRead, (v, m) => _dmaManager.WriteDMATarget(v, WriteMask.Upper, m, id, source: true));
 
         // DMAXDAD
-        SetAccessor(dadBase + 0, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Lower, mask, id, source: false));
-        SetAccessor(dadBase + 2, _zeroRead, (value, mask) => _dmaManager.WriteDMATarget(value, WriteMask.Upper, mask, id, source: false));
+        SetAccessor(dadBase + 0, _zeroRead, (v, m) => _dmaManager.WriteDMATarget(v, WriteMask.Lower, m, id, source: false));
+        SetAccessor(dadBase + 2, _zeroRead, (v, m) => _dmaManager.WriteDMATarget(v, WriteMask.Upper, m, id, source: false));
     }
 
 

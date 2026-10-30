@@ -1,5 +1,6 @@
-﻿using ImGuiNET;
+using ImGuiNET;
 using Trident.Popups;
+using Trident.Audio;
 using Trident.Styling;
 using Trident.Widgets;
 using System.Text.Json;
@@ -34,6 +35,7 @@ internal class EmulatorWindow : GameWindow
 
     private readonly GBA _gba;
     private readonly EmulatorThread _emulatorThread;
+    private readonly AudioOutput _audioOutput;
 
     private int _framebufferTexture;
     private readonly uint[] _frameUploadBuffer = new uint[GBAWidth * GBAHeight];
@@ -58,6 +60,7 @@ internal class EmulatorWindow : GameWindow
     {
         _gba = gba;
         _emulatorThread = new(gba);
+        _audioOutput = new(gba.AudioStream);
 
         _performancePopup = new(() => _emulatorThread.CurrentSpeed);
 
@@ -157,6 +160,7 @@ internal class EmulatorWindow : GameWindow
         };
 
 
+        _audioOutput.Start();
         _emulatorThread.Start();
 
         _shortcutManager.RegisterShortcut(new(Keys.R, Ctrl: true), _emulatorThread.Reset);
@@ -187,6 +191,7 @@ internal class EmulatorWindow : GameWindow
         base.OnClosing(e);
 
         _emulatorThread?.Stop();
+        _audioOutput.Dispose();
         _controller.Dispose();
     }
 
@@ -212,6 +217,7 @@ internal class EmulatorWindow : GameWindow
         AddWidget(new IRQStateWidget(_monoFont, _gba.GetIRQSnapshot));
         AddWidget(new DMAControllerWidget(_monoFont, _gba.GetDMASnapshot));
         AddWidget(new TimerWidget(_monoFont, _gba.GetTimerSnapshot));
+        AddWidget(new APUWidget(_monoFont, _gba.GetAPUSnapshot, _gba.CopyAudioScope));
 
         AddWidget(new BackgroundLayerWidget(_monoFont, _gba.GetBackgroundSnapshot, _gba.RenderBGToBuffer));
         AddWidget(new SpriteViewerWidget(_monoFont, _gba.GetSpriteSnapshot, _gba.RenderSpriteToBuffer));

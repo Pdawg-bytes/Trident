@@ -1,9 +1,10 @@
-﻿using Trident.Core.Bus;
+using Trident.Core.Bus;
 using Trident.Core.CPU;
 using Trident.Core.Memory;
 using Trident.Core.Scheduling;
 using Trident.Core.Hardware.IO;
 using Trident.Core.Hardware.DMA;
+using Trident.Core.Hardware.Audio;
 using Trident.Core.CPU.Registers;
 using Trident.Core.Memory.GamePak;
 using Trident.Core.Memory.MappedIO;
@@ -25,6 +26,15 @@ public sealed partial class GBA : IDisposable
     private readonly InterruptController _irqController;
     private readonly DMAManager _dmaManager;
     private readonly TimerManager _timerManager;
+
+    private readonly APU _apu;
+    public AudioStream AudioStream { get; }
+
+    public bool AudioMuted
+    {
+        get => _apu.Muted;
+        set => _apu.Muted = value;
+    }
 
     public Framebuffer Framebuffer = new();
     internal PPU PPU;
@@ -51,19 +61,24 @@ public sealed partial class GBA : IDisposable
     private readonly WaitControl _waitControl = new();
     private readonly PostHalt _postHalt;
 
+    internal const double CPUFrequency = 16777216.0;
+
     public GBA()
     {
         CPU = new(Scheduler);
         Func<uint> getPC = () => CPU.Registers.GetRegisterRef(15);
 
-        _postHalt = new(() => CPU.Halted = true, getPC);
+        _postHalt      = new(() => CPU.Halted = true, getPC);
         _irqController = new(() => CPU.Halted = false, () => CPU.Halted);
         CPU.AttachIRQController(_irqController);
         CPU.AttachBreakpoints(Breakpoints);
 
         _dmaManager = new(_irqController.Raise, Scheduler);
 
-        _timerManager = new(_irqController.Raise, Scheduler);
+        AudioStream = new();
+        _apu        = new(Scheduler, _dmaManager.Trigger, AudioStream);
+
+        _timerManager = new(_irqController.Raise, Scheduler, _apu.OnTimerOverflow);
 
         _keypad = new(_irqController.Raise);
 
@@ -88,7 +103,7 @@ public sealed partial class GBA : IDisposable
         builder.Attach(MemoryRegion.VRAM,  _vram);
         builder.Attach(MemoryRegion.OAM,   _oam);
 
-        _mmio = new(Scheduler.Step, PPU, _dmaManager, _timerManager, _keypad, _irqController, _waitControl, _postHalt);
+        _mmio = new(Scheduler.Step, PPU, _apu, _dmaManager, _timerManager, _keypad, _irqController, _waitControl, _postHalt);
         builder.Attach(MemoryRegion.MMIO, _mmio);
 
         CPU.AttachBus(builder.Build(Scheduler.Step));
@@ -169,6 +184,7 @@ public sealed partial class GBA : IDisposable
         _irqController.Reset();
         _dmaManager.Reset();
         _timerManager.Reset();
+        _apu.Reset();
 
         PPU.Reset();
         Framebuffer.Clear();

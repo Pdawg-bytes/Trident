@@ -43,6 +43,7 @@ public class EmulatorThread
     internal void SetPause(bool shouldPause)
     {
         _paused = shouldPause;
+        _gba.AudioMuted = shouldPause || !_speedCapped;
 
         if (shouldPause)
             _frameCounter.Reset();
@@ -53,6 +54,7 @@ public class EmulatorThread
     internal void SetSpeedCap(bool shouldCapSpeed)
     {
         _speedCapped = shouldCapSpeed;
+        _gba.AudioMuted = _paused || !shouldCapSpeed;
 
         if (shouldCapSpeed)
             _nextFrameTime = _frameTimer.Elapsed.TotalSeconds;

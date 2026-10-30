@@ -51,13 +51,8 @@ internal partial class DMAManager
 
     internal void WriteDMAControlL(ushort value, WriteMask mask, uint id)
     {
-        DMAChannel channel = _channels[id];
-
-        if (mask.IsLower())
-            channel.TransferLength = (ushort)((channel.TransferLength & 0xFF00) | value & 0x00FF);
-
-        if (mask.IsUpper())
-            channel.TransferLength = (ushort)((channel.TransferLength & 0x00FF) | value & 0xFF00);
+        DMAChannel channel     = _channels[id];
+        channel.TransferLength = MMIO.Merge(channel.TransferLength, value, mask);
     }
 
 
@@ -65,29 +60,10 @@ internal partial class DMAManager
     {
         ref uint address = ref (source ? ref _channels[id].Source : ref _channels[id].Destination);
 
-        uint lo = (uint)(value & 0x00FF);
-        uint hi = (uint)(value & 0xFF00);
-
-        switch (wordMask)
-        {
-            case WriteMask.Lower:
-                if (byteMask.IsLower())
-                    address = (address & ~(0xFFu << 0)) | lo;
-                if (byteMask.IsUpper())
-                    address = (address & ~(0xFFu << 8)) | hi;
-                break;
-
-            case WriteMask.Upper:
-                if (byteMask.IsLower())
-                    address = (address & ~(0xFFu << 16)) | (lo << 16);
-                if (byteMask.IsUpper())
-                    address = (address & ~(0xFFu << 24)) | (hi << 16);
-                break;
-        }
-
+        address  = MMIO.Merge(address, value, wordMask, byteMask);
         address &= source ? DMASrcMask(id) : DMADstMask(id);
     }
 
-    private uint DMASrcMask(uint id) => id == 0 ? 0x07FFFFFFu : 0x0FFFFFFFu;
-    private uint DMADstMask(uint id) => id == 3 ? 0x0FFFFFFFu : 0x07FFFFFFu;
+    private static uint DMASrcMask(uint id) => id == 0 ? 0x07FFFFFFu : 0x0FFFFFFFu;
+    private static uint DMADstMask(uint id) => id == 3 ? 0x0FFFFFFFu : 0x07FFFFFFu;
 }

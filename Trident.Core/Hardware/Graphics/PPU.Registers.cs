@@ -41,10 +41,10 @@ internal sealed class DisplayControl
 
     internal void Write(ushort value, WriteMask mask)
     {
+        _dispcnt = MMIO.Merge(_dispcnt, value, mask);
+
         if (mask.IsLower())
         {
-            _dispcnt = (ushort)((_dispcnt & 0xFF00) | (byte)value);
-
             BackgroundMode     = (byte)(_dispcnt & 0b111);
             CGBMode            = (_dispcnt & (1 << 3)) != 0;
             FrameSelect        = (_dispcnt & (1 << 4)) != 0;
@@ -55,8 +55,6 @@ internal sealed class DisplayControl
 
         if (mask.IsUpper())
         {
-            _dispcnt = (ushort)((_dispcnt & 0x00FF) | (value & 0xFF00));
-
             for (int i = 0; i < 8; i++)
                 Enable[i] = (_dispcnt & (1 << (8 + i))) != 0;
         }
@@ -161,10 +159,10 @@ internal sealed class Background(uint bg)
 
     internal void WriteControl(ushort value, WriteMask mask)
     {
+        Raw = MMIO.Merge(Raw, value, mask);
+
         if (mask.IsLower())
         {
-            Raw = (ushort)((Raw & 0xFF00) | (byte)value);
-
             Priority      = (byte)((value >> 0) & 0b11);
             CharBaseBlock = (byte)((value >> 2) & 0b11);
             Mosaic        = ((value >> 6) & 1) != 0;
@@ -173,8 +171,6 @@ internal sealed class Background(uint bg)
 
         if (mask.IsUpper())
         {
-            Raw = (ushort)((Raw & 0x00FF) | (value & 0xFF00));
-
             ScreenBaseBlock = (byte)((value >> 8) & 0x1F);
             ScreenSize      = (byte)(value >> 14);
 
@@ -191,22 +187,14 @@ internal sealed class Background(uint bg)
     {
         ref ushort offset = ref (vertical ? ref YOffset : ref XOffset);
 
-        if (mask.IsLower())
-            offset = (ushort)((offset & 0xFF00) | (byte)value);
-
-        if (mask.IsUpper())
-            offset = (ushort)((offset & 0x00FF) | (value & 0x0100));
+        offset = (ushort)(MMIO.Merge(offset, (ushort)(value & 0x01FF), mask) & 0x01FF);
     }
 
     internal void WriteAffineParameter(AffineParameter p, ushort value, WriteMask mask)
     {
         ref short param = ref P[(int)p];
 
-        if (mask.IsLower())
-            param = (short)((param & 0xFF00) | (byte)value);
-
-        if (mask.IsUpper())
-            param = (short)((param & 0x00FF) | (value & 0xFF00));
+        param = (short)MMIO.Merge((ushort)param, value, mask);
     }
 
     internal void WriteReference(bool vertical, ushort value, WriteMask wordMask, WriteMask byteMask)
@@ -215,28 +203,12 @@ internal sealed class Background(uint bg)
 
         uint raw = (uint)param;
 
-        uint lo = (uint)(value & 0x00FF);
-        uint hi = (uint)(value & 0xFF00);
+        raw = MMIO.Merge(raw, value, wordMask, byteMask);
 
-        switch (wordMask)
+        if (wordMask == WriteMask.Upper && byteMask.IsUpper())
         {
-            case WriteMask.Lower:
-                if (byteMask.IsLower())
-                    raw = (raw & ~(0xFFu << 0)) | lo;
-                if (byteMask.IsUpper())
-                    raw = (raw & ~(0xFFu << 8)) | hi;
-                break;
-
-            case WriteMask.Upper:
-                if (byteMask.IsLower())
-                    raw = (raw & ~(0xFFu << 16)) | (lo << 16);
-                if (byteMask.IsUpper())
-                {
-                    raw  = (raw & ~(0xFFu << 24)) | (hi << 16);
-                    raw &= 0x0FFFFFFF;
-                    raw  = (uint)raw.ExtendFrom(27);
-                }
-                break;
+            raw &= 0x0FFFFFFF;
+            raw = (uint)raw.ExtendFrom(27);
         }
 
         param = (int)raw;
@@ -437,10 +409,10 @@ internal sealed class BlendControl
 
     internal void WriteControl(ushort value, WriteMask mask)
     {
+        _bldcnt = (ushort)(MMIO.Merge(_bldcnt, (ushort)(value & 0x3FFF), mask) & 0x3FFF);
+
         if (mask.IsLower())
         {
-            _bldcnt = (ushort)((_bldcnt & 0xFF00) | (byte)value);
-
             for (int i = 0; i < 6; i++)
                 FirstTarget[i] = (_bldcnt & (1 << i)) != 0;
 
@@ -449,8 +421,6 @@ internal sealed class BlendControl
 
         if (mask.IsUpper())
         {
-            _bldcnt = (ushort)((_bldcnt & 0x00FF) | (value & 0x3F00));
-
             for (int i = 0; i < 6; i++)
                 SecondTarget[i] = (_bldcnt & (1 << (8 + i))) != 0;
         }

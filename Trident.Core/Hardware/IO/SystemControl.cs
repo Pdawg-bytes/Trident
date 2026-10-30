@@ -85,8 +85,6 @@ internal class WaitControl
             AccessTimings16[(int)PipelineAccess.Sequential][3]    = NonSequentialTimings[sramWait];
             AccessTimings32[(int)PipelineAccess.NonSequential][3] = NonSequentialTimings[sramWait];
             AccessTimings32[(int)PipelineAccess.Sequential][3]    = NonSequentialTimings[sramWait];
-
-            _waitcnt = (ushort)((_waitcnt & 0xFF00) | (value & 0x00FF));
         }
 
         if (mask.IsUpper())
@@ -98,9 +96,9 @@ internal class WaitControl
 
             PHITerminalSpeed =  (value >> 11) & 0b11;
             PrefetchEnabled  = ((value >> 14) & 0b01) != 0;
-
-            _waitcnt = (ushort)((_waitcnt & 0x00FF) | (value & 0x7F00));
         }
+
+        _waitcnt = MMIO.Merge(_waitcnt, (ushort)(value & 0x7FFF), mask);
     }
 
     private void SetWaitstatesROM(uint region, uint nonSeq, uint seq)

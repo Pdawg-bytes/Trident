@@ -18,20 +18,13 @@ internal class Keypad(Action<InterruptSource> raiseIRQ)
 
     internal void WriteKeyControl(ushort value, WriteMask mask)
     {
-        if (mask.IsLower())
-        {
-            _keyCntMask &= 0xFF00;
-            _keyCntMask |= (ushort)(value & 0x00FF);
-        }
-
         if (mask.IsUpper())
         {
-            _keyCntMask &= 0x00FF;
-            _keyCntMask |= (ushort)(value & 0x0300);
-
             _irqEnabled = (value & 0x4000) != 0;
             _irqMode = (IRQCondition)((value & 0x8000) >> 15);
         }
+
+        _keyCntMask = (ushort)(MMIO.Merge(_keyCntMask, (ushort)(value & 0x03FF), mask) & 0x03FF);
 
         if (ShouldRaiseIRQ()) _raiseIRQ(InterruptSource.Keypad);
     }

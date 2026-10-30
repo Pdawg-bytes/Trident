@@ -12,11 +12,13 @@ internal class TimerManager
     private readonly TimerChannel[] _channels = new TimerChannel[4];
     private readonly Action<InterruptSource, int> _raiseIRQ;
     private readonly Scheduler _scheduler;
+    private readonly Action<int> _onOverflow;
 
-    internal TimerManager(Action<InterruptSource, int> raiseIRQ, Scheduler scheduler)
+    internal TimerManager(Action<InterruptSource, int> raiseIRQ, Scheduler scheduler, Action<int> onOverflow)
     {
-        _raiseIRQ  = raiseIRQ;
-        _scheduler = scheduler;
+        _raiseIRQ   = raiseIRQ;
+        _scheduler  = scheduler;
+        _onOverflow = onOverflow;
 
         for (int i = 0; i < 4; i++)
             _channels[i] = new TimerChannel { ID = i };
@@ -57,12 +59,7 @@ internal class TimerManager
     internal void WriteReload(int id, ushort value, WriteMask mask)
     {
         TimerChannel ch = _channels[id];
-
-        if (mask.IsLower())
-            ch.Reload = (ushort)((ch.Reload & 0xFF00) | (value & 0x00FF));
-
-        if (mask.IsUpper())
-            ch.Reload = (ushort)((ch.Reload & 0x00FF) | (value & 0xFF00));
+        ch.Reload       = MMIO.Merge(ch.Reload, value, mask);
     }
 
     internal ushort ReadControl(int id)
@@ -151,6 +148,8 @@ internal class TimerManager
     private void HandleOverflowCascade(TimerChannel ch)
     {
         ch.Counter = ch.Reload;
+
+        _onOverflow(ch.ID);
 
         if (ch.IRQEnabled)
             _raiseIRQ(InterruptSource.Timer, ch.ID);

@@ -1,6 +1,7 @@
 ﻿using Trident.Core.CPU;
 using Trident.Core.Global;
 using Trident.Core.Hardware.IO;
+using Trident.Core.Hardware.Audio;
 using Trident.Core.Hardware.DMA;
 using Trident.Core.Hardware.Timers;
 using Trident.Core.Hardware.Graphics;
@@ -17,6 +18,7 @@ internal partial class MMIO : MemoryBase
 
 
     private readonly PPU _ppu;
+    private readonly APU _apu;
 
     private readonly DMAManager _dmaManager;
 
@@ -33,6 +35,7 @@ internal partial class MMIO : MemoryBase
     (
         Action<uint> step,
         PPU ppu,
+        APU apu,
         DMAManager dmaManager,
         TimerManager timerManager,
         Keypad keypad,
@@ -42,6 +45,7 @@ internal partial class MMIO : MemoryBase
     ) : base(0, step)
     {
         _ppu           = ppu;
+        _apu           = apu;
         _dmaManager    = dmaManager;
         _timerManager  = timerManager;
         _keypad        = keypad;
@@ -74,6 +78,35 @@ internal partial class MMIO : MemoryBase
             return;
 
         _registers[index].Write(value, WriteMask.Both);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ushort Merge(ushort current, ushort value, WriteMask mask)
+    {
+        if (mask.IsLower())
+            current = (ushort)((current & 0xFF00) | (value & 0x00FF));
+
+        if (mask.IsUpper())
+            current = (ushort)((current & 0x00FF) | (value & 0xFF00));
+
+        return current;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static uint Merge(uint current, ushort value, WriteMask wordMask, WriteMask byteMask)
+    {
+        int shift = wordMask switch
+        {
+            WriteMask.Lower => 0,
+            WriteMask.Upper => 16,
+            _               => -1
+        };
+
+        ushort currentHalfword = (ushort)(current >> shift);
+        ushort mergedHalfword  = Merge(currentHalfword, value, byteMask);
+        uint halfwordMask      = 0xFFFFu << shift;
+
+        return (current & ~halfwordMask) | ((uint)mergedHalfword << shift);
     }
 
 

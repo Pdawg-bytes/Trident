@@ -1,4 +1,4 @@
-﻿using Trident.Core.Memory;
+using Trident.Core.Memory;
 using Trident.Core.Debugging.Snapshots;
 using Trident.Core.Debugging.Disassembly;
 using Trident.Core.Debugging.Breakpoints;
@@ -22,6 +22,11 @@ public sealed partial class GBA
 
 
     public TimerSnapshot GetTimerSnapshot() => _timerManager.GetSnapshot();
+
+    public const int AudioScopeLength = 512;
+
+    public APUSnapshot GetAPUSnapshot() => _apu.GetSnapshot();
+    public void CopyAudioScope(int source, Span<short> destination) => _apu.CopyScope(source, destination);
 
 
     public BackgroundSnapshot GetBackgroundSnapshot() => PPU.GetBackgroundSnapshot();

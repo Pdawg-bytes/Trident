@@ -37,19 +37,14 @@ internal class InterruptController
     }
 
 
-    internal ushort ReadIE() => _interruptEnable;
-    internal ushort ReadIF() => _interruptFlag;
+    internal ushort ReadIE()  => _interruptEnable;
+    internal ushort ReadIF()  => _interruptFlag;
     internal ushort ReadIME() => _globalInterruptEnable ? (ushort)1 : (ushort)0;
 
 
     internal void WriteIE(ushort value, WriteMask mask)
     {
-        if (mask.IsLower())
-            _interruptEnable = (ushort)((_interruptEnable & 0xFF00) | (value & 0x00FF));
-
-        if (mask.IsUpper())
-            _interruptEnable = (ushort)((_interruptEnable & 0x00FF) | (value & 0x3F00));
-
+        _interruptEnable = MMIO.Merge(_interruptEnable, (ushort)(value & 0x3FFF), mask);
         UpdateIRQStatus();
     }
 
